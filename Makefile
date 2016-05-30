@@ -17,6 +17,8 @@ all:
 install.radare.projects:
 	mkdir -p ~/.config/radare2/projects/g2uj23us.dosflash.exe.d
 	cp -fs $(PWD)/radare/g2uj23us.dosflash.exe ~/.config/radare2/projects
+	mkdir -p ~/.config/radare2/projects/g2uj23us.dosflash.coff.d
+	cp -fs $(PWD)/radare/g2uj23us.dosflash.coff ~/.config/radare2/projects
 
 # Download any ISO image that we have a checksum for
 # NOTE: makes an assumption about the Lenovo URL not changing
