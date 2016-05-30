@@ -320,7 +320,7 @@ f str.EMMXXXX0_ 9 0x00005248
 "e file.md5 = e388ed9767dcf877323c54a898c91e66"
 "e file.nowarn = true"
 "e file.openmany = 1"
-"e file.path = /home/hamish/r/thinkpad-dosflash/dosflash.exe"
+"e file.path = dosflash.exe"
 "e file.project = thinkpad.dosflash"
 "e file.sha1 = 656506d560e8f2582fc2115b3d8192f4270da08f"
 "e file.type = mz"
