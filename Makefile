@@ -38,3 +38,6 @@ FAT_OFFSET := 71680
 %.dosflash.coff.orig: %.dosflash.exe.orig
 	./dump_exe.pl $< output_extra >$@
 
+%.dosflash.flat.orig: %.dosflash.coff.orig
+	./dump_coff.pl $< write_flat $@
+
