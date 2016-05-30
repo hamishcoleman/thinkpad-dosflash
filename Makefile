@@ -34,3 +34,6 @@ FAT_OFFSET := 71680
 %.dosflash.exe.orig: %.iso.orig
 	MTOOLS_SKIP_CHECK=1 mcopy -i $^@@$(FAT_OFFSET) ::FLASH/DOSFLASH.EXE $@
 
+%.dosflash.coff.orig: %.dosflash.exe.orig
+	./dump_exe.pl $< output_extra >$@
+
