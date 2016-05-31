@@ -137,9 +137,15 @@ void dump_kvm_regs(struct emu *emu) {
     printf("8=0x%08x 9=0x%08x 10=0x%08x 11=0x%08x 12=0x%08x\n",
         regs.r8,regs.r9,regs.r10,regs.r11,regs.r12);
 #endif
-    __u32 retaddr = *(__u32 *)(emu->stack + regs.rsp - STACK_BASE);
-    printf("si=0x%08llx di=0x%08llx sp=0x%08llx bp=0x%08llx ip=0x%08llx (%07x)\n",
-        regs.rsi,regs.rdi,regs.rsp,regs.rbp,regs.rip,retaddr);
+    printf("si=0x%08llx di=0x%08llx sp=0x%08llx bp=0x%08llx ip=0x%08llx ",
+        regs.rsi,regs.rdi,regs.rsp,regs.rbp,regs.rip);
+
+    __u32 retaddr;
+    __u32 stack_addr = regs.rsp - STACK_BASE;
+    if (stack_addr < STACK_SIZE) {
+        retaddr = *(__u32 *)(emu->stack + stack_addr);
+    }
+    printf("(%07x)\n",retaddr);
 }
 
 void dump_kvm_segment(struct kvm_segment *seg, char *name) {
