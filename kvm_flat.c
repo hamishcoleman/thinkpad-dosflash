@@ -48,7 +48,7 @@ const char * kvm_exit_str[] = {
 };
 
 void dump_kvm_run(struct kvm_run *run) {
-    printf("exit_reason: %s(%i)\n",kvm_exit_str[run->exit_reason],run->exit_reason);
+    printf("%s(%i)\n",kvm_exit_str[run->exit_reason],run->exit_reason);
     switch (run->exit_reason) {
     case KVM_EXIT_INTERNAL_ERROR:
         printf("\tsuberror: 0x%x\n",run->internal.suberror);
@@ -61,14 +61,14 @@ void dump_kvm_regs(int vcpufd) {
     int ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
     if (ret == -1)
         err(1, "KVM_GET_REGS");
-    printf("a=0x%08x b=0x%08x c=0x%08x d=0x%08x si=0x%08x di=0x%08x\n",
-        regs.rax,regs.rbx,regs.rcx,regs.rdx,regs.rsi,regs.rdi);
+    printf("ax=0x%08x bx=0x%08x cx=0x%08x dx=0x%08x flags=0x%08x\n",
+        regs.rax,regs.rbx,regs.rcx,regs.rdx,regs.rflags);
 #if 0
     printf("8=0x%08x 9=0x%08x 10=0x%08x 11=0x%08x 12=0x%08x\n",
         regs.r8,regs.r9,regs.r10,regs.r11,regs.r12);
 #endif
-    printf("sp=0x%08x bp=0x%08x ip=0x%08x flags=0x%08x\n",
-        regs.rsp,regs.rbp,regs.rip,regs.rflags);
+    printf("si=0x%08x di=0x%08x sp=0x%08x bp=0x%08x ip=0x%08x\n",
+        regs.rsi,regs.rdi,regs.rsp,regs.rbp,regs.rip);
 
 }
 
