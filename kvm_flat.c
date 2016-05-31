@@ -49,6 +49,25 @@ struct irq_handler_entry {
     void *data;
 };
 
+#define STACK_SIZE 0x4000
+#define STACK_BASE 0xf0000000
+#define IDT_SIZE 0x1000
+#define IDT_BASE 0xf0010000
+#define GDT_SIZE 0x1000
+#define GDT_BASE 0xf0020000
+
+#define MEM_REGION_GDT   0
+#define MEM_REGION_IDT   1
+#define MEM_REGION_TEXT  3
+#define MEM_REGION_STACK 4
+
+#define SEL_TEXT 0x08 /* gdt[1] */
+#define SEL_DATA 0x10 /* gdt[2] */
+#define SEL_STACK FIXME
+
+uint8_t *kvm_stack;
+
+
 const char * kvm_exit_str[] = {
     "KVM_EXIT_UNKNOWN", "KVM_EXIT_EXCEPTION", "KVM_EXIT_IO",
     "KVM_EXIT_HYPERCALL", "KVM_EXIT_DEBUG", "KVM_EXIT_HLT",
@@ -79,9 +98,9 @@ void dump_kvm_regs(int vcpufd) {
     printf("8=0x%08x 9=0x%08x 10=0x%08x 11=0x%08x 12=0x%08x\n",
         regs.r8,regs.r9,regs.r10,regs.r11,regs.r12);
 #endif
-    printf("si=0x%08llx di=0x%08llx sp=0x%08llx bp=0x%08llx ip=0x%08llx\n",
-        regs.rsi,regs.rdi,regs.rsp,regs.rbp,regs.rip);
-
+    __u32 retaddr = *(__u32 *)(kvm_stack + regs.rsp - STACK_BASE);
+    printf("si=0x%08llx di=0x%08llx sp=0x%08llx bp=0x%08llx ip=0x%08llx (%07x)\n",
+        regs.rsi,regs.rdi,regs.rsp,regs.rbp,regs.rip,retaddr);
 }
 
 void dump_kvm_segment(struct kvm_segment *seg, char *name) {
@@ -91,7 +110,7 @@ void dump_kvm_segment(struct kvm_segment *seg, char *name) {
     } else {
         limit = seg->limit;
     }
-    printf("%s:%x %08llx(%08x)\n",
+    printf("%s:%02x %08llx(%08x)\n",
         name,seg->selector,seg->base,limit);
 }
 
@@ -108,6 +127,8 @@ void dump_kvm_sregs(int vcpufd) {
     printf("cr0=0x%08llx\n",
         sregs.cr0);
     dump_kvm_segment(&sregs.cs,"cs");
+    dump_kvm_segment(&sregs.ds,"ds");
+    dump_kvm_segment(&sregs.es,"es");
     dump_kvm_segment(&sregs.tr,"tr");
     dump_kvm_segment(&sregs.ldt,"ldt");
     dump_kvm_dtable(&sregs.gdt,"gdt");
@@ -120,6 +141,7 @@ void dump_kvm_sregs(int vcpufd) {
 }
 
 void dump_kvm_exit(struct kvm_run *run, int vcpufd) {
+    printf("\n");
     dump_kvm_run(run);
     dump_kvm_regs(vcpufd);
     switch(run->exit_reason) {
@@ -128,22 +150,6 @@ void dump_kvm_exit(struct kvm_run *run, int vcpufd) {
         break;
     }
 }
-
-#define STACK_SIZE 0x4000
-#define STACK_BASE 0xf0000000
-#define IDT_SIZE 0x1000
-#define IDT_BASE 0xf0010000
-#define GDT_SIZE 0x1000
-#define GDT_BASE 0xf0020000
-
-#define MEM_REGION_GDT   0
-#define MEM_REGION_IDT   1
-#define MEM_REGION_TEXT  3
-#define MEM_REGION_STACK 4
-
-#define SEL_TEXT 0x08 /* gdt[1] */
-#define SEL_DATA 0x10 /* gdt[2] */
-#define SEL_STACK FIXME
 
 void setup_gdt(struct kvm_sregs *sregs,int vmfd) {
     struct gdt_entry {
@@ -164,7 +170,7 @@ void setup_gdt(struct kvm_sregs *sregs,int vmfd) {
 
     /* code segment */
     gdt[1].limit_l     = 0xffff;
-    gdt[1].type_flags  = 0x9a;
+    gdt[1].type_flags  = 0x9e;
     gdt[1].limit_flags = 0xcf;
 
     /* data segment */
@@ -212,7 +218,7 @@ void setup_idt(struct kvm_sregs *sregs,int vmfd) {
         idt->hlt[i][0] = 0xe7; /* out imm8,ax */
         idt->hlt[i][1] = 0x7f; /* imm8 = 0x7f */
         idt->hlt[i][2] = 0xcf; /* iret */
-        idt->hlt[i][3] = 0xf4; /* hlt */
+        idt->hlt[i][3] = i;
     }
 
     struct kvm_userspace_memory_region region = {
@@ -234,8 +240,10 @@ void setup_flat_segments(struct kvm_sregs *sregs) {
     sregs->cs.selector = SEL_TEXT; /* gdt[1] */
     sregs->cs.db = 1;
     sregs->cs.g = 1;
+    sregs->cs.type = 0xe; /* x=1, c=1, r=1, a=0 */
     memcpy(&sregs->ds,&sregs->cs,sizeof(sregs->cs));
     sregs->ds.selector = SEL_DATA; /* gdt[2] */
+    sregs->ds.type = 2; /* x=0, e=0, w=1, a=0 */
     /* FIXME - set ds.type correctly sregs->ds.type = 2 ? */
     memcpy(&sregs->es,&sregs->ds,sizeof(sregs->ds));
     memcpy(&sregs->fs,&sregs->ds,sizeof(sregs->ds));
@@ -363,6 +371,7 @@ int load_image(int vmfd, int vcpufd, char *filename, unsigned long entry) {
     ret = ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &region2);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
+    kvm_stack = mem;
 
     /* Initialize registers: instruction pointer for our code, addends, and
      * initial flags required by x86 architecture. */
@@ -380,7 +389,18 @@ int load_image(int vmfd, int vcpufd, char *filename, unsigned long entry) {
     return 0;
 }
 
+void iret_setflags(struct kvm_regs *regs, unsigned int setflags) {
+    __u32 *flags = (__u32 *)(kvm_stack + regs->rsp - STACK_BASE + 8);
+    *flags |= setflags;
+}
+
+void irq_dos_exit(int vcpufd, struct kvm_regs *regs) {
+    printf(" return=0x%02llx\n",regs->rax & 0xff);
+    exit(0);
+}
+
 void irq_dpmi_000a(int vcpufd, struct kvm_regs *regs) {
+    /* Just fake it! */
     regs->rbx = regs->rax;
 
     int ret = ioctl(vcpufd, KVM_SET_REGS, regs);
@@ -388,38 +408,58 @@ void irq_dpmi_000a(int vcpufd, struct kvm_regs *regs) {
         err(1, "KVM_SET_REGS");
 }
 
+void irq_gpf(void *data, int vcpufd, struct kvm_regs *regs) {
+    __u32 retaddr = *(__u32 *)(kvm_stack + regs->rsp - STACK_BASE + 4);
+    __u32 errcode = *(__u32 *)(kvm_stack + regs->rsp - STACK_BASE);
+    printf("- retaddr=0x%08x errcode=0x%08x\n",retaddr,errcode);
+    dump_kvm_sregs(vcpufd);
+    err(1, "GPF");
+}
+
 void handle_subcode(struct irq_subhandler_entry *p, int subcode, int vcpufd, struct kvm_regs *regs) {
-    printf("%04x",subcode);
     while (p && p->name) {
         if (p->subcode == subcode) {
-            printf("(%s):",p->name);
+            printf(" (%s):",p->name);
             p->handler(vcpufd, regs);
+            printf("\n");
             return;
         }
         p++;
     }
+    printf("\n");
     err(1, "undefined subcode");
+}
+
+void irq_subcode_ah(void *data, int vcpufd, struct kvm_regs *regs) {
+    struct irq_subhandler_entry *table = data;
+    int subcode = (regs->rax & 0xff00) >>8;
+    printf("%02X",subcode);
+    handle_subcode(table,subcode,vcpufd,regs);
 }
 
 void irq_subcode_ax(void *data, int vcpufd, struct kvm_regs *regs) {
     struct irq_subhandler_entry *table = data;
     int subcode = regs->rax & 0xffff;
+    printf("%04X",subcode);
     handle_subcode(table,subcode,vcpufd,regs);
 }
 
 void irq_unhandled(int vcpufd, struct kvm_regs *regs) {
-    printf("\n");
     err(1, "unhandled irq");
 }
 
 void irq_ignore(int vcpufd, struct kvm_regs *regs) {
-    printf("\n");
     return;
 }
 
-struct irq_subhandler_entry irq_dpmi_subhandlers[] = {
+struct irq_subhandler_entry irq_dpmi_subcode[] = {
     { .subcode = 0x000a, .name = "CREATE ALIAS DESCRIPTOR", .handler = irq_dpmi_000a },
     { .subcode = 0x0507, .name = "SET PAGE ATTRIBUTES", .handler = irq_ignore },
+    { 0 },
+};
+
+struct irq_subhandler_entry irq_dos_subcode[] = {
+    { .subcode = 0x4c, .name = "EXIT", .handler = irq_dos_exit },
     { 0 },
 };
 
@@ -427,7 +467,9 @@ struct irq_subhandler_entry irq_dpmi_subhandlers[] = {
  * Top level table of every IRQ possible
  */
 struct irq_handler_entry handlers[256] = {
-    [0x31] = { .name = "DPMI", .handler = irq_subcode_ax, .data = irq_dpmi_subhandlers },
+    [0x0d] = { .name = "GPF",  .handler = irq_gpf },
+    [0x21] = { .name = "DOS",  .handler = irq_subcode_ah, .data = irq_dos_subcode },
+    [0x31] = { .name = "DPMI", .handler = irq_subcode_ax, .data = irq_dpmi_subcode },
 };
 
 int handle_softirq(int vcpufd) {
@@ -441,12 +483,14 @@ int handle_softirq(int vcpufd) {
     }
 
     int irqno = (regs.rip - IDT_BASE - 0x800) >> 2;
-    printf("INT %x", irqno);
+    printf("INT ");
 
     if (handlers[irqno].name) {
-        printf("(%s):",handlers[irqno].name);
+        printf("'%s' -%02X",handlers[irqno].name,irqno);
         handlers[irqno].handler(handlers[irqno].data,vcpufd,&regs);
     } else {
+        __u32 retaddr = *(__u32 *)(kvm_stack + regs.rsp - STACK_BASE + 4);
+        printf("-%02X retaddr=0x%08x\n",irqno,retaddr);
         err(1, "undefined irq");
     }
     return 0;
