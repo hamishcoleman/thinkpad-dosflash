@@ -152,12 +152,12 @@ int load_image(int vmfd, int vcpufd, char *filename, unsigned long entry) {
     };
 
     if (*filename == '-') {
-        flat_size = 0x1000;
+        flat_size = 0x2000;
         /* Allocate one aligned page of guest memory to hold the code. */
         mem = mmap(NULL, flat_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         if (!mem)
             err(1, "allocating guest memory");
-        memcpy(mem, code, sizeof(code));
+        memcpy(mem+0x1000, code, sizeof(code));
     } else {
         int fd = open(filename, O_RDONLY);
         if (fd == -1)
