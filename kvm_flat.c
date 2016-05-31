@@ -310,6 +310,20 @@ int kvm_init(struct emu *emu) {
     if (ret == -1)
         err(1, "KVM_SET_SREGS");
 
+    emu->stack_size = STACK_SIZE;
+    emu->stack = mmap(NULL, emu->stack_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!emu->stack)
+        err(1, "allocating guest stack");
+    struct kvm_userspace_memory_region region2 = {
+        .slot = MEM_REGION_STACK,
+        .guest_phys_addr = STACK_BASE,
+        .memory_size = emu->stack_size,
+        .userspace_addr = (uint64_t)emu->stack,
+    };
+    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region2);
+    if (ret == -1)
+        err(1, "KVM_SET_USER_MEMORY_REGION");
+
     return 0;
 }
 
@@ -363,20 +377,6 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
         .userspace_addr = (uint64_t)emu->text,
     };
     ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region1);
-    if (ret == -1)
-        err(1, "KVM_SET_USER_MEMORY_REGION");
-
-    emu->stack_size = STACK_SIZE;
-    emu->stack = mmap(NULL, emu->stack_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (!emu->stack)
-        err(1, "allocating guest stack");
-    struct kvm_userspace_memory_region region2 = {
-        .slot = MEM_REGION_STACK,
-        .guest_phys_addr = STACK_BASE,
-        .memory_size = emu->stack_size,
-        .userspace_addr = (uint64_t)emu->stack,
-    };
-    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region2);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
