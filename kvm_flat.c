@@ -72,17 +72,163 @@ void dump_kvm_regs(int vcpufd) {
 
 }
 
+void dump_kvm_segment(struct kvm_segment *seg, char *name) {
+    unsigned int limit;
+    if (seg->g) {
+        limit = (seg->limit <<12) + 0xfff;
+    } else {
+        limit = seg->limit;
+    }
+    printf("%s:%x %08x(%08x)\n",
+        name,seg->selector,seg->base,limit);
+}
+
+void dump_kvm_dtable(struct kvm_dtable *seg, char *name) {
+    printf("%s: %08x(%08x)\n",
+        name,seg->base,seg->limit);
+}
+
+void dump_kvm_sregs(int vcpufd) {
+    struct kvm_sregs sregs;
+    int ret = ioctl(vcpufd, KVM_GET_SREGS, &sregs);
+    if (ret == -1)
+        err(1, "KVM_GET_SREGS");
+    printf("cr0=0x%08x\n",
+        sregs.cr0);
+    dump_kvm_segment(&sregs.cs,"cs");
+    dump_kvm_segment(&sregs.tr,"tr");
+    dump_kvm_segment(&sregs.ldt,"ldt");
+    dump_kvm_dtable(&sregs.gdt,"gdt");
+    dump_kvm_dtable(&sregs.idt,"idt");
+    printf("irq:");
+    for (int i = 0; i < (KVM_NR_INTERRUPTS + 63) / 64; i++) {
+        printf("%016x",sregs.interrupt_bitmap[i]);
+    }
+    printf("\n");
+}
+
+void dump_kvm_exit(struct kvm_run *run, int vcpufd) {
+    dump_kvm_run(run);
+    dump_kvm_regs(vcpufd);
+    switch(run->exit_reason) {
+    case KVM_EXIT_SHUTDOWN:
+        dump_kvm_sregs(vcpufd);
+        break;
+    }
+}
+
+#define STACK_SIZE 0x4000
+#define STACK_BASE 0xf0000000
+#define IDT_SIZE 0x1000
+#define IDT_BASE 0xf0010000
+#define GDT_SIZE 0x1000
+#define GDT_BASE 0xf0020000
+
+#define MEM_REGION_GDT   0
+#define MEM_REGION_IDT   1
+#define MEM_REGION_TEXT  3
+#define MEM_REGION_STACK 4
+
+#define SEL_TEXT 0x08 /* gdt[1] */
+#define SEL_DATA 0x10 /* gdt[2] */
+#define SEL_STACK FIXME
+
+void setup_gdt(struct kvm_sregs *sregs,int vmfd) {
+    struct gdt_entry {
+        __u16 limit_l;
+        __u16 base_l;
+        __u8 base_m;
+        __u8 type_flags;
+        __u8 limit_flags;
+        __u8 base_h;
+    };
+    struct gdt_entry *gdt;
+
+    gdt = mmap(NULL, GDT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!gdt)
+        err(1, "allocating gdt memory");
+
+    memset(gdt,0,GDT_SIZE);
+
+    /* code segment */
+    gdt[1].limit_l     = 0xffff;
+    gdt[1].type_flags  = 0x9a;
+    gdt[1].limit_flags = 0xcf;
+
+    /* data segment */
+    gdt[2].limit_l    = 0xffff;
+    gdt[2].type_flags = 0x92;
+    gdt[2].limit_flags = 0xcf;
+
+    struct kvm_userspace_memory_region region = {
+        .slot = MEM_REGION_GDT,
+        .guest_phys_addr = GDT_BASE,
+        .memory_size = GDT_SIZE,
+        .userspace_addr = (uint64_t)gdt,
+    };
+    int ret = ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &region);
+    if (ret == -1)
+        err(1, "KVM_SET_USER_MEMORY_REGION");
+
+    sregs->gdt.base = GDT_BASE;
+    sregs->gdt.limit = GDT_SIZE;
+}
+
+void setup_idt(struct kvm_sregs *sregs,int vmfd) {
+    struct idt_entry {
+        __u16 offset_l;
+        __u16 selector;
+        __u8 always0;
+        __u8 type_flags;
+        __u16 offset_h;
+    };
+    struct idt {
+        struct idt_entry entry[256];
+        uint8_t hlt[256][4];
+    } *idt;
+
+    idt = mmap(NULL, IDT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!idt)
+        err(1, "allocating idt memory");
+
+    for (int i=0; i<256; i++) {
+        idt->entry[i].offset_l = sizeof(idt->entry) + i*sizeof(idt->hlt[i]);
+        idt->entry[i].selector = SEL_TEXT;
+        idt->entry[i].always0 = 0;
+        idt->entry[i].type_flags = 0xee; /* dpl=3, present, 32-bit interrupt */
+        idt->entry[i].offset_h = IDT_BASE>>16;
+        idt->hlt[i][0] = 0xe7; /* out imm8,ax */
+        idt->hlt[i][1] = 0x7f; /* imm8 = 0x7f */
+        idt->hlt[i][2] = 0xcf; /* iret */
+        idt->hlt[i][3] = 0xf4; /* hlt */
+    }
+
+    struct kvm_userspace_memory_region region = {
+        .slot = MEM_REGION_IDT,
+        .guest_phys_addr = IDT_BASE,
+        .memory_size = IDT_SIZE,
+        .userspace_addr = (uint64_t)idt,
+    };
+    int ret = ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &region);
+    if (ret == -1)
+        err(1, "KVM_SET_USER_MEMORY_REGION");
+    sregs->idt.base = IDT_BASE;
+    sregs->idt.limit = sizeof(idt->entry);
+}
+
 void setup_flat_segments(struct kvm_sregs *sregs) {
     sregs->cs.base = 0;
     sregs->cs.limit = 0xfffff;
-    sregs->cs.selector = 0;
+    sregs->cs.selector = SEL_TEXT; /* gdt[1] */
     sregs->cs.db = 1;
     sregs->cs.g = 1;
     memcpy(&sregs->ds,&sregs->cs,sizeof(sregs->cs));
-    memcpy(&sregs->es,&sregs->cs,sizeof(sregs->cs));
-    memcpy(&sregs->fs,&sregs->cs,sizeof(sregs->cs));
-    memcpy(&sregs->gs,&sregs->cs,sizeof(sregs->cs));
-    memcpy(&sregs->ss,&sregs->cs,sizeof(sregs->cs));
+    sregs->ds.selector = SEL_DATA; /* gdt[2] */
+    /* FIXME - set ds.type correctly sregs->ds.type = 2 ? */
+    memcpy(&sregs->es,&sregs->ds,sizeof(sregs->ds));
+    memcpy(&sregs->fs,&sregs->ds,sizeof(sregs->ds));
+    memcpy(&sregs->gs,&sregs->ds,sizeof(sregs->ds));
+    memcpy(&sregs->ss,&sregs->ds,sizeof(sregs->ds));
     sregs->ss.type = 6; /* x=0,e=1,w=1,a=0 */
     /* FIXME
      * - descriptor table too
@@ -129,6 +275,8 @@ struct kvm_run *kvm_init(int *kvmp, int *vmfdp, int *vcpufdp) {
         err(1, "KVM_GET_SREGS");
     sregs.cr0 = 0x1; /* protected mode enable */
     setup_flat_segments(&sregs);
+    setup_idt(&sregs,*vmfdp);
+    setup_gdt(&sregs,*vmfdp);
     ret = ioctl(*vcpufdp, KVM_SET_SREGS, &sregs);
     if (ret == -1)
         err(1, "KVM_SET_SREGS");
@@ -182,7 +330,7 @@ int load_image(int vmfd, int vcpufd, char *filename, unsigned long entry) {
     }
 
     struct kvm_userspace_memory_region region1 = {
-        .slot = 0,
+        .slot = MEM_REGION_TEXT,
         .guest_phys_addr = 0x0,
         .memory_size = flat_size,
         .userspace_addr = (uint64_t)mem,
@@ -191,14 +339,11 @@ int load_image(int vmfd, int vcpufd, char *filename, unsigned long entry) {
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
-#define STACK_SIZE 0x4000
-#define STACK_BASE 0xf0000000
-
     mem = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!mem)
         err(1, "allocating guest stack");
     struct kvm_userspace_memory_region region2 = {
-        .slot = 1,
+        .slot = MEM_REGION_STACK,
         .guest_phys_addr = STACK_BASE,
         .memory_size = STACK_SIZE,
         .userspace_addr = (uint64_t)mem,
@@ -251,8 +396,7 @@ int main(int argc, char **argv)
         ret = ioctl(vcpufd, KVM_RUN, NULL);
         if (ret == -1)
             err(1, "KVM_RUN");
-        dump_kvm_run(run);
-        dump_kvm_regs(vcpufd);
+        dump_kvm_exit(run,vcpufd);
         switch (run->exit_reason) {
         case KVM_EXIT_HLT:
             puts("KVM_EXIT_HLT");
