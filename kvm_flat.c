@@ -49,6 +49,13 @@ struct irq_handler_entry {
     void *data;
 };
 
+struct emu {
+    int kvm;
+    int vmfd;
+    int vcpufd;
+    struct kvm_run *run;
+} emu;
+
 #define STACK_SIZE 0x4000
 #define STACK_BASE 0xf0000000
 #define IDT_SIZE 0x1000
@@ -140,18 +147,18 @@ void dump_kvm_sregs(int vcpufd) {
     printf("\n");
 }
 
-void dump_kvm_exit(struct kvm_run *run, int vcpufd) {
+void dump_kvm_exit(struct emu *emu) {
     printf("\n");
-    dump_kvm_run(run);
-    dump_kvm_regs(vcpufd);
-    switch(run->exit_reason) {
+    dump_kvm_run(emu->run);
+    dump_kvm_regs(emu->vcpufd);
+    switch(emu->run->exit_reason) {
     case KVM_EXIT_SHUTDOWN:
-        dump_kvm_sregs(vcpufd);
+        dump_kvm_sregs(emu->vcpufd);
         break;
     }
 }
 
-void setup_gdt(struct kvm_sregs *sregs,int vmfd) {
+void setup_gdt(struct kvm_sregs *sregs, struct emu *emu) {
     struct gdt_entry {
         __u16 limit_l;
         __u16 base_l;
@@ -184,7 +191,7 @@ void setup_gdt(struct kvm_sregs *sregs,int vmfd) {
         .memory_size = GDT_SIZE,
         .userspace_addr = (uint64_t)gdt,
     };
-    int ret = ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &region);
+    int ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
@@ -192,7 +199,7 @@ void setup_gdt(struct kvm_sregs *sregs,int vmfd) {
     sregs->gdt.limit = GDT_SIZE;
 }
 
-void setup_idt(struct kvm_sregs *sregs,int vmfd) {
+void setup_idt(struct kvm_sregs *sregs,struct emu *emu) {
     struct idt_entry {
         __u16 offset_l;
         __u16 selector;
@@ -227,7 +234,7 @@ void setup_idt(struct kvm_sregs *sregs,int vmfd) {
         .memory_size = IDT_SIZE,
         .userspace_addr = (uint64_t)idt,
     };
-    int ret = ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &region);
+    int ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
     sregs->idt.base = IDT_BASE;
@@ -255,56 +262,55 @@ void setup_flat_segments(struct kvm_sregs *sregs) {
      */
 }
 
-struct kvm_run *kvm_init(int *kvmp, int *vmfdp, int *vcpufdp) {
-    struct kvm_run *run;
+int kvm_init(struct emu *emu) {
     struct kvm_sregs sregs;
 
-    *kvmp = open("/dev/kvm", O_RDWR | O_CLOEXEC);
-    if (*kvmp == -1)
+    emu->kvm = open("/dev/kvm", O_RDWR | O_CLOEXEC);
+    if (emu->kvm == -1)
         err(1, "/dev/kvm");
 
     /* Make sure we have the stable version of the API */
-    int ret = ioctl(*kvmp, KVM_GET_API_VERSION, NULL);
+    int ret = ioctl(emu->kvm, KVM_GET_API_VERSION, NULL);
     if (ret == -1)
         err(1, "KVM_GET_API_VERSION");
     if (ret != 12)
         errx(1, "KVM_GET_API_VERSION %d, expected 12", ret);
 
-    *vmfdp = ioctl(*kvmp, KVM_CREATE_VM, (unsigned long)0);
-    if (*vmfdp == -1)
+    emu->vmfd = ioctl(emu->kvm, KVM_CREATE_VM, (unsigned long)0);
+    if (emu->vmfd == -1)
         err(1, "KVM_CREATE_VM");
 
-    *vcpufdp = ioctl(*vmfdp, KVM_CREATE_VCPU, (unsigned long)0);
-    if (*vcpufdp == -1)
+    emu->vcpufd = ioctl(emu->vmfd, KVM_CREATE_VCPU, (unsigned long)0);
+    if (emu->vcpufd == -1)
         err(1, "KVM_CREATE_VCPU");
 
     /* Map the shared kvm_run structure and following data. */
-    ret = ioctl(*kvmp, KVM_GET_VCPU_MMAP_SIZE, NULL);
+    ret = ioctl(emu->kvm, KVM_GET_VCPU_MMAP_SIZE, NULL);
     if (ret == -1)
         err(1, "KVM_GET_VCPU_MMAP_SIZE");
     size_t mmap_size = ret;
-    if (mmap_size < sizeof(*run))
+    if (mmap_size < sizeof(*emu->run))
         errx(1, "KVM_GET_VCPU_MMAP_SIZE unexpectedly small");
-    run = mmap(NULL, mmap_size, PROT_READ | PROT_WRITE, MAP_SHARED, *vcpufdp, 0);
-    if (!run)
+    emu->run = mmap(NULL, mmap_size, PROT_READ | PROT_WRITE, MAP_SHARED, emu->vcpufd, 0);
+    if (!emu->run)
         err(1, "mmap vcpu");
 
     /* Initialize CS to point at 0, via a read-modify-write of sregs. */
-    ret = ioctl(*vcpufdp, KVM_GET_SREGS, &sregs);
+    ret = ioctl(emu->vcpufd, KVM_GET_SREGS, &sregs);
     if (ret == -1)
         err(1, "KVM_GET_SREGS");
     sregs.cr0 = 0x1; /* protected mode enable */
     setup_flat_segments(&sregs);
-    setup_idt(&sregs,*vmfdp);
-    setup_gdt(&sregs,*vmfdp);
-    ret = ioctl(*vcpufdp, KVM_SET_SREGS, &sregs);
+    setup_idt(&sregs,emu);
+    setup_gdt(&sregs,emu);
+    ret = ioctl(emu->vcpufd, KVM_SET_SREGS, &sregs);
     if (ret == -1)
         err(1, "KVM_SET_SREGS");
 
-    return run;
+    return 0;
 }
 
-int load_image(int vmfd, int vcpufd, char *filename, unsigned long entry) {
+int load_image(struct emu *emu, char *filename, unsigned long entry) {
     int ret;
     uint8_t *mem;
     int flat_size;
@@ -355,7 +361,7 @@ int load_image(int vmfd, int vcpufd, char *filename, unsigned long entry) {
         .memory_size = flat_size,
         .userspace_addr = (uint64_t)mem,
     };
-    ret = ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &region1);
+    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region1);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
@@ -368,7 +374,7 @@ int load_image(int vmfd, int vcpufd, char *filename, unsigned long entry) {
         .memory_size = STACK_SIZE,
         .userspace_addr = (uint64_t)mem,
     };
-    ret = ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &region2);
+    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region2);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
     kvm_stack = mem;
@@ -382,7 +388,7 @@ int load_image(int vmfd, int vcpufd, char *filename, unsigned long entry) {
         .rflags = 0x2,
         .rsp = STACK_BASE + STACK_SIZE - 0x10,
     };
-    ret = ioctl(vcpufd, KVM_SET_REGS, &regs);
+    ret = ioctl(emu->vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
         err(1, "KVM_SET_REGS");
 
@@ -509,8 +515,7 @@ int handle_softirq(int vcpufd) {
 
 int main(int argc, char **argv)
 {
-    int kvm, vmfd, vcpufd, ret;
-    struct kvm_run *run;
+    int ret;
     char *filename;
     unsigned long entry;
 
@@ -521,40 +526,37 @@ int main(int argc, char **argv)
     filename=argv[1];
     entry=strtoul(argv[2],NULL,0);
 
-    run = kvm_init(&kvm,&vmfd,&vcpufd);
-    if (run == NULL) {
-        return 1;
-    }
+    kvm_init(&emu);
 
-    if (load_image(vmfd,vcpufd,filename,entry) == -1) {
+    if (load_image(&emu,filename,entry) == -1) {
         return 1;
     }
 
     /* Repeatedly run code and handle VM exits. */
     while (1) {
-        ret = ioctl(vcpufd, KVM_RUN, NULL);
+        ret = ioctl(emu.vcpufd, KVM_RUN, NULL);
         if (ret == -1)
             err(1, "KVM_RUN");
-        dump_kvm_exit(run,vcpufd);
-        switch (run->exit_reason) {
+        dump_kvm_exit(&emu);
+        switch (emu.run->exit_reason) {
         case KVM_EXIT_HLT:
             puts("KVM_EXIT_HLT");
             return 0;
         case KVM_EXIT_IO:
-            if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 4 && run->io.port == 0x7f && run->io.count == 1) {
-                handle_softirq(vcpufd);
-            } else if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 1 && run->io.port == 0x3f8 && run->io.count == 1)
-                putchar(*(((char *)run) + run->io.data_offset));
+            if (emu.run->io.direction == KVM_EXIT_IO_OUT && emu.run->io.size == 4 && emu.run->io.port == 0x7f && emu.run->io.count == 1) {
+                handle_softirq(emu.vcpufd);
+            } else if (emu.run->io.direction == KVM_EXIT_IO_OUT && emu.run->io.size == 1 && emu.run->io.port == 0x3f8 && emu.run->io.count == 1)
+                putchar(*(((char *)emu.run) + emu.run->io.data_offset));
             else
                 errx(1, "unhandled KVM_EXIT_IO");
             break;
         case KVM_EXIT_FAIL_ENTRY:
             errx(1, "KVM_EXIT_FAIL_ENTRY: hardware_entry_failure_reason = 0x%llx",
-                 (unsigned long long)run->fail_entry.hardware_entry_failure_reason);
+                 (unsigned long long)emu.run->fail_entry.hardware_entry_failure_reason);
         case KVM_EXIT_INTERNAL_ERROR:
-            errx(1, "KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x", run->internal.suberror);
+            errx(1, "KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x", emu.run->internal.suberror);
         default:
-            errx(1, "exit_reason = 0x%x", run->exit_reason);
+            errx(1, "exit_reason = 0x%x", emu.run->exit_reason);
         }
     }
 }
