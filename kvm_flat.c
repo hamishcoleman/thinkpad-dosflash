@@ -191,20 +191,21 @@ int load_image(int vmfd, int vcpufd, char *filename, unsigned long entry) {
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
-    mem = mmap(NULL, 0x4000, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+#define STACK_SIZE 0x4000
+#define STACK_BASE 0xf0000000
+
+    mem = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!mem)
         err(1, "allocating guest stack");
     struct kvm_userspace_memory_region region2 = {
         .slot = 1,
-        .guest_phys_addr = 0xf0000000,
-        .memory_size = 0x4000,
+        .guest_phys_addr = STACK_BASE,
+        .memory_size = STACK_SIZE,
         .userspace_addr = (uint64_t)mem,
     };
     ret = ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &region2);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
-
-
 
     /* Initialize registers: instruction pointer for our code, addends, and
      * initial flags required by x86 architecture. */
@@ -213,7 +214,7 @@ int load_image(int vmfd, int vcpufd, char *filename, unsigned long entry) {
         .rax = 2,
         .rbx = 2,
         .rflags = 0x2,
-        .rsp = 0xf0000000 + 0x4000 - 0x10,
+        .rsp = STACK_BASE + STACK_SIZE - 0x10,
     };
     ret = ioctl(vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
