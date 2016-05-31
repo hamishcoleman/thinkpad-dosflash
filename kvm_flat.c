@@ -37,6 +37,18 @@
 
 #include <unistd.h>
 
+struct irq_subhandler_entry {
+    int subcode;
+    char *name;
+    void (*handler)(int, struct kvm_regs *);
+};
+
+struct irq_handler_entry {
+    char *name;
+    void (*handler)(void *,int, struct kvm_regs *);
+    void *data;
+};
+
 const char * kvm_exit_str[] = {
     "KVM_EXIT_UNKNOWN", "KVM_EXIT_EXCEPTION", "KVM_EXIT_IO",
     "KVM_EXIT_HYPERCALL", "KVM_EXIT_DEBUG", "KVM_EXIT_HLT",
@@ -368,6 +380,78 @@ int load_image(int vmfd, int vcpufd, char *filename, unsigned long entry) {
     return 0;
 }
 
+void irq_dpmi_000a(int vcpufd, struct kvm_regs *regs) {
+    regs->rbx = regs->rax;
+
+    int ret = ioctl(vcpufd, KVM_SET_REGS, regs);
+    if (ret == -1)
+        err(1, "KVM_SET_REGS");
+}
+
+void handle_subcode(struct irq_subhandler_entry *p, int subcode, int vcpufd, struct kvm_regs *regs) {
+    printf("%04x",subcode);
+    while (p && p->name) {
+        if (p->subcode == subcode) {
+            printf("(%s):",p->name);
+            p->handler(vcpufd, regs);
+            return;
+        }
+        p++;
+    }
+    err(1, "undefined subcode");
+}
+
+void irq_subcode_ax(void *data, int vcpufd, struct kvm_regs *regs) {
+    struct irq_subhandler_entry *table = data;
+    int subcode = regs->rax & 0xffff;
+    handle_subcode(table,subcode,vcpufd,regs);
+}
+
+void irq_unhandled(int vcpufd, struct kvm_regs *regs) {
+    printf("\n");
+    err(1, "unhandled irq");
+}
+
+void irq_ignore(int vcpufd, struct kvm_regs *regs) {
+    printf("\n");
+    return;
+}
+
+struct irq_subhandler_entry irq_dpmi_subhandlers[] = {
+    { .subcode = 0x000a, .name = "CREATE ALIAS DESCRIPTOR", .handler = irq_dpmi_000a },
+    { .subcode = 0x0507, .name = "SET PAGE ATTRIBUTES", .handler = irq_ignore },
+    { 0 },
+};
+
+/*
+ * Top level table of every IRQ possible
+ */
+struct irq_handler_entry handlers[256] = {
+    [0x31] = { .name = "DPMI", .handler = irq_subcode_ax, .data = irq_dpmi_subhandlers },
+};
+
+int handle_softirq(int vcpufd) {
+    struct kvm_regs regs;
+    int ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
+    if (ret == -1)
+        err(1, "KVM_GET_REGS");
+
+    if (regs.rip < IDT_BASE || regs.rip > IDT_BASE + IDT_SIZE) {
+        err(1, "softirq from outside idt region");
+    }
+
+    int irqno = (regs.rip - IDT_BASE - 0x800) >> 2;
+    printf("INT %x", irqno);
+
+    if (handlers[irqno].name) {
+        printf("(%s):",handlers[irqno].name);
+        handlers[irqno].handler(handlers[irqno].data,vcpufd,&regs);
+    } else {
+        err(1, "undefined irq");
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     int kvm, vmfd, vcpufd, ret;
@@ -402,7 +486,9 @@ int main(int argc, char **argv)
             puts("KVM_EXIT_HLT");
             return 0;
         case KVM_EXIT_IO:
-            if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 1 && run->io.port == 0x3f8 && run->io.count == 1)
+            if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 4 && run->io.port == 0x7f && run->io.count == 1) {
+                handle_softirq(vcpufd);
+            } else if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 1 && run->io.port == 0x3f8 && run->io.count == 1)
                 putchar(*(((char *)run) + run->io.data_offset));
             else
                 errx(1, "unhandled KVM_EXIT_IO");
