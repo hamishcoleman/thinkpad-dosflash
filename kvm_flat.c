@@ -399,9 +399,17 @@ void irq_dos_exit(int vcpufd, struct kvm_regs *regs) {
     exit(0);
 }
 
+void irq_dpmi_0006(int vcpufd, struct kvm_regs *regs) {
+    regs->rcx = regs->rdx = 0;
+
+    int ret = ioctl(vcpufd, KVM_SET_REGS, regs);
+    if (ret == -1)
+        err(1, "KVM_SET_REGS");
+}
+
 void irq_dpmi_000a(int vcpufd, struct kvm_regs *regs) {
     /* Just fake it! */
-    regs->rbx = regs->rax;
+    regs->rax = regs->rbx;
 
     int ret = ioctl(vcpufd, KVM_SET_REGS, regs);
     if (ret == -1)
@@ -453,6 +461,9 @@ void irq_ignore(int vcpufd, struct kvm_regs *regs) {
 }
 
 struct irq_subhandler_entry irq_dpmi_subcode[] = {
+    { .subcode = 0x0006, .name = "GET SEGMENT BASE ADDRESS", .handler = irq_dpmi_0006 },
+    { .subcode = 0x0008, .name = "SET SEGMENT LIMIT", .handler = irq_ignore },
+    { .subcode = 0x0009, .name = "SET DESCRIPTOR ACCESS RIGHTS", .handler = irq_ignore },
     { .subcode = 0x000a, .name = "CREATE ALIAS DESCRIPTOR", .handler = irq_dpmi_000a },
     { .subcode = 0x0507, .name = "SET PAGE ATTRIBUTES", .handler = irq_ignore },
     { 0 },
