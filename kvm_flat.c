@@ -49,11 +49,39 @@ struct irq_handler_entry {
     void *data;
 };
 
+struct gdt_entry {
+    __u16 limit_l;
+    __u16 base_l;
+    __u8 base_m;
+    __u8 type_flags;
+    __u8 limit_flags;
+    __u8 base_h;
+};
+
+struct idt_entry {
+    __u16 offset_l;
+    __u16 selector;
+    __u8 always0;
+    __u8 type_flags;
+    __u16 offset_h;
+};
+
+struct idt {
+    struct idt_entry entry[256];
+    uint8_t hlt[256][4];
+};
+
 struct emu {
     int kvm;
     int vmfd;
     int vcpufd;
     struct kvm_run *run;
+    struct gdt_entry *gdt;
+    struct idt *idt;
+    void *text;
+    int text_size;
+    void *stack;
+    int stack_size;
 } emu;
 
 #define STACK_SIZE 0x4000
@@ -71,9 +99,6 @@ struct emu {
 #define SEL_TEXT 0x08 /* gdt[1] */
 #define SEL_DATA 0x10 /* gdt[2] */
 #define SEL_STACK FIXME
-
-uint8_t *kvm_stack;
-
 
 const char * kvm_exit_str[] = {
     "KVM_EXIT_UNKNOWN", "KVM_EXIT_EXCEPTION", "KVM_EXIT_IO",
@@ -94,9 +119,9 @@ void dump_kvm_run(struct kvm_run *run) {
     }
 }
 
-void dump_kvm_regs(int vcpufd) {
+void dump_kvm_regs(struct emu *emu) {
     struct kvm_regs regs;
-    int ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
+    int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &regs);
     if (ret == -1)
         err(1, "KVM_GET_REGS");
     printf("ax=0x%08llx bx=0x%08llx cx=0x%08llx dx=0x%08llx flags=0x%08llx\n",
@@ -105,7 +130,7 @@ void dump_kvm_regs(int vcpufd) {
     printf("8=0x%08x 9=0x%08x 10=0x%08x 11=0x%08x 12=0x%08x\n",
         regs.r8,regs.r9,regs.r10,regs.r11,regs.r12);
 #endif
-    __u32 retaddr = *(__u32 *)(kvm_stack + regs.rsp - STACK_BASE);
+    __u32 retaddr = *(__u32 *)(emu->stack + regs.rsp - STACK_BASE);
     printf("si=0x%08llx di=0x%08llx sp=0x%08llx bp=0x%08llx ip=0x%08llx (%07x)\n",
         regs.rsi,regs.rdi,regs.rsp,regs.rbp,regs.rip,retaddr);
 }
@@ -150,7 +175,7 @@ void dump_kvm_sregs(int vcpufd) {
 void dump_kvm_exit(struct emu *emu) {
     printf("\n");
     dump_kvm_run(emu->run);
-    dump_kvm_regs(emu->vcpufd);
+    dump_kvm_regs(emu);
     switch(emu->run->exit_reason) {
     case KVM_EXIT_SHUTDOWN:
         dump_kvm_sregs(emu->vcpufd);
@@ -159,37 +184,27 @@ void dump_kvm_exit(struct emu *emu) {
 }
 
 void setup_gdt(struct kvm_sregs *sregs, struct emu *emu) {
-    struct gdt_entry {
-        __u16 limit_l;
-        __u16 base_l;
-        __u8 base_m;
-        __u8 type_flags;
-        __u8 limit_flags;
-        __u8 base_h;
-    };
-    struct gdt_entry *gdt;
-
-    gdt = mmap(NULL, GDT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (!gdt)
+    emu->gdt = mmap(NULL, GDT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!emu->gdt)
         err(1, "allocating gdt memory");
 
-    memset(gdt,0,GDT_SIZE);
+    memset(emu->gdt,0,GDT_SIZE);
 
     /* code segment */
-    gdt[1].limit_l     = 0xffff;
-    gdt[1].type_flags  = 0x9e;
-    gdt[1].limit_flags = 0xcf;
+    emu->gdt[1].limit_l     = 0xffff;
+    emu->gdt[1].type_flags  = 0x9e;
+    emu->gdt[1].limit_flags = 0xcf;
 
     /* data segment */
-    gdt[2].limit_l    = 0xffff;
-    gdt[2].type_flags = 0x92;
-    gdt[2].limit_flags = 0xcf;
+    emu->gdt[2].limit_l    = 0xffff;
+    emu->gdt[2].type_flags = 0x92;
+    emu->gdt[2].limit_flags = 0xcf;
 
     struct kvm_userspace_memory_region region = {
         .slot = MEM_REGION_GDT,
         .guest_phys_addr = GDT_BASE,
         .memory_size = GDT_SIZE,
-        .userspace_addr = (uint64_t)gdt,
+        .userspace_addr = (uint64_t)emu->gdt,
     };
     int ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region);
     if (ret == -1)
@@ -200,45 +215,33 @@ void setup_gdt(struct kvm_sregs *sregs, struct emu *emu) {
 }
 
 void setup_idt(struct kvm_sregs *sregs,struct emu *emu) {
-    struct idt_entry {
-        __u16 offset_l;
-        __u16 selector;
-        __u8 always0;
-        __u8 type_flags;
-        __u16 offset_h;
-    };
-    struct idt {
-        struct idt_entry entry[256];
-        uint8_t hlt[256][4];
-    } *idt;
-
-    idt = mmap(NULL, IDT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (!idt)
+    emu->idt = mmap(NULL, IDT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!emu->idt)
         err(1, "allocating idt memory");
 
     for (int i=0; i<256; i++) {
-        idt->entry[i].offset_l = sizeof(idt->entry) + i*sizeof(idt->hlt[i]);
-        idt->entry[i].selector = SEL_TEXT;
-        idt->entry[i].always0 = 0;
-        idt->entry[i].type_flags = 0xee; /* dpl=3, present, 32-bit interrupt */
-        idt->entry[i].offset_h = IDT_BASE>>16;
-        idt->hlt[i][0] = 0xe7; /* out imm8,ax */
-        idt->hlt[i][1] = 0x7f; /* imm8 = 0x7f */
-        idt->hlt[i][2] = 0xcf; /* iret */
-        idt->hlt[i][3] = i;
+        emu->idt->entry[i].offset_l = sizeof(emu->idt->entry) + i*sizeof(emu->idt->hlt[i]);
+        emu->idt->entry[i].selector = SEL_TEXT;
+        emu->idt->entry[i].always0 = 0;
+        emu->idt->entry[i].type_flags = 0xee; /* dpl=3, present, 32-bit interrupt */
+        emu->idt->entry[i].offset_h = IDT_BASE>>16;
+        emu->idt->hlt[i][0] = 0xe7; /* out imm8,ax */
+        emu->idt->hlt[i][1] = 0x7f; /* imm8 = 0x7f */
+        emu->idt->hlt[i][2] = 0xcf; /* iret */
+        emu->idt->hlt[i][3] = i;
     }
 
     struct kvm_userspace_memory_region region = {
         .slot = MEM_REGION_IDT,
         .guest_phys_addr = IDT_BASE,
         .memory_size = IDT_SIZE,
-        .userspace_addr = (uint64_t)idt,
+        .userspace_addr = (uint64_t)emu->idt,
     };
     int ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
     sregs->idt.base = IDT_BASE;
-    sregs->idt.limit = sizeof(idt->entry);
+    sregs->idt.limit = sizeof(emu->idt->entry);
 }
 
 void setup_flat_segments(struct kvm_sregs *sregs) {
@@ -312,8 +315,6 @@ int kvm_init(struct emu *emu) {
 
 int load_image(struct emu *emu, char *filename, unsigned long entry) {
     int ret;
-    uint8_t *mem;
-    int flat_size;
 
     const uint8_t code[] = {
         0xba, 0xf8, 0x03, 0,0, /* mov $0x3f8, %dx */
@@ -326,12 +327,12 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     };
 
     if (*filename == '-') {
-        flat_size = 0x2000;
+        emu->text_size = 0x2000;
         /* Allocate one aligned page of guest memory to hold the code. */
-        mem = mmap(NULL, flat_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-        if (!mem)
+        emu->text = mmap(NULL, emu->text_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        if (!emu->text)
             err(1, "allocating guest memory");
-        memcpy(mem+0x1000, code, sizeof(code));
+        memcpy(emu->text+0x1000, code, sizeof(code));
     } else {
         int fd = open(filename, O_RDONLY);
         if (fd == -1)
@@ -340,12 +341,12 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
         ret = fstat(fd,&s);
         if (ret == -1) 
             err(1, "statting file");
-        flat_size = ((s.st_size >>12) +1 )<<12;
+        emu->text_size = ((s.st_size >>12) +1 )<<12;
 
-        mem = mmap(NULL, flat_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-        if (!mem)
+        emu->text = mmap(NULL, emu->text_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        if (!emu->text)
             err(1, "allocating guest memory");
-        uint8_t *p = mem;
+        uint8_t *p = emu->text;
         while(s.st_size) {
             ret = read(fd,p,4096);
             if (ret == -1)
@@ -358,26 +359,26 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     struct kvm_userspace_memory_region region1 = {
         .slot = MEM_REGION_TEXT,
         .guest_phys_addr = 0x0,
-        .memory_size = flat_size,
-        .userspace_addr = (uint64_t)mem,
+        .memory_size = emu->text_size,
+        .userspace_addr = (uint64_t)emu->text,
     };
     ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region1);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
-    mem = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (!mem)
+    emu->stack_size = STACK_SIZE;
+    emu->stack = mmap(NULL, emu->stack_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!emu->stack)
         err(1, "allocating guest stack");
     struct kvm_userspace_memory_region region2 = {
         .slot = MEM_REGION_STACK,
         .guest_phys_addr = STACK_BASE,
-        .memory_size = STACK_SIZE,
-        .userspace_addr = (uint64_t)mem,
+        .memory_size = emu->stack_size,
+        .userspace_addr = (uint64_t)emu->stack,
     };
     ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region2);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
-    kvm_stack = mem;
 
     /* Initialize registers: instruction pointer for our code, addends, and
      * initial flags required by x86 architecture. */
@@ -386,7 +387,7 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
         .rax = 2,
         .rbx = 2,
         .rflags = 0x2,
-        .rsp = STACK_BASE + STACK_SIZE - 0x10,
+        .rsp = STACK_BASE + emu->stack_size - 0x10,
     };
     ret = ioctl(emu->vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
@@ -395,10 +396,12 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     return 0;
 }
 
+#if 0
 void iret_setflags(struct kvm_regs *regs, unsigned int setflags) {
     __u32 *flags = (__u32 *)(kvm_stack + regs->rsp - STACK_BASE + 8);
     *flags |= setflags;
 }
+#endif
 
 void irq_dos_exit(int vcpufd, struct kvm_regs *regs) {
     printf(" return=0x%02llx\n",regs->rax & 0xff);
@@ -423,8 +426,9 @@ void irq_dpmi_000a(int vcpufd, struct kvm_regs *regs) {
 }
 
 void irq_gpf(void *data, int vcpufd, struct kvm_regs *regs) {
-    __u32 retaddr = *(__u32 *)(kvm_stack + regs->rsp - STACK_BASE + 4);
-    __u32 errcode = *(__u32 *)(kvm_stack + regs->rsp - STACK_BASE);
+    /* FIXME - references emu globally */
+    __u32 retaddr = *(__u32 *)(emu.stack + regs->rsp - STACK_BASE + 4);
+    __u32 errcode = *(__u32 *)(emu.stack + regs->rsp - STACK_BASE);
     printf("- retaddr=0x%08x errcode=0x%08x\n",retaddr,errcode);
     dump_kvm_sregs(vcpufd);
     err(1, "GPF");
@@ -489,9 +493,9 @@ struct irq_handler_entry handlers[256] = {
     [0x31] = { .name = "DPMI", .handler = irq_subcode_ax, .data = irq_dpmi_subcode },
 };
 
-int handle_softirq(int vcpufd) {
+int handle_softirq(struct emu *emu) {
     struct kvm_regs regs;
-    int ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
+    int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &regs);
     if (ret == -1)
         err(1, "KVM_GET_REGS");
 
@@ -504,9 +508,9 @@ int handle_softirq(int vcpufd) {
 
     if (handlers[irqno].name) {
         printf("'%s' -%02X",handlers[irqno].name,irqno);
-        handlers[irqno].handler(handlers[irqno].data,vcpufd,&regs);
+        handlers[irqno].handler(handlers[irqno].data,emu->vcpufd,&regs);
     } else {
-        __u32 retaddr = *(__u32 *)(kvm_stack + regs.rsp - STACK_BASE + 4);
+        __u32 retaddr = *(__u32 *)(emu->stack + regs.rsp - STACK_BASE + 4);
         printf("-%02X retaddr=0x%08x\n",irqno,retaddr);
         err(1, "undefined irq");
     }
@@ -544,7 +548,7 @@ int main(int argc, char **argv)
             return 0;
         case KVM_EXIT_IO:
             if (emu.run->io.direction == KVM_EXIT_IO_OUT && emu.run->io.size == 4 && emu.run->io.port == 0x7f && emu.run->io.count == 1) {
-                handle_softirq(emu.vcpufd);
+                handle_softirq(&emu);
             } else if (emu.run->io.direction == KVM_EXIT_IO_OUT && emu.run->io.size == 1 && emu.run->io.port == 0x3f8 && emu.run->io.count == 1)
                 putchar(*(((char *)emu.run) + emu.run->io.data_offset));
             else
