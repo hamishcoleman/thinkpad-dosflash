@@ -61,13 +61,13 @@ void dump_kvm_regs(int vcpufd) {
     int ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
     if (ret == -1)
         err(1, "KVM_GET_REGS");
-    printf("ax=0x%08x bx=0x%08x cx=0x%08x dx=0x%08x flags=0x%08x\n",
+    printf("ax=0x%08llx bx=0x%08llx cx=0x%08llx dx=0x%08llx flags=0x%08llx\n",
         regs.rax,regs.rbx,regs.rcx,regs.rdx,regs.rflags);
 #if 0
     printf("8=0x%08x 9=0x%08x 10=0x%08x 11=0x%08x 12=0x%08x\n",
         regs.r8,regs.r9,regs.r10,regs.r11,regs.r12);
 #endif
-    printf("si=0x%08x di=0x%08x sp=0x%08x bp=0x%08x ip=0x%08x\n",
+    printf("si=0x%08llx di=0x%08llx sp=0x%08llx bp=0x%08llx ip=0x%08llx\n",
         regs.rsi,regs.rdi,regs.rsp,regs.rbp,regs.rip);
 
 }
@@ -79,12 +79,12 @@ void dump_kvm_segment(struct kvm_segment *seg, char *name) {
     } else {
         limit = seg->limit;
     }
-    printf("%s:%x %08x(%08x)\n",
+    printf("%s:%x %08llx(%08x)\n",
         name,seg->selector,seg->base,limit);
 }
 
 void dump_kvm_dtable(struct kvm_dtable *seg, char *name) {
-    printf("%s: %08x(%08x)\n",
+    printf("%s: %08llx(%08x)\n",
         name,seg->base,seg->limit);
 }
 
@@ -93,7 +93,7 @@ void dump_kvm_sregs(int vcpufd) {
     int ret = ioctl(vcpufd, KVM_GET_SREGS, &sregs);
     if (ret == -1)
         err(1, "KVM_GET_SREGS");
-    printf("cr0=0x%08x\n",
+    printf("cr0=0x%08llx\n",
         sregs.cr0);
     dump_kvm_segment(&sregs.cs,"cs");
     dump_kvm_segment(&sregs.tr,"tr");
@@ -102,7 +102,7 @@ void dump_kvm_sregs(int vcpufd) {
     dump_kvm_dtable(&sregs.idt,"idt");
     printf("irq:");
     for (int i = 0; i < (KVM_NR_INTERRUPTS + 63) / 64; i++) {
-        printf("%016x",sregs.interrupt_bitmap[i]);
+        printf("%016llx",sregs.interrupt_bitmap[i]);
     }
     printf("\n");
 }
