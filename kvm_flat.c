@@ -79,10 +79,14 @@ struct emu {
     struct gdt_entry *gdt;
     struct idt *idt;
     void *text;
-    int text_size;
+    unsigned int text_size;
     void *stack;
-    int stack_size;
-} emu;
+    unsigned int stack_size;
+    unsigned int bss_base;
+    void *bss;
+    unsigned int bss_size;
+    unsigned int bss_brk;
+} emu_global;
 
 #define STACK_SIZE 0x4000
 #define STACK_BASE 0xf0000000
@@ -91,10 +95,13 @@ struct emu {
 #define GDT_SIZE 0x1000
 #define GDT_BASE 0xf0020000
 
+#define BSS_SIZE 0x00040000
+
 #define MEM_REGION_GDT   0
 #define MEM_REGION_IDT   1
+#define MEM_REGION_STACK 2
 #define MEM_REGION_TEXT  3
-#define MEM_REGION_STACK 4
+#define MEM_REGION_BSS   4
 
 #define SEL_TEXT 0x08 /* gdt[1] */
 #define SEL_DATA 0x10 /* gdt[2] */
@@ -380,6 +387,22 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
+    emu->bss_base = emu->text_size + 0x1000;
+    emu->bss_brk = 0;
+    emu->bss_size = BSS_SIZE;
+    emu->bss = mmap(NULL, emu->bss_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!emu->bss)
+        err(1, "allocating bss");
+    struct kvm_userspace_memory_region region2 = {
+        .slot = MEM_REGION_BSS,
+        .guest_phys_addr = emu->bss_base,
+        .memory_size = emu->bss_size,
+        .userspace_addr = (uint64_t)emu->bss,
+    };
+    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region2);
+    if (ret == -1)
+        err(1, "KVM_SET_USER_MEMORY_REGION");
+
     /* Initialize registers: instruction pointer for our code, addends, and
      * initial flags required by x86 architecture. */
     struct kvm_regs regs = {
@@ -396,12 +419,19 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     return 0;
 }
 
-#if 0
+int alloc_bss(struct emu *emu, unsigned int size) {
+    if (emu->bss_brk + size > emu->bss_size) {
+        return 0;
+    }
+    unsigned int addr = emu->bss_base + emu->bss_brk;
+    emu->bss_brk += size;
+    return addr;
+}
+
 void iret_setflags(struct kvm_regs *regs, unsigned int setflags) {
-    __u32 *flags = (__u32 *)(kvm_stack + regs->rsp - STACK_BASE + 8);
+    __u32 *flags = (__u32 *)(emu_global.stack + regs->rsp - STACK_BASE + 8);
     *flags |= setflags;
 }
-#endif
 
 void irq_dos_exit(int vcpufd, struct kvm_regs *regs) {
     printf(" return=0x%02llx\n",regs->rax & 0xff);
@@ -425,10 +455,29 @@ void irq_dpmi_000a(int vcpufd, struct kvm_regs *regs) {
         err(1, "KVM_SET_REGS");
 }
 
+void irq_dpmi_0501(int vcpufd, struct kvm_regs *regs) {
+    unsigned int size = (regs->rbx & 0xffff) <<16 | (regs->rcx & 0xffff);
+    unsigned int addr = alloc_bss(&emu_global, size);
+
+    printf("alloc(%i) = 0x%08x",size,addr);
+
+    if (!addr) {
+        iret_setflags(regs,1); /* set CF */
+        return;
+    }
+
+    regs->rbx = regs->rsi = addr >> 16;
+    regs->rcx = regs->rdi = addr & 0xffff;
+
+    int ret = ioctl(vcpufd, KVM_SET_REGS, regs);
+    if (ret == -1)
+        err(1, "KVM_SET_REGS");
+}
+
 void irq_gpf(void *data, int vcpufd, struct kvm_regs *regs) {
     /* FIXME - references emu globally */
-    __u32 retaddr = *(__u32 *)(emu.stack + regs->rsp - STACK_BASE + 4);
-    __u32 errcode = *(__u32 *)(emu.stack + regs->rsp - STACK_BASE);
+    __u32 retaddr = *(__u32 *)(emu_global.stack + regs->rsp - STACK_BASE + 4);
+    __u32 errcode = *(__u32 *)(emu_global.stack + regs->rsp - STACK_BASE);
     printf("- retaddr=0x%08x errcode=0x%08x\n",retaddr,errcode);
     dump_kvm_sregs(vcpufd);
     err(1, "GPF");
@@ -475,6 +524,7 @@ struct irq_subhandler_entry irq_dpmi_subcode[] = {
     { .subcode = 0x0008, .name = "SET SEGMENT LIMIT", .handler = irq_ignore },
     { .subcode = 0x0009, .name = "SET DESCRIPTOR ACCESS RIGHTS", .handler = irq_ignore },
     { .subcode = 0x000a, .name = "CREATE ALIAS DESCRIPTOR", .handler = irq_dpmi_000a },
+    { .subcode = 0x0501, .name = "ALLOCATE MEMORY BLOCK", .handler = irq_dpmi_0501 },
     { .subcode = 0x0507, .name = "SET PAGE ATTRIBUTES", .handler = irq_ignore },
     { 0 },
 };
@@ -530,37 +580,37 @@ int main(int argc, char **argv)
     filename=argv[1];
     entry=strtoul(argv[2],NULL,0);
 
-    kvm_init(&emu);
+    kvm_init(&emu_global);
 
-    if (load_image(&emu,filename,entry) == -1) {
+    if (load_image(&emu_global,filename,entry) == -1) {
         return 1;
     }
 
     /* Repeatedly run code and handle VM exits. */
     while (1) {
-        ret = ioctl(emu.vcpufd, KVM_RUN, NULL);
+        ret = ioctl(emu_global.vcpufd, KVM_RUN, NULL);
         if (ret == -1)
             err(1, "KVM_RUN");
-        dump_kvm_exit(&emu);
-        switch (emu.run->exit_reason) {
+        dump_kvm_exit(&emu_global);
+        switch (emu_global.run->exit_reason) {
         case KVM_EXIT_HLT:
             puts("KVM_EXIT_HLT");
             return 0;
         case KVM_EXIT_IO:
-            if (emu.run->io.direction == KVM_EXIT_IO_OUT && emu.run->io.size == 4 && emu.run->io.port == 0x7f && emu.run->io.count == 1) {
-                handle_softirq(&emu);
-            } else if (emu.run->io.direction == KVM_EXIT_IO_OUT && emu.run->io.size == 1 && emu.run->io.port == 0x3f8 && emu.run->io.count == 1)
-                putchar(*(((char *)emu.run) + emu.run->io.data_offset));
+            if (emu_global.run->io.direction == KVM_EXIT_IO_OUT && emu_global.run->io.size == 4 && emu_global.run->io.port == 0x7f && emu_global.run->io.count == 1) {
+                handle_softirq(&emu_global);
+            } else if (emu_global.run->io.direction == KVM_EXIT_IO_OUT && emu_global.run->io.size == 1 && emu_global.run->io.port == 0x3f8 && emu_global.run->io.count == 1)
+                putchar(*(((char *)emu_global.run) + emu_global.run->io.data_offset));
             else
                 errx(1, "unhandled KVM_EXIT_IO");
             break;
         case KVM_EXIT_FAIL_ENTRY:
             errx(1, "KVM_EXIT_FAIL_ENTRY: hardware_entry_failure_reason = 0x%llx",
-                 (unsigned long long)emu.run->fail_entry.hardware_entry_failure_reason);
+                 (unsigned long long)emu_global.run->fail_entry.hardware_entry_failure_reason);
         case KVM_EXIT_INTERNAL_ERROR:
-            errx(1, "KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x", emu.run->internal.suberror);
+            errx(1, "KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x", emu_global.run->internal.suberror);
         default:
-            errx(1, "exit_reason = 0x%x", emu.run->exit_reason);
+            errx(1, "exit_reason = 0x%x", emu_global.run->exit_reason);
         }
     }
 }
