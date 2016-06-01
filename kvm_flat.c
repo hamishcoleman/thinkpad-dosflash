@@ -630,48 +630,91 @@ int irq_dpmi_000a(void *data, struct emu *emu, struct kvm_regs *regs) {
     return WANT_SET_REGS;
 }
 
+struct __attribute__ ((__packed__)) dpmi_call16regs {
+    __u32 edi,esi,ebp,reserved;
+    __u32 ebx,edx,ecx,eax;
+    __u16 flags;
+    __u16 es,ds,fs,gs,ip,cs,sp,ss;
+};
+
+void dpmi_call2regs(void *data, struct kvm_regs *call) {
+    struct dpmi_call16regs * call16 = data;
+    call->rax = call16->eax;
+    call->rbx = call16->ebx;
+    call->rcx = call16->ecx;
+    call->rdx = call16->edx;
+    call->rsi = call16->esi;
+    call->rdi = call16->edi;
+    call->rsp = call16->sp;
+    call->rbp = call16->ebp;
+    call->rip = call16->ip;
+    call->rflags = call16->flags;
+}
+
+void dpmi_regs2call(struct kvm_regs *call, void *data) {
+    struct dpmi_call16regs * call16 = data;
+    call16->eax = call->rax;
+    call16->ebx = call->rbx;
+    call16->ecx = call->rcx;
+    call16->edx = call->rdx;
+    call16->esi = call->rsi;
+    call16->edi = call->rdi;
+    call16->ebp = call->rbp;
+    call16->flags = call->rflags;
+}
+
 /* SIMULATE REAL MODE INTERRUPT */
 int irq_dpmi_0300(void *data, struct emu *emu, struct kvm_regs *regs) {
     int irqno = regs->rbx & 0xff;
     printf("irq 0x%02x\n",irqno);
 
-    struct __attribute__ ((__packed__)) call_struct {
-        __u32 edi,esi,ebp,reserved;
-        __u32 ebx,edx,ecx,eax;
-        __u16 flags;
-        __u16 es,ds,fs,gs,ip,cs,sp,ss;
-    };
-
-    struct call_struct * call16 = mem_guest2host(emu, regs->rdi);
+    void *call16 = mem_guest2host(emu, regs->rdi);
     if (!call16) {
         err(1, "could not map guest to host");
     }
     struct kvm_regs call;
-    call.rax = call16->eax;
-    call.rbx = call16->ebx;
-    call.rcx = call16->ecx;
-    call.rdx = call16->edx;
-    call.rsi = call16->esi;
-    call.rdi = call16->edi;
-    call.rsp = call16->sp;
-    call.rbp = call16->ebp;
-    call.rip = call16->ip;
-    call.rflags = call16->flags;
+    dpmi_call2regs(call16,&call);
     printf("Real mode registers:\n");
     dump_kvm_regs(&call);
     handle_irqno(emu->irq,irqno,emu,&call); /* TODO - something with ret */
 
     /* always repopulate the call structure - it is just simpler */
-    call16->eax = call.rax;
-    call16->ebx = call.rbx;
-    call16->ecx = call.rcx;
-    call16->edx = call.rdx;
-    call16->esi = call.rsi;
-    call16->edi = call.rdi;
-    call16->ebp = call.rbp;
-    call16->flags = call.rflags;
+    dpmi_regs2call(&call, call16);
 
     return WANT_NONE;
+}
+
+int irq_dpmi_0303(void *data, struct emu *emu, struct kvm_regs *regs) {
+    printf("\n");
+    printf("Callback to DS:0x%08llx\n", regs->rsi);
+
+    void *call16 = mem_guest2host(emu, regs->rdi);
+    if (!call16) {
+        err(1, "could not map guest to host");
+    }
+    struct kvm_regs call;
+    dpmi_call2regs(call16,&call);
+    printf("Real mode registers:\n");
+    dump_kvm_regs(&call);
+
+    regs->rcx = 0;
+    regs->rdx = 0xaa55aa55;
+    return WANT_SET_REGS;
+
+    dump_kvm_sregs(emu);
+    __u32 *stack = mem_guest2host(&emu_global, regs->rsp);
+    printf("Stack:");
+    dump_dwords(stack,16);
+    exit(1);
+}
+
+/* GET DPMI VERSION */
+int irq_dpmi_0400(void *data, struct emu *emu, struct kvm_regs *regs) {
+    regs->rax = 0x0100; /* DPMI version 1.0 */
+    regs->rbx = 0x3; /* 386 and no v86 */
+    regs->rcx = 0x04; /* 80486 */
+    regs->rdx = 0x5aa5; /* some virtual interrupt thing */
+    return WANT_SET_REGS;
 }
 
 int irq_dpmi_0501(void *data, struct emu *emu, struct kvm_regs *regs) {
@@ -739,11 +782,12 @@ int irq_subcode_ax(void *data, struct emu *emu, struct kvm_regs *regs) {
 }
 
 int irq_unhandled(void *data, struct emu *emu, struct kvm_regs *regs) {
-    err(1, "unhandled irq");
-    return 0;
+    printf("unhandled irq");
+    exit(1);
 }
 
 int irq_ignore(void *data, struct emu *emu, struct kvm_regs *regs) {
+    printf("Ignored");
     return 0;
 }
 
@@ -754,9 +798,18 @@ struct irq_subhandler_entry irq_dpmi_subcode[] = {
     { .subcode = 0x0008, .name = "SET SEGMENT LIMIT", .handler = irq_dpmi_0008 },
     { .subcode = 0x0009, .name = "SET DESCRIPTOR ACCESS RIGHTS", .handler = irq_ignore },
     { .subcode = 0x000a, .name = "CREATE ALIAS DESCRIPTOR", .handler = irq_dpmi_000a },
+    { .subcode = 0x0200, .name = "GET REAL MODE INTERRUPT VECTOR", .handler = irq_ignore },
+    { .subcode = 0x0201, .name = "SET REAL MODE INTERRUPT VECTOR", .handler = irq_ignore },
+    { .subcode = 0x0202, .name = "GET PROCESSOR EXCEPTION HANDLER VECTOR", .handler = irq_ignore },
+    { .subcode = 0x0203, .name = "SET PROCESSOR EXCEPTION HANDLER VECTOR", .handler = irq_ignore },
+    { .subcode = 0x0204, .name = "GET PROTECTED MODE INTERRUPT VECTOR", .handler = irq_ignore },
+    { .subcode = 0x0205, .name = "SET PROTECTED MODE INTERRUPT VECTOR", .handler = irq_ignore },
     { .subcode = 0x0300, .name = "SIMULATE REAL MODE INTERRUPT", .handler = irq_dpmi_0300 },
+    { .subcode = 0x0303, .name = "ALLOCATE REAL MODE CALLBACK ADDRESS", .handler = irq_dpmi_0303 },
+    { .subcode = 0x0400, .name = "GET DPMI VERSION", .handler = irq_dpmi_0400 },
     { .subcode = 0x0501, .name = "ALLOCATE MEMORY BLOCK", .handler = irq_dpmi_0501 },
     { .subcode = 0x0507, .name = "SET PAGE ATTRIBUTES", .handler = irq_ignore },
+    { .subcode = 0x0600, .name = "LOCK LINEAR REGION", .handler = irq_ignore },
     { 0 },
 };
 
