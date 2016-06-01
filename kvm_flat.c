@@ -90,7 +90,8 @@ struct emu {
 #define BIOS_BASE 0x000c0000
 #define BIOS_SIZE 0x00040000
 
-#define BSS_SIZE 0x00040000
+#define BSS_BASE 0x00200000
+#define BSS_SIZE 0x00080000
 
 #define SEL_TEXT 0x08 /* gdt[1] */
 #define SEL_DATA 0x10 /* gdt[2] */
@@ -438,6 +439,21 @@ int kvm_init(struct emu *emu) {
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
+    uint8_t *bss = mmap(NULL, BSS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!bss)
+        err(1, "allocating bss");
+
+    emu->mem[MEM_REGION_BSS].slot = MEM_REGION_BSS;
+    emu->mem[MEM_REGION_BSS].guest_phys_addr = BSS_BASE;
+    emu->mem[MEM_REGION_BSS].memory_size = BSS_SIZE;
+    emu->mem[MEM_REGION_BSS].userspace_addr = (uint64_t)bss;
+
+    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_BSS]);
+    if (ret == -1)
+        err(1, "KVM_SET_USER_MEMORY_REGION");
+
+    emu->bss_brk = BSS_SIZE/2; /* things put stacks here, so start halfway */
+
     void *bios = mmap(NULL, BIOS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!bios)
         err(1, "allocating bios area");
@@ -507,22 +523,6 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_TEXT]);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
-
-    __u64 bss_size = BSS_SIZE;
-    uint8_t *bss = mmap(NULL, bss_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (!bss)
-        err(1, "allocating bss");
-
-    emu->mem[MEM_REGION_BSS].slot = MEM_REGION_BSS;
-    emu->mem[MEM_REGION_BSS].guest_phys_addr = emu->mem[MEM_REGION_TEXT].memory_size + 0x1000;
-    emu->mem[MEM_REGION_BSS].memory_size = bss_size;
-    emu->mem[MEM_REGION_BSS].userspace_addr = (uint64_t)bss;
-
-    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_BSS]);
-    if (ret == -1)
-        err(1, "KVM_SET_USER_MEMORY_REGION");
-
-    emu->bss_brk = STACK_SIZE; /* start a little from the bottom - silly things put stacks here */
 
     /* Initialize registers: instruction pointer for our code and
      * initial flags required by x86 architecture. */
