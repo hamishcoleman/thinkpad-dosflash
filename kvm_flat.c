@@ -37,18 +37,6 @@
 
 #include <unistd.h>
 
-struct irq_subhandler_entry {
-    int subcode;
-    char *name;
-    void (*handler)(int, struct kvm_regs *);
-};
-
-struct irq_handler_entry {
-    char *name;
-    void (*handler)(void *,int, struct kvm_regs *);
-    void *data;
-};
-
 struct gdt_entry {
     __u16 limit_l;
     __u16 base_l;
@@ -101,6 +89,21 @@ struct emu {
 #define SEL_DATA 0x10 /* gdt[2] */
 #define SEL_FAKE 0x18
 #define SEL_STACK FIXME
+
+struct irq_subhandler_entry {
+    int subcode;
+    char *name;
+    int (*handler)(void *, struct emu *, struct kvm_regs *);
+    void *data;
+};
+
+struct irq_handler_entry {
+    char *name;
+    int (*handler)(void *, struct emu *, struct kvm_regs *);
+    void *data;
+};
+#define WANT_NONE     0
+#define WANT_SET_REGS 1
 
 void *mem_guest2host(struct emu *emu, __u64 guestaddr) {
     for (int i=0; i<MAX_MEM_REGIONS; i++) {
@@ -452,51 +455,69 @@ void iret_setflags(struct kvm_regs *regs, unsigned int setflags) {
     }
 }
 
-void irq_dos_exit(int vcpufd, struct kvm_regs *regs) {
+int irq_dos_exit(void *data, struct emu *emu, struct kvm_regs *regs) {
     printf(" return=0x%02llx\n",regs->rax & 0xff);
     exit(0);
 }
 
-void irq_dpmi_0006(int vcpufd, struct kvm_regs *regs) {
+/* get segment base address */
+int irq_dpmi_0006(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rcx = regs->rdx = 0;
-
-    int ret = ioctl(vcpufd, KVM_SET_REGS, regs);
-    if (ret == -1)
-        err(1, "KVM_SET_REGS");
+    return WANT_SET_REGS;
 }
 
-void irq_dpmi_000a(int vcpufd, struct kvm_regs *regs) {
-    /* Just fake it! */
-    /* regs->rax = regs->rbx; */
-    regs->rax = SEL_FAKE;
+/* create alias of a code segment */
+int irq_dpmi_000a(void *data, struct emu *emu, struct kvm_regs *regs) {
+    struct gdt_entry *gdt = (struct gdt_entry *)emu->mem[MEM_REGION_GDT].userspace_addr;
 
-    int ret = ioctl(vcpufd, KVM_SET_REGS, regs);
-    if (ret == -1)
-        err(1, "KVM_SET_REGS");
+    if (regs->rbx & 0x7) {
+        err(1, "Unexpected selector options");
+    }
+
+    int entry_orig = (regs->rbx & 0xffff)>>3;
+    if (entry_orig >= emu->gdt_brk) {
+        iret_setflags(regs,1); /* set CF */
+        return WANT_NONE;
+    }
+
+    memcpy(&gdt[emu->gdt_brk],&gdt[entry_orig],sizeof(*gdt));
+
+    regs->rax = emu->gdt_brk<<3;
+    emu->gdt_brk++;
+
+    return WANT_SET_REGS;
 }
 
-void irq_dpmi_0501(int vcpufd, struct kvm_regs *regs) {
+/* SIMULATE REAL MODE INTERRUPT */
+int irq_dpmi_0300(void *data, struct emu *emu, struct kvm_regs *regs) {
+    int irqno = regs->rbx & 0xff;
+    printf("irq 0x%02x",irqno);
+
+    dump_kvm_sregs(emu->vcpufd);
+    err(1, "int");
+    return 0;
+}
+
+int irq_dpmi_0501(void *data, struct emu *emu, struct kvm_regs *regs) {
     unsigned int size = (regs->rbx & 0xffff) <<16 | (regs->rcx & 0xffff);
-    unsigned int addr = alloc_bss(&emu_global, size);
+    unsigned int addr = alloc_bss(emu, size);
 
     printf("alloc(%i) = 0x%08x",size,addr);
 
     if (!addr) {
         iret_setflags(regs,1); /* set CF */
-        return;
+        return WANT_NONE;
     }
 
     regs->rbx = regs->rsi = addr >> 16;
     regs->rcx = regs->rdi = addr & 0xffff;
 
-    int ret = ioctl(vcpufd, KVM_SET_REGS, regs);
-    if (ret == -1)
-        err(1, "KVM_SET_REGS");
+    return WANT_SET_REGS;
 }
 
-void irq_gpf(void *data, int vcpufd, struct kvm_regs *regs) {
+int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
     printf("- General Protection");
-    __u32 *stack = mem_guest2host(&emu_global, regs->rsp);
+    __u32 *stack = mem_guest2host(emu, regs->rsp);
     if (stack) {
         __u32 errcode = stack[0];
         printf(" at address 0x%08x with %s%s selector 0x%x\n",
@@ -507,44 +528,47 @@ void irq_gpf(void *data, int vcpufd, struct kvm_regs *regs) {
         );
     }
 
-    dump_kvm_sregs(vcpufd);
+    dump_kvm_sregs(emu->vcpufd);
     err(1, "GPF");
+    return 0;
 }
 
-void handle_subcode(struct irq_subhandler_entry *p, int subcode, int vcpufd, struct kvm_regs *regs) {
+int handle_subcode(struct irq_subhandler_entry *p, int subcode, struct emu *emu, struct kvm_regs *regs) {
     while (p && p->name) {
         if (p->subcode == subcode) {
             printf(" (%s):",p->name);
-            p->handler(vcpufd, regs);
+            int ret = p->handler(p->data, emu, regs);
             printf("\n");
-            return;
+            return ret;
         }
         p++;
     }
     printf("\n");
     err(1, "undefined subcode");
+    return 0;
 }
 
-void irq_subcode_ah(void *data, int vcpufd, struct kvm_regs *regs) {
+int irq_subcode_ah(void *data, struct emu *emu, struct kvm_regs *regs) {
     struct irq_subhandler_entry *table = data;
     int subcode = (regs->rax & 0xff00) >>8;
     printf("%02X",subcode);
-    handle_subcode(table,subcode,vcpufd,regs);
+    return handle_subcode(table, subcode, emu, regs);
 }
 
-void irq_subcode_ax(void *data, int vcpufd, struct kvm_regs *regs) {
+int irq_subcode_ax(void *data, struct emu *emu, struct kvm_regs *regs) {
     struct irq_subhandler_entry *table = data;
     int subcode = regs->rax & 0xffff;
     printf("%04X",subcode);
-    handle_subcode(table,subcode,vcpufd,regs);
+    return handle_subcode(table, subcode, emu, regs);
 }
 
-void irq_unhandled(int vcpufd, struct kvm_regs *regs) {
+int irq_unhandled(void *data, struct emu *emu, struct kvm_regs *regs) {
     err(1, "unhandled irq");
+    return 0;
 }
 
-void irq_ignore(int vcpufd, struct kvm_regs *regs) {
-    return;
+int irq_ignore(void *data, struct emu *emu, struct kvm_regs *regs) {
+    return 0;
 }
 
 struct irq_subhandler_entry irq_dpmi_subcode[] = {
@@ -552,6 +576,7 @@ struct irq_subhandler_entry irq_dpmi_subcode[] = {
     { .subcode = 0x0007, .name = "SET SEGMENT BASE ADDRESS", .handler = irq_ignore },
     { .subcode = 0x0008, .name = "SET SEGMENT LIMIT", .handler = irq_ignore },
     { .subcode = 0x0009, .name = "SET DESCRIPTOR ACCESS RIGHTS", .handler = irq_ignore },
+    { .subcode = 0x0300, .name = "SIMULATE REAL MODE INTERRUPT", .handler = irq_dpmi_0300 },
     { .subcode = 0x000a, .name = "CREATE ALIAS DESCRIPTOR", .handler = irq_dpmi_000a },
     { .subcode = 0x0501, .name = "ALLOCATE MEMORY BLOCK", .handler = irq_dpmi_0501 },
     { .subcode = 0x0507, .name = "SET PAGE ATTRIBUTES", .handler = irq_ignore },
@@ -587,14 +612,21 @@ int handle_softirq(struct emu *emu) {
     int irqno = (regs.rip - IDT_BASE - 0x800) >> 2;
     printf("INT ");
 
-    if (handlers[irqno].name) {
-        printf("'%s' -%02X",handlers[irqno].name,irqno);
-        handlers[irqno].handler(handlers[irqno].data,emu->vcpufd,&regs);
-    } else {
+    if (!handlers[irqno].name) {
         __u32 retaddr = *(__u32 *)(emu->mem[MEM_REGION_STACK].userspace_addr + regs.rsp - STACK_BASE + 4);
         printf("-%02X retaddr=0x%08x\n",irqno,retaddr);
         err(1, "undefined irq");
     }
+
+    printf("'%s' -%02X",handlers[irqno].name,irqno);
+    ret = handlers[irqno].handler(handlers[irqno].data,emu,&regs);
+
+    if (ret == WANT_SET_REGS) {
+        int ret = ioctl(emu->vcpufd, KVM_SET_REGS, &regs);
+        if (ret == -1)
+            err(1, "KVM_SET_REGS");
+    }
+
     return 0;
 }
 
