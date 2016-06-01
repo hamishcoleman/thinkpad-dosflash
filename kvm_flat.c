@@ -37,7 +37,7 @@
 
 #include <unistd.h>
 
-struct gdt_entry {
+struct __attribute__ ((__packed__)) gdt_entry {
     __u16 limit_l;
     __u16 base_l;
     __u8 base_m;
@@ -46,7 +46,7 @@ struct gdt_entry {
     __u8 base_h;
 };
 
-struct idt_entry {
+struct __attribute__ ((__packed__)) idt_entry {
     __u16 offset_l;
     __u16 selector;
     __u8 always0;
@@ -54,7 +54,7 @@ struct idt_entry {
     __u16 offset_h;
 };
 
-struct idt {
+struct __attribute__ ((__packed__)) idt {
     struct idt_entry entry[256];
     uint8_t hlt[256][4];
 };
@@ -66,6 +66,7 @@ struct idt {
 #define MEM_REGION_TEXT  3
 #define MEM_REGION_BSS   4
 
+struct irq_handler_entry; /* forward definition */
 struct emu {
     int kvm;
     int vmfd;
@@ -74,6 +75,8 @@ struct emu {
     struct kvm_userspace_memory_region mem[MAX_MEM_REGIONS];
     unsigned int bss_brk; /* start of available bss */
     unsigned int gdt_brk; /* start of available descriptors */
+
+    struct irq_handler_entry *irq;
 } emu_global;
 
 #define STACK_SIZE 0x4000
@@ -104,6 +107,7 @@ struct irq_handler_entry {
 };
 #define WANT_NONE     0
 #define WANT_SET_REGS 1
+int handle_irqno(struct irq_handler_entry *, unsigned char, struct emu *, struct kvm_regs *); /* forward definition */
 
 void *mem_guest2host(struct emu *emu, __u64 guestaddr) {
     for (int i=0; i<MAX_MEM_REGIONS; i++) {
@@ -136,21 +140,17 @@ void dump_kvm_run(struct kvm_run *run) {
     }
 }
 
-void dump_kvm_regs(struct emu *emu) {
-    struct kvm_regs regs;
-    int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &regs);
-    if (ret == -1)
-        err(1, "KVM_GET_REGS");
+void dump_kvm_regs(struct kvm_regs *regs) {
     printf("ax=0x%08llx bx=0x%08llx cx=0x%08llx dx=0x%08llx flags=0x%08llx\n",
-        regs.rax,regs.rbx,regs.rcx,regs.rdx,regs.rflags);
+        regs->rax,regs->rbx,regs->rcx,regs->rdx,regs->rflags);
 #if 0
     printf("8=0x%08x 9=0x%08x 10=0x%08x 11=0x%08x 12=0x%08x\n",
-        regs.r8,regs.r9,regs.r10,regs.r11,regs.r12);
+        regs->r8,regs->r9,regs->r10,regs->r11,regs->r12);
 #endif
     printf("si=0x%08llx di=0x%08llx sp=0x%08llx bp=0x%08llx ip=0x%08llx ",
-        regs.rsi,regs.rdi,regs.rsp,regs.rbp,regs.rip);
+        regs->rsi,regs->rdi,regs->rsp,regs->rbp,regs->rip);
 
-    __u32 *stack = mem_guest2host(emu, regs.rsp);
+    __u32 *stack = mem_guest2host(&emu_global, regs->rsp);
     if (stack) {
         printf("(%07x)\n",*stack);
     }
@@ -195,9 +195,14 @@ void dump_kvm_sregs(int vcpufd) {
 }
 
 void dump_kvm_exit(struct emu *emu) {
+    struct kvm_regs regs;
+    int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &regs);
+    if (ret == -1)
+        err(1, "KVM_GET_REGS");
+
     printf("\n");
     dump_kvm_run(emu->run);
-    dump_kvm_regs(emu);
+    dump_kvm_regs(&regs);
     switch(emu->run->exit_reason) {
     case KVM_EXIT_SHUTDOWN:
     case KVM_EXIT_MMIO:
@@ -491,7 +496,33 @@ int irq_dpmi_000a(void *data, struct emu *emu, struct kvm_regs *regs) {
 /* SIMULATE REAL MODE INTERRUPT */
 int irq_dpmi_0300(void *data, struct emu *emu, struct kvm_regs *regs) {
     int irqno = regs->rbx & 0xff;
-    printf("irq 0x%02x",irqno);
+    printf("irq 0x%02x\n",irqno);
+
+    struct __attribute__ ((__packed__)) call_struct {
+        __u32 edi,esi,ebp,reserved;
+        __u32 ebx,edx,ecx,eax;
+        __u16 flags;
+        __u16 es,ds,fs,gs,ip,cs,sp,ss;
+    };
+
+    struct call_struct * call16 = mem_guest2host(emu, regs->rdi);
+    if (!call16) {
+        err(1, "could not map guest to host");
+    }
+    struct kvm_regs call;
+    call.rax = call16->eax;
+    call.rbx = call16->ebx;
+    call.rcx = call16->ecx;
+    call.rdx = call16->edx;
+    call.rsi = call16->esi;
+    call.rdi = call16->edi;
+    call.rsp = call16->sp;
+    call.rbp = call16->ebp;
+    call.rip = call16->ip;
+    call.rflags = call16->flags;
+    printf("Real mode registers:\n");
+    dump_kvm_regs(&call);
+    int ret = handle_irqno(emu->irq,irqno,emu,&call);
 
     dump_kvm_sregs(emu->vcpufd);
     err(1, "int");
@@ -591,11 +622,27 @@ struct irq_subhandler_entry irq_dos_subcode[] = {
 /*
  * Top level table of every IRQ possible
  */
-struct irq_handler_entry handlers[256] = {
+struct irq_handler_entry irq_handlers[256] = {
     [0x0d] = { .name = "GPF",  .handler = irq_gpf },
     [0x21] = { .name = "DOS",  .handler = irq_subcode_ah, .data = irq_dos_subcode },
     [0x31] = { .name = "DPMI", .handler = irq_subcode_ax, .data = irq_dpmi_subcode },
 };
+
+int handle_irqno(struct irq_handler_entry *p, unsigned char irqno, struct emu *emu, struct kvm_regs *regs) {
+    printf("INT ");
+
+    if (!p[irqno].name) {
+        printf("-%02X ",irqno);
+        __u32 *stack = mem_guest2host(emu, regs->rsp);
+        if (stack) {
+            printf("retaddr=0x%08x\n",stack[4]);
+        }
+        err(1, "undefined irq");
+    }
+
+    printf("'%s' -%02X",p[irqno].name,irqno);
+    return p[irqno].handler(p[irqno].data,emu,regs);
+}
 
 int handle_softirq(struct emu *emu) {
     struct kvm_regs regs;
@@ -609,17 +656,8 @@ int handle_softirq(struct emu *emu) {
         err(1, "softirq from outside idt region");
     }
 
-    int irqno = (regs.rip - IDT_BASE - 0x800) >> 2;
-    printf("INT ");
-
-    if (!handlers[irqno].name) {
-        __u32 retaddr = *(__u32 *)(emu->mem[MEM_REGION_STACK].userspace_addr + regs.rsp - STACK_BASE + 4);
-        printf("-%02X retaddr=0x%08x\n",irqno,retaddr);
-        err(1, "undefined irq");
-    }
-
-    printf("'%s' -%02X",handlers[irqno].name,irqno);
-    ret = handlers[irqno].handler(handlers[irqno].data,emu,&regs);
+    unsigned char irqno = (regs.rip - IDT_BASE - 0x800) >> 2;
+    ret = handle_irqno(emu->irq,irqno,emu,&regs);
 
     if (ret == WANT_SET_REGS) {
         int ret = ioctl(emu->vcpufd, KVM_SET_REGS, &regs);
@@ -649,6 +687,8 @@ int main(int argc, char **argv)
     if (load_image(emu,filename,entry) == -1) {
         return 1;
     }
+
+    emu->irq = &irq_handlers[0];
 
     /* Repeatedly run code and handle VM exits. */
     while (1) {
