@@ -630,6 +630,67 @@ int irq_dpmi_000a(void *data, struct emu *emu, struct kvm_regs *regs) {
     return WANT_SET_REGS;
 }
 
+/* GET REAL MODE INTERRUPT VECTOR */
+int irq_dpmi_0200(void *data, struct emu *emu, struct kvm_regs *regs) {
+    int irqno = regs->rbx & 0xff;
+    printf("irq(0x%x)\n", irqno );
+    regs->rcx = 0xfee1;
+    regs->rdx = 0xbad0;
+    return WANT_SET_REGS;
+}
+
+/* SET REAL MODE INTERRUPT VECTOR */
+int irq_dpmi_0201(void *data, struct emu *emu, struct kvm_regs *regs) {
+    printf("irq(0x%llx)=0x%04llx:0x%04llx\n",
+        regs->rbx & 0xff,
+        regs->rcx & 0xffff,
+        regs->rdx & 0xffff
+    );
+    regs->rax = 0;
+    return WANT_SET_REGS;
+}
+
+/* GET PROCESSOR EXCEPTION HANDLER VECTOR */
+int irq_dpmi_0202(void *data, struct emu *emu, struct kvm_regs *regs) {
+    int exception = regs->rbx & 0xff;
+    printf("exception(0x%x)\n", exception );
+    regs->rax = 0;
+    regs->rcx = SEL_TEXT;
+    regs->rdx = IDT_BASE + 2048;
+    return WANT_SET_REGS;
+}
+
+/* SET PROCESSOR EXCEPTION HANDLER VECTOR */
+int irq_dpmi_0203(void *data, struct emu *emu, struct kvm_regs *regs) {
+    printf("exception(0x%llx)=0x%llx:0x%08llx\n",
+        regs->rbx & 0xff,
+        regs->rcx & 0xffff,
+        regs->rdx
+    );
+    regs->rax = 0;
+    return WANT_SET_REGS;
+}
+
+/* GET PROTECTED MODE INTERRUPT VECTOR */
+int irq_dpmi_0204(void *data, struct emu *emu, struct kvm_regs *regs) {
+    int irqno = regs->rbx & 0xff;
+    printf("irq(0x%x)\n", irqno );
+    regs->rcx = SEL_TEXT;
+    regs->rdx = IDT_BASE + 2048 + 4 * irqno;
+    return WANT_SET_REGS;
+}
+
+/* SET PROTECTED MODE INTERRUPT VECTOR */
+int irq_dpmi_0205(void *data, struct emu *emu, struct kvm_regs *regs) {
+    printf("irq(0x%llx)=0x%llx:0x%08llx\n",
+        regs->rbx & 0xff,
+        regs->rcx & 0xffff,
+        regs->rdx
+    );
+    regs->rax = 0;
+    return WANT_SET_REGS;
+}
+
 struct __attribute__ ((__packed__)) dpmi_call16regs {
     __u32 edi,esi,ebp,reserved;
     __u32 ebx,edx,ecx,eax;
@@ -697,7 +758,7 @@ int irq_dpmi_0303(void *data, struct emu *emu, struct kvm_regs *regs) {
     printf("Real mode registers:\n");
     dump_kvm_regs(&call);
 
-    regs->rcx = 0;
+    regs->rcx = SEL_TEXT;
     regs->rdx = 0xaa55aa55;
     return WANT_SET_REGS;
 
@@ -798,12 +859,12 @@ struct irq_subhandler_entry irq_dpmi_subcode[] = {
     { .subcode = 0x0008, .name = "SET SEGMENT LIMIT", .handler = irq_dpmi_0008 },
     { .subcode = 0x0009, .name = "SET DESCRIPTOR ACCESS RIGHTS", .handler = irq_ignore },
     { .subcode = 0x000a, .name = "CREATE ALIAS DESCRIPTOR", .handler = irq_dpmi_000a },
-    { .subcode = 0x0200, .name = "GET REAL MODE INTERRUPT VECTOR", .handler = irq_ignore },
-    { .subcode = 0x0201, .name = "SET REAL MODE INTERRUPT VECTOR", .handler = irq_ignore },
-    { .subcode = 0x0202, .name = "GET PROCESSOR EXCEPTION HANDLER VECTOR", .handler = irq_ignore },
-    { .subcode = 0x0203, .name = "SET PROCESSOR EXCEPTION HANDLER VECTOR", .handler = irq_ignore },
-    { .subcode = 0x0204, .name = "GET PROTECTED MODE INTERRUPT VECTOR", .handler = irq_ignore },
-    { .subcode = 0x0205, .name = "SET PROTECTED MODE INTERRUPT VECTOR", .handler = irq_ignore },
+    { .subcode = 0x0200, .name = "GET REAL MODE INTERRUPT VECTOR", .handler = irq_dpmi_0200 },
+    { .subcode = 0x0201, .name = "SET REAL MODE INTERRUPT VECTOR", .handler = irq_dpmi_0201 },
+    { .subcode = 0x0202, .name = "GET PROCESSOR EXCEPTION HANDLER VECTOR", .handler = irq_dpmi_0202 },
+    { .subcode = 0x0203, .name = "SET PROCESSOR EXCEPTION HANDLER VECTOR", .handler = irq_dpmi_0203 },
+    { .subcode = 0x0204, .name = "GET PROTECTED MODE INTERRUPT VECTOR", .handler = irq_dpmi_0204 },
+    { .subcode = 0x0205, .name = "SET PROTECTED MODE INTERRUPT VECTOR", .handler = irq_dpmi_0205 },
     { .subcode = 0x0300, .name = "SIMULATE REAL MODE INTERRUPT", .handler = irq_dpmi_0300 },
     { .subcode = 0x0303, .name = "ALLOCATE REAL MODE CALLBACK ADDRESS", .handler = irq_dpmi_0303 },
     { .subcode = 0x0400, .name = "GET DPMI VERSION", .handler = irq_dpmi_0400 },
