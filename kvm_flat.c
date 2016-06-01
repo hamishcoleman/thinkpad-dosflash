@@ -87,6 +87,9 @@ struct emu {
 #define GDT_SIZE 0x1000
 #define GDT_BASE 0xf0020000
 
+#define BIOS_BASE 0x000c0000
+#define BIOS_SIZE 0x00040000
+
 #define BSS_SIZE 0x00040000
 
 #define SEL_TEXT 0x08 /* gdt[1] */
@@ -435,6 +438,19 @@ int kvm_init(struct emu *emu) {
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
+    void *bios = mmap(NULL, BIOS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!bios)
+        err(1, "allocating bios area");
+
+    emu->mem[MEM_REGION_BIOS].slot = MEM_REGION_BIOS;
+    emu->mem[MEM_REGION_BIOS].guest_phys_addr = BIOS_BASE;
+    emu->mem[MEM_REGION_BIOS].memory_size = BIOS_SIZE;
+    emu->mem[MEM_REGION_BIOS].userspace_addr = (uint64_t)bios;
+
+    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_BIOS]);
+    if (ret == -1)
+        err(1, "KVM_SET_USER_MEMORY_REGION");
+
     return 0;
 }
 
@@ -737,8 +753,8 @@ struct irq_subhandler_entry irq_dpmi_subcode[] = {
     { .subcode = 0x0007, .name = "SET SEGMENT BASE ADDRESS", .handler = irq_ignore },
     { .subcode = 0x0008, .name = "SET SEGMENT LIMIT", .handler = irq_dpmi_0008 },
     { .subcode = 0x0009, .name = "SET DESCRIPTOR ACCESS RIGHTS", .handler = irq_ignore },
-    { .subcode = 0x0300, .name = "SIMULATE REAL MODE INTERRUPT", .handler = irq_dpmi_0300 },
     { .subcode = 0x000a, .name = "CREATE ALIAS DESCRIPTOR", .handler = irq_dpmi_000a },
+    { .subcode = 0x0300, .name = "SIMULATE REAL MODE INTERRUPT", .handler = irq_dpmi_0300 },
     { .subcode = 0x0501, .name = "ALLOCATE MEMORY BLOCK", .handler = irq_dpmi_0501 },
     { .subcode = 0x0507, .name = "SET PAGE ATTRIBUTES", .handler = irq_ignore },
     { 0 },
