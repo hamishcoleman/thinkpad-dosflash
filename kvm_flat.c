@@ -809,8 +809,35 @@ int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
         printf("Stack:");
         dump_dwords(stack,16);
     }
-
     dump_kvm_sregs(emu);
+
+#if 0
+    struct kvm_sregs sregs;
+    int ret = ioctl(emu->vcpufd, KVM_GET_SREGS, &sregs);
+    if (ret == -1)
+        err(1, "KVM_GET_SREGS");
+
+    if (sregs.ds.selector == 0) {
+        printf("Applying wierd segment fixup\n");
+
+        sregs.ds.selector = SEL_DATA;
+        sregs.ds.base = 0;
+        sregs.ds.limit = 0xffffffff;
+        sregs.ds.type = 3; /* x=0, e=0, w=1, a=1 */
+        sregs.ds.dpl = 0;
+        sregs.ds.present = 1;
+        sregs.ds.db = 1;
+        sregs.ds.s = 1;
+        sregs.ds.g = 1;
+        ret = ioctl(emu->vcpufd, KVM_SET_SREGS, &sregs);
+        if (ret == -1)
+            err(1, "KVM_SET_SREGS");
+
+        regs->rsp+=4; /* pop the errcode dword */
+        return WANT_SET_REGS;
+    }
+#endif
+
     exit(1);
 }
 
