@@ -71,21 +71,21 @@ struct idt {
     uint8_t hlt[256][4];
 };
 
+#define MAX_MEM_REGIONS 5
+#define MEM_REGION_GDT   0
+#define MEM_REGION_IDT   1
+#define MEM_REGION_STACK 2
+#define MEM_REGION_TEXT  3
+#define MEM_REGION_BSS   4
+
 struct emu {
     int kvm;
     int vmfd;
     int vcpufd;
     struct kvm_run *run;
-    struct gdt_entry *gdt;
-    struct idt *idt;
-    void *text;
-    unsigned int text_size;
-    void *stack;
-    unsigned int stack_size;
-    unsigned int bss_base;
-    void *bss;
-    unsigned int bss_size;
-    unsigned int bss_brk;
+    struct kvm_userspace_memory_region mem[MAX_MEM_REGIONS];
+    unsigned int bss_brk; /* start of available bss */
+    unsigned int gdt_brk; /* start of available descriptors */
 } emu_global;
 
 #define STACK_SIZE 0x4000
@@ -97,16 +97,19 @@ struct emu {
 
 #define BSS_SIZE 0x00040000
 
-#define MEM_REGION_GDT   0
-#define MEM_REGION_IDT   1
-#define MEM_REGION_STACK 2
-#define MEM_REGION_TEXT  3
-#define MEM_REGION_BSS   4
-
 #define SEL_TEXT 0x08 /* gdt[1] */
 #define SEL_DATA 0x10 /* gdt[2] */
 #define SEL_FAKE 0x18
 #define SEL_STACK FIXME
+
+void *mem_guest2host(struct emu *emu, __u64 guestaddr) {
+    for (int i=0; i<MAX_MEM_REGIONS; i++) {
+        if (guestaddr >= emu->mem[i].guest_phys_addr && guestaddr <= emu->mem[i].guest_phys_addr + emu->mem[i].memory_size) {
+            return (uint8_t *)emu->mem[i].userspace_addr + (guestaddr - emu->mem[i].guest_phys_addr);
+        }
+    }
+    return NULL;
+}
 
 void dump_kvm_run(struct kvm_run *run) {
     const char * kvm_exit_str[] = {
@@ -144,12 +147,10 @@ void dump_kvm_regs(struct emu *emu) {
     printf("si=0x%08llx di=0x%08llx sp=0x%08llx bp=0x%08llx ip=0x%08llx ",
         regs.rsi,regs.rdi,regs.rsp,regs.rbp,regs.rip);
 
-    __u32 retaddr;
-    __u32 stack_addr = regs.rsp - STACK_BASE;
-    if (stack_addr < STACK_SIZE) {
-        retaddr = *(__u32 *)(emu->stack + stack_addr);
+    __u32 *stack = mem_guest2host(emu, regs.rsp);
+    if (stack) {
+        printf("(%07x)\n",*stack);
     }
-    printf("(%07x)\n",retaddr);
 }
 
 void dump_kvm_segment(struct kvm_segment *seg, char *name) {
@@ -203,64 +204,65 @@ void dump_kvm_exit(struct emu *emu) {
 }
 
 void setup_gdt(struct kvm_sregs *sregs, struct emu *emu) {
-    emu->gdt = mmap(NULL, GDT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (!emu->gdt)
+    struct gdt_entry *gdt = mmap(NULL, GDT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!gdt)
         err(1, "allocating gdt memory");
 
-    memset(emu->gdt,0,GDT_SIZE);
+    memset(gdt,0,GDT_SIZE);
 
     /* code segment */
-    emu->gdt[1].limit_l     = 0xffff;
-    emu->gdt[1].type_flags  = 0x9e;
-    emu->gdt[1].limit_flags = 0xcf;
+    gdt[1].limit_l     = 0xffff;
+    gdt[1].type_flags  = 0x9e;
+    gdt[1].limit_flags = 0xcf;
 
     /* data segment */
-    emu->gdt[2].limit_l    = 0xffff;
-    emu->gdt[2].type_flags = 0x92;
-    emu->gdt[2].limit_flags = 0xcf;
+    gdt[2].limit_l    = 0xffff;
+    gdt[2].type_flags = 0x92;
+    gdt[2].limit_flags = 0xcf;
 
-    struct kvm_userspace_memory_region region = {
-        .slot = MEM_REGION_GDT,
-        .guest_phys_addr = GDT_BASE,
-        .memory_size = GDT_SIZE,
-        .userspace_addr = (uint64_t)emu->gdt,
-    };
-    int ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region);
+    emu->mem[MEM_REGION_GDT].slot = MEM_REGION_GDT;
+    emu->mem[MEM_REGION_GDT].guest_phys_addr = GDT_BASE;
+    emu->mem[MEM_REGION_GDT].memory_size = GDT_SIZE;
+    emu->mem[MEM_REGION_GDT].userspace_addr = (uint64_t)gdt;
+
+    int ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_GDT]);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
+
+    emu->gdt_brk = 3;
 
     sregs->gdt.base = GDT_BASE;
     sregs->gdt.limit = GDT_SIZE;
 }
 
 void setup_idt(struct kvm_sregs *sregs,struct emu *emu) {
-    emu->idt = mmap(NULL, IDT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (!emu->idt)
+    struct idt *idt = mmap(NULL, IDT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!idt)
         err(1, "allocating idt memory");
 
     for (int i=0; i<256; i++) {
-        emu->idt->entry[i].offset_l = sizeof(emu->idt->entry) + i*sizeof(emu->idt->hlt[i]);
-        emu->idt->entry[i].selector = SEL_TEXT;
-        emu->idt->entry[i].always0 = 0;
-        emu->idt->entry[i].type_flags = 0xee; /* dpl=3, present, 32-bit interrupt */
-        emu->idt->entry[i].offset_h = IDT_BASE>>16;
-        emu->idt->hlt[i][0] = 0xe7; /* out imm8,ax */
-        emu->idt->hlt[i][1] = 0x7f; /* imm8 = 0x7f */
-        emu->idt->hlt[i][2] = 0xcf; /* iret */
-        emu->idt->hlt[i][3] = i;
+        idt->entry[i].offset_l = sizeof(idt->entry) + i*sizeof(idt->hlt[i]);
+        idt->entry[i].selector = SEL_TEXT;
+        idt->entry[i].always0 = 0;
+        idt->entry[i].type_flags = 0xee; /* dpl=3, present, 32-bit interrupt */
+        idt->entry[i].offset_h = IDT_BASE>>16;
+        idt->hlt[i][0] = 0xe7; /* out imm8,ax */
+        idt->hlt[i][1] = 0x7f; /* imm8 = 0x7f */
+        idt->hlt[i][2] = 0xcf; /* iret */
+        idt->hlt[i][3] = i;
     }
 
-    struct kvm_userspace_memory_region region = {
-        .slot = MEM_REGION_IDT,
-        .guest_phys_addr = IDT_BASE,
-        .memory_size = IDT_SIZE,
-        .userspace_addr = (uint64_t)emu->idt,
-    };
-    int ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region);
+    emu->mem[MEM_REGION_IDT].slot = MEM_REGION_IDT;
+    emu->mem[MEM_REGION_IDT].guest_phys_addr = IDT_BASE;
+    emu->mem[MEM_REGION_IDT].memory_size = IDT_SIZE;
+    emu->mem[MEM_REGION_IDT].userspace_addr = (uint64_t)idt;
+
+    int ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_IDT]);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
+
     sregs->idt.base = IDT_BASE;
-    sregs->idt.limit = sizeof(emu->idt->entry);
+    sregs->idt.limit = sizeof(idt->entry);
 }
 
 void setup_flat_segments(struct kvm_sregs *sregs) {
@@ -329,17 +331,16 @@ int kvm_init(struct emu *emu) {
     if (ret == -1)
         err(1, "KVM_SET_SREGS");
 
-    emu->stack_size = STACK_SIZE;
-    emu->stack = mmap(NULL, emu->stack_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (!emu->stack)
+    void *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!stack)
         err(1, "allocating guest stack");
-    struct kvm_userspace_memory_region region2 = {
-        .slot = MEM_REGION_STACK,
-        .guest_phys_addr = STACK_BASE,
-        .memory_size = emu->stack_size,
-        .userspace_addr = (uint64_t)emu->stack,
-    };
-    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region2);
+
+    emu->mem[MEM_REGION_STACK].slot = MEM_REGION_STACK;
+    emu->mem[MEM_REGION_STACK].guest_phys_addr = STACK_BASE;
+    emu->mem[MEM_REGION_STACK].memory_size = STACK_SIZE;
+    emu->mem[MEM_REGION_STACK].userspace_addr = (uint64_t)stack;
+
+    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_STACK]);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
@@ -359,13 +360,15 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
         0xf4,             /* hlt */
     };
 
+    __u64 text_size;
+    uint8_t *text;
     if (*filename == '-') {
-        emu->text_size = 0x2000;
+        text_size = 0x2000;
         /* Allocate one aligned page of guest memory to hold the code. */
-        emu->text = mmap(NULL, emu->text_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-        if (!emu->text)
+        text = mmap(NULL, text_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        if (!text)
             err(1, "allocating guest memory");
-        memcpy(emu->text+0x1000, code, sizeof(code));
+        memcpy(text+0x1000, code, sizeof(code));
     } else {
         int fd = open(filename, O_RDONLY);
         if (fd == -1)
@@ -374,12 +377,12 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
         ret = fstat(fd,&s);
         if (ret == -1) 
             err(1, "statting file");
-        emu->text_size = ((s.st_size >>12) +1 )<<12;
+        text_size = ((s.st_size >>12) +1 )<<12;
 
-        emu->text = mmap(NULL, emu->text_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-        if (!emu->text)
+        text = mmap(NULL, text_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        if (!text)
             err(1, "allocating guest memory");
-        uint8_t *p = emu->text;
+        uint8_t *p = text;
         while(s.st_size) {
             ret = read(fd,p,4096);
             if (ret == -1)
@@ -389,40 +392,42 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
         }
     }
 
-    struct kvm_userspace_memory_region region1 = {
-        .slot = MEM_REGION_TEXT,
-        .guest_phys_addr = 0x0,
-        .memory_size = emu->text_size,
-        .userspace_addr = (uint64_t)emu->text,
-    };
-    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region1);
+    emu->mem[MEM_REGION_TEXT].slot = MEM_REGION_TEXT;
+    emu->mem[MEM_REGION_TEXT].guest_phys_addr = 0;
+    emu->mem[MEM_REGION_TEXT].memory_size = text_size;
+    emu->mem[MEM_REGION_TEXT].userspace_addr = (uint64_t)text;
+
+    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_TEXT]);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
-    emu->bss_base = emu->text_size + 0x1000;
-    emu->bss_brk = STACK_SIZE; /* start a little from the bottom - silly things put stacks here */
-    emu->bss_size = BSS_SIZE;
-    emu->bss = mmap(NULL, emu->bss_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (!emu->bss)
+    __u64 bss_size;
+    uint8_t *bss;
+
+    bss_size = BSS_SIZE;
+    bss = mmap(NULL, bss_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!bss)
         err(1, "allocating bss");
-    struct kvm_userspace_memory_region region2 = {
-        .slot = MEM_REGION_BSS,
-        .guest_phys_addr = emu->bss_base,
-        .memory_size = emu->bss_size,
-        .userspace_addr = (uint64_t)emu->bss,
-    };
-    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &region2);
+
+    emu->mem[MEM_REGION_BSS].slot = MEM_REGION_BSS;
+    emu->mem[MEM_REGION_BSS].guest_phys_addr = emu->mem[MEM_REGION_TEXT].memory_size + 0x1000;
+    emu->mem[MEM_REGION_BSS].memory_size = bss_size;
+    emu->mem[MEM_REGION_BSS].userspace_addr = (uint64_t)bss;
+
+    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_BSS]);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
-    /* Initialize registers: instruction pointer for our code, addends, and
+    emu->bss_brk = STACK_SIZE; /* start a little from the bottom - silly things put stacks here */
+
+    /* Initialize registers: instruction pointer for our code and
      * initial flags required by x86 architecture. */
     struct kvm_regs regs = {
         .rip = entry,
-        .rax = 2,
-        .rbx = 2,
+        .rax = 0,
+        .rbx = 0,
         .rflags = 0x2,
-        .rsp = STACK_BASE + emu->stack_size - 0x10,
+        .rsp = STACK_BASE + emu->mem[MEM_REGION_STACK].memory_size - 0x10,
     };
     ret = ioctl(emu->vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
@@ -432,17 +437,19 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
 }
 
 int alloc_bss(struct emu *emu, unsigned int size) {
-    if (emu->bss_brk + size > emu->bss_size) {
+    if (emu->bss_brk + size > emu->mem[MEM_REGION_BSS].memory_size) {
         return 0;
     }
-    unsigned int addr = emu->bss_base + emu->bss_brk;
+    unsigned int guest_addr = emu->mem[MEM_REGION_BSS].guest_phys_addr + emu->bss_brk;
     emu->bss_brk += size;
-    return addr;
+    return guest_addr;
 }
 
 void iret_setflags(struct kvm_regs *regs, unsigned int setflags) {
-    __u32 *flags = (__u32 *)(emu_global.stack + regs->rsp - STACK_BASE + 8);
-    *flags |= setflags;
+    __u32 *stack = mem_guest2host(&emu_global, regs->rsp);
+    if (stack) {
+        stack[1] |= setflags;
+    }
 }
 
 void irq_dos_exit(int vcpufd, struct kvm_regs *regs) {
@@ -488,12 +495,17 @@ void irq_dpmi_0501(int vcpufd, struct kvm_regs *regs) {
 }
 
 void irq_gpf(void *data, int vcpufd, struct kvm_regs *regs) {
-    __u32 retaddr;
-    __u32 stack_addr = regs->rsp - STACK_BASE;
-    if (stack_addr < STACK_SIZE) {
-        retaddr = *(__u32 *)(emu_global.stack + stack_addr + 4);
+    printf("- General Protection");
+    __u32 *stack = mem_guest2host(&emu_global, regs->rsp);
+    if (stack) {
+        __u32 errcode = stack[0];
+        printf(" at address 0x%08x with %s%s selector 0x%x\n",
+            stack[1],
+            (errcode&0x1)?"EXT ":"",
+            (errcode&0x2)?"IDT": (errcode&0x4)?"LDT":"GDT",
+            errcode>>3
+        );
     }
-    printf("- retaddr=0x%08x\n",retaddr);
 
     dump_kvm_sregs(vcpufd);
     err(1, "GPF");
@@ -566,7 +578,9 @@ int handle_softirq(struct emu *emu) {
     if (ret == -1)
         err(1, "KVM_GET_REGS");
 
-    if (regs.rip < IDT_BASE || regs.rip > IDT_BASE + IDT_SIZE) {
+    __u64 idt_start = emu->mem[MEM_REGION_IDT].guest_phys_addr;
+    __u64 idt_end = emu->mem[MEM_REGION_IDT].guest_phys_addr + emu->mem[MEM_REGION_IDT].memory_size;
+    if (regs.rip < idt_start || regs.rip > idt_end) {
         err(1, "softirq from outside idt region");
     }
 
@@ -577,7 +591,7 @@ int handle_softirq(struct emu *emu) {
         printf("'%s' -%02X",handlers[irqno].name,irqno);
         handlers[irqno].handler(handlers[irqno].data,emu->vcpufd,&regs);
     } else {
-        __u32 retaddr = *(__u32 *)(emu->stack + regs.rsp - STACK_BASE + 4);
+        __u32 retaddr = *(__u32 *)(emu->mem[MEM_REGION_STACK].userspace_addr + regs.rsp - STACK_BASE + 4);
         printf("-%02X retaddr=0x%08x\n",irqno,retaddr);
         err(1, "undefined irq");
     }
