@@ -105,23 +105,27 @@ struct emu {
 
 #define SEL_TEXT 0x08 /* gdt[1] */
 #define SEL_DATA 0x10 /* gdt[2] */
+#define SEL_FAKE 0x18
 #define SEL_STACK FIXME
 
-const char * kvm_exit_str[] = {
-    "KVM_EXIT_UNKNOWN", "KVM_EXIT_EXCEPTION", "KVM_EXIT_IO",
-    "KVM_EXIT_HYPERCALL", "KVM_EXIT_DEBUG", "KVM_EXIT_HLT",
-    "KVM_EXIT_MMIO", "KVM_EXIT_IRQ_WINDOW_OPEN", "KVM_EXIT_SHUTDOWN",
-    "KVM_EXIT_FAIL_ENTRY", "KVM_EXIT_INTR", "KVM_EXIT_SET_TPR",
-    "KVM_EXIT_TPR_ACCESS", "KVM_EXIT_S390_SIEIC", "KVM_EXIT_S390_RESET",
-    "KVM_EXIT_DCR", "KVM_EXIT_NMI", "KVM_EXIT_INTERNAL_ERROR",
-    "KVM_EXIT_OSI", "KVM_EXIT_PAPR_HCALL",
-};
-
 void dump_kvm_run(struct kvm_run *run) {
+    const char * kvm_exit_str[] = {
+        "KVM_EXIT_UNKNOWN", "KVM_EXIT_EXCEPTION", "KVM_EXIT_IO",
+        "KVM_EXIT_HYPERCALL", "KVM_EXIT_DEBUG", "KVM_EXIT_HLT",
+        "KVM_EXIT_MMIO", "KVM_EXIT_IRQ_WINDOW_OPEN", "KVM_EXIT_SHUTDOWN",
+        "KVM_EXIT_FAIL_ENTRY", "KVM_EXIT_INTR", "KVM_EXIT_SET_TPR",
+        "KVM_EXIT_TPR_ACCESS", "KVM_EXIT_S390_SIEIC", "KVM_EXIT_S390_RESET",
+        "KVM_EXIT_DCR", "KVM_EXIT_NMI", "KVM_EXIT_INTERNAL_ERROR",
+        "KVM_EXIT_OSI", "KVM_EXIT_PAPR_HCALL",
+    };
+
     printf("%s(%i)\n",kvm_exit_str[run->exit_reason],run->exit_reason);
     switch (run->exit_reason) {
     case KVM_EXIT_INTERNAL_ERROR:
         printf("\tsuberror: 0x%x\n",run->internal.suberror);
+        break;
+    case KVM_EXIT_MMIO:
+        printf("\tphys_addr: 0x%llx\n",run->mmio.phys_addr);
         break;
     }
 }
@@ -174,6 +178,7 @@ void dump_kvm_sregs(int vcpufd) {
     dump_kvm_segment(&sregs.cs,"cs");
     dump_kvm_segment(&sregs.ds,"ds");
     dump_kvm_segment(&sregs.es,"es");
+    dump_kvm_segment(&sregs.ss,"ss");
     dump_kvm_segment(&sregs.tr,"tr");
     dump_kvm_segment(&sregs.ldt,"ldt");
     dump_kvm_dtable(&sregs.gdt,"gdt");
@@ -191,6 +196,7 @@ void dump_kvm_exit(struct emu *emu) {
     dump_kvm_regs(emu);
     switch(emu->run->exit_reason) {
     case KVM_EXIT_SHUTDOWN:
+    case KVM_EXIT_MMIO:
         dump_kvm_sregs(emu->vcpufd);
         break;
     }
@@ -394,7 +400,7 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
     emu->bss_base = emu->text_size + 0x1000;
-    emu->bss_brk = 0;
+    emu->bss_brk = STACK_SIZE; /* start a little from the bottom - silly things put stacks here */
     emu->bss_size = BSS_SIZE;
     emu->bss = mmap(NULL, emu->bss_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!emu->bss)
@@ -454,7 +460,8 @@ void irq_dpmi_0006(int vcpufd, struct kvm_regs *regs) {
 
 void irq_dpmi_000a(int vcpufd, struct kvm_regs *regs) {
     /* Just fake it! */
-    regs->rax = regs->rbx;
+    /* regs->rax = regs->rbx; */
+    regs->rax = SEL_FAKE;
 
     int ret = ioctl(vcpufd, KVM_SET_REGS, regs);
     if (ret == -1)
@@ -481,10 +488,13 @@ void irq_dpmi_0501(int vcpufd, struct kvm_regs *regs) {
 }
 
 void irq_gpf(void *data, int vcpufd, struct kvm_regs *regs) {
-    /* FIXME - references emu globally */
-    __u32 retaddr = *(__u32 *)(emu_global.stack + regs->rsp - STACK_BASE + 4);
-    __u32 errcode = *(__u32 *)(emu_global.stack + regs->rsp - STACK_BASE);
-    printf("- retaddr=0x%08x errcode=0x%08x\n",retaddr,errcode);
+    __u32 retaddr;
+    __u32 stack_addr = regs->rsp - STACK_BASE;
+    if (stack_addr < STACK_SIZE) {
+        retaddr = *(__u32 *)(emu_global.stack + stack_addr + 4);
+    }
+    printf("- retaddr=0x%08x\n",retaddr);
+
     dump_kvm_sregs(vcpufd);
     err(1, "GPF");
 }
@@ -527,6 +537,7 @@ void irq_ignore(int vcpufd, struct kvm_regs *regs) {
 
 struct irq_subhandler_entry irq_dpmi_subcode[] = {
     { .subcode = 0x0006, .name = "GET SEGMENT BASE ADDRESS", .handler = irq_dpmi_0006 },
+    { .subcode = 0x0007, .name = "SET SEGMENT BASE ADDRESS", .handler = irq_ignore },
     { .subcode = 0x0008, .name = "SET SEGMENT LIMIT", .handler = irq_ignore },
     { .subcode = 0x0009, .name = "SET DESCRIPTOR ACCESS RIGHTS", .handler = irq_ignore },
     { .subcode = 0x000a, .name = "CREATE ALIAS DESCRIPTOR", .handler = irq_dpmi_000a },
@@ -578,6 +589,7 @@ int main(int argc, char **argv)
     int ret;
     char *filename;
     unsigned long entry;
+    struct emu * emu = &emu_global;
 
     if (argc<3) {
         printf("Need args: filename entry\n");
@@ -586,37 +598,38 @@ int main(int argc, char **argv)
     filename=argv[1];
     entry=strtoul(argv[2],NULL,0);
 
-    kvm_init(&emu_global);
+    kvm_init(emu);
 
-    if (load_image(&emu_global,filename,entry) == -1) {
+    if (load_image(emu,filename,entry) == -1) {
         return 1;
     }
 
     /* Repeatedly run code and handle VM exits. */
     while (1) {
-        ret = ioctl(emu_global.vcpufd, KVM_RUN, NULL);
+        struct kvm_run *run = emu->run;
+        ret = ioctl(emu->vcpufd, KVM_RUN, NULL);
         if (ret == -1)
             err(1, "KVM_RUN");
-        dump_kvm_exit(&emu_global);
-        switch (emu_global.run->exit_reason) {
+        dump_kvm_exit(emu);
+        switch (run->exit_reason) {
         case KVM_EXIT_HLT:
             puts("KVM_EXIT_HLT");
             return 0;
         case KVM_EXIT_IO:
-            if (emu_global.run->io.direction == KVM_EXIT_IO_OUT && emu_global.run->io.size == 4 && emu_global.run->io.port == 0x7f && emu_global.run->io.count == 1) {
-                handle_softirq(&emu_global);
-            } else if (emu_global.run->io.direction == KVM_EXIT_IO_OUT && emu_global.run->io.size == 1 && emu_global.run->io.port == 0x3f8 && emu_global.run->io.count == 1)
-                putchar(*(((char *)emu_global.run) + emu_global.run->io.data_offset));
+            if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 4 && run->io.port == 0x7f && run->io.count == 1) {
+                handle_softirq(emu);
+            } else if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 1 && run->io.port == 0x3f8 && run->io.count == 1)
+                putchar(*(((char *)run) + run->io.data_offset));
             else
                 errx(1, "unhandled KVM_EXIT_IO");
             break;
         case KVM_EXIT_FAIL_ENTRY:
             errx(1, "KVM_EXIT_FAIL_ENTRY: hardware_entry_failure_reason = 0x%llx",
-                 (unsigned long long)emu_global.run->fail_entry.hardware_entry_failure_reason);
+                 (unsigned long long)run->fail_entry.hardware_entry_failure_reason);
         case KVM_EXIT_INTERNAL_ERROR:
-            errx(1, "KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x", emu_global.run->internal.suberror);
+            errx(1, "KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x", run->internal.suberror);
         default:
-            errx(1, "exit_reason = 0x%x", emu_global.run->exit_reason);
+            errx(1, "exit_reason = 0x%x", run->exit_reason);
         }
     }
 }
