@@ -1,0 +1,16 @@
+This file is used to fixup places where I just couldnt emulate it properly
+
+
+This code is using a zero for DS, which will never work.  It looks like
+it has read a zero from somewhere earlier, but I cannot figure out where
+right now, so:
+  Hardcode it to use the TEXT seg.
+
+-00035f99 0f b7 42 26 50
+movzx eax, word [edx + 0x26]
+push eax
+
++00035f99 6a 08 90 90 90
+push 8
+nop nop nop
+

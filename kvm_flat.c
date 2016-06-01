@@ -540,6 +540,79 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     return 0;
 }
 
+void patch_image(struct emu *emu, char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (!file)
+        err(1, "opening patch file");
+
+    printf("Patching memory image\n");
+
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    while ((read = getline(&line, &len, file)) != -1) {
+        __u64 addr;
+        int patch = 0;
+        uint8_t buf[32]; /* we only expect lines of 16 bytes.. but .. */
+
+        char *p = line;
+        if (*p == '+') {
+            patch = 1;
+        } else if (*p != '-') {
+            continue;
+        }
+        /* it is either a plus or a minus */
+        p++;
+        char *p2;
+        addr = strtoul(p,&p2,16);
+        if (p2==p) {
+            printf("unexpected patch data\n");
+            exit(1);
+        }
+        p=p2;
+
+        uint8_t *data = mem_guest2host(emu, addr);
+        if (!data) {
+            printf("Could not locate address 0x%08llx\n",addr);
+            exit(1);
+        }
+
+        int size=0;
+        while(*p) {
+            /* FIXME - can overflow buf */
+            buf[size] = strtoul(p,&p2,16);
+            if (p2==p) {
+                /* nothing matched, this is a line end */
+                break;
+            }
+            size++;
+            p=p2;
+        }
+
+        printf("%s (host %p) 0x%08llx ",
+            patch?"Patch":"Verify",
+            data,
+            addr
+        );
+        for (int i=0; i<size; i++) {
+            printf("%02x ",buf[i]);
+        }
+        printf("\n");
+
+        if (!patch) {
+            /* not patch means verify */
+            if (memcmp(data,&buf,size)) {
+                printf("mismatched data\n");
+                exit(1);
+            }
+        } else {
+            /* patching */
+            memcpy(data,&buf,size);
+        }
+    }
+}
+
 int alloc_bss(struct emu *emu, unsigned int size) {
     if (emu->bss_brk + size > emu->mem[MEM_REGION_BSS].memory_size) {
         return 0;
@@ -975,6 +1048,10 @@ int main(int argc, char **argv)
 
     if (load_image(emu,filename,entry) == -1) {
         return 1;
+    }
+
+    if (argv[3]) {
+        patch_image(emu,argv[3]);
     }
 
     emu->irq = &irq_handlers[0];
