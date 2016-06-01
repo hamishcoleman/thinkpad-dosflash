@@ -59,12 +59,13 @@ struct __attribute__ ((__packed__)) idt {
     uint8_t hlt[256][4];
 };
 
-#define MAX_MEM_REGIONS 5
+#define MAX_MEM_REGIONS 6
 #define MEM_REGION_GDT   0
 #define MEM_REGION_IDT   1
 #define MEM_REGION_STACK 2
 #define MEM_REGION_TEXT  3
-#define MEM_REGION_BSS   4
+#define MEM_REGION_BIOS  4
+#define MEM_REGION_BSS   5
 
 struct irq_handler_entry; /* forward definition */
 struct emu {
@@ -90,8 +91,7 @@ struct emu {
 
 #define SEL_TEXT 0x08 /* gdt[1] */
 #define SEL_DATA 0x10 /* gdt[2] */
-#define SEL_FAKE 0x18
-#define SEL_STACK FIXME
+#define MAX_SYS_SEL SEL_DATA
 
 struct irq_subhandler_entry {
     int subcode;
@@ -118,6 +118,18 @@ void *mem_guest2host(struct emu *emu, __u64 guestaddr) {
     return NULL;
 }
 
+void gdt_setlimit(struct gdt_entry *gdt, __u32 limit) {
+    if (limit > 0xfffff) {
+        gdt->limit_flags |= 0x80; /* set G bit */
+        limit = limit>>12;
+    } else {
+        gdt->limit_flags &= ~0x80; /* clear G bit */
+    }
+    gdt->limit_l = limit & 0xffff;
+    gdt->limit_flags &= 0xf0;
+    gdt->limit_flags |= (limit & 0xf0000) >> 16;
+}
+
 void dump_kvm_run(struct kvm_run *run) {
     const char * kvm_exit_str[] = {
         "KVM_EXIT_UNKNOWN", "KVM_EXIT_EXCEPTION", "KVM_EXIT_IO",
@@ -140,6 +152,23 @@ void dump_kvm_run(struct kvm_run *run) {
     }
 }
 
+void dump_dwords(void *data, int words) {
+    __u32 *p = data;
+    if (!data) {
+        return;
+    }
+    int i = 0;
+    /* FIXME - can run off the end of the segment easily */
+    while(i<words) {
+        if (i%8 == 0) {
+            printf("\n ");
+        }
+        printf("0x%08x ",*p++);
+        i++;
+    }
+    printf("\n");
+}
+
 void dump_kvm_regs(struct kvm_regs *regs) {
     printf("ax=0x%08llx bx=0x%08llx cx=0x%08llx dx=0x%08llx flags=0x%08llx\n",
         regs->rax,regs->rbx,regs->rcx,regs->rdx,regs->rflags);
@@ -153,6 +182,10 @@ void dump_kvm_regs(struct kvm_regs *regs) {
     __u32 *stack = mem_guest2host(&emu_global, regs->rsp);
     if (stack) {
         printf("(%07x)\n",*stack);
+#if 0
+        printf("Stack:");
+        dump_dwords(stack,6);
+#endif
     }
 }
 
@@ -163,18 +196,43 @@ void dump_kvm_segment(struct kvm_segment *seg, char *name) {
     } else {
         limit = seg->limit;
     }
-    printf("%s:%02x %08llx(%08x)\n",
-        name,seg->selector,seg->base,limit);
+    printf("%s:%02x %08llx(%08x) type=%x dpl=%i %s%s%s%s%s\n",
+        name,seg->selector,seg->base,limit,
+        seg->type, seg->dpl,
+        seg->present?"P":"_",
+        seg->db?"B":"_",
+        seg->s?"U":"S",
+        seg->l?"L":"_",
+        seg->g?"G":"_"
+    );
 }
+
+void dump_descriptor(struct gdt_entry *gdt, __u16 selector) {
+    struct kvm_segment seg;
+
+    seg.base = gdt->base_l | gdt->base_m<<16 | gdt->base_h<<24;
+    seg.limit = gdt->limit_l | (gdt->limit_flags & 0x0f)<<16;
+    seg.selector = selector;
+    seg.type = gdt->type_flags & 0xf;
+    seg.present = (gdt->type_flags & 0x80)>>7;
+    seg.dpl = (gdt->type_flags & 0x60)>>5;
+    seg.db = (gdt->limit_flags & 0x40)>>6;
+    seg.s = (gdt->type_flags & 0x10)>>4;
+    seg.l = (gdt->limit_flags & 0x20)>>5;
+    seg.g = (gdt->limit_flags & 0x80)>>7;
+
+    dump_kvm_segment(&seg,"_dt");
+}
+
 
 void dump_kvm_dtable(struct kvm_dtable *seg, char *name) {
     printf("%s: %08llx(%08x)\n",
         name,seg->base,seg->limit);
 }
 
-void dump_kvm_sregs(int vcpufd) {
+void dump_kvm_sregs(struct emu *emu) {
     struct kvm_sregs sregs;
-    int ret = ioctl(vcpufd, KVM_GET_SREGS, &sregs);
+    int ret = ioctl(emu->vcpufd, KVM_GET_SREGS, &sregs);
     if (ret == -1)
         err(1, "KVM_GET_SREGS");
     printf("cr0=0x%08llx\n",
@@ -182,16 +240,37 @@ void dump_kvm_sregs(int vcpufd) {
     dump_kvm_segment(&sregs.cs,"cs");
     dump_kvm_segment(&sregs.ds,"ds");
     dump_kvm_segment(&sregs.es,"es");
+    dump_kvm_segment(&sregs.es,"fs");
+    dump_kvm_segment(&sregs.es,"gs");
     dump_kvm_segment(&sregs.ss,"ss");
-    dump_kvm_segment(&sregs.tr,"tr");
-    dump_kvm_segment(&sregs.ldt,"ldt");
+    // dump_kvm_segment(&sregs.tr,"tr");
+    // dump_kvm_segment(&sregs.ldt,"ldt");
     dump_kvm_dtable(&sregs.gdt,"gdt");
     dump_kvm_dtable(&sregs.idt,"idt");
+
+    struct gdt_entry *gdt = (struct gdt_entry *)emu->mem[MEM_REGION_GDT].userspace_addr;
+    for (int i=1; i<emu->gdt_brk; i++) {
+        dump_descriptor(&gdt[i],i<<3);
+    }
+
+#if 0
     printf("irq:");
     for (int i = 0; i < (KVM_NR_INTERRUPTS + 63) / 64; i++) {
         printf("%016llx",sregs.interrupt_bitmap[i]);
     }
+#endif
     printf("\n");
+}
+
+void dump_kvm_memmap(struct emu *emu) {
+    struct kvm_userspace_memory_region *p = &emu->mem[0];
+    printf("Memmap:\n");
+    for (int i=0; i<MAX_MEM_REGIONS; i++,p++) {
+        printf("%i: 0x%08llx(0x%08llx) = 0x%08llx (flags=%x)\n",
+            p->slot, p->guest_phys_addr, p->memory_size,
+            p->userspace_addr, p->flags
+        );
+    }
 }
 
 void dump_kvm_exit(struct emu *emu) {
@@ -206,7 +285,11 @@ void dump_kvm_exit(struct emu *emu) {
     switch(emu->run->exit_reason) {
     case KVM_EXIT_SHUTDOWN:
     case KVM_EXIT_MMIO:
-        dump_kvm_sregs(emu->vcpufd);
+        dump_kvm_sregs(emu);
+        __u32 *stack = mem_guest2host(&emu_global, regs.rsp);
+        printf("Stack:");
+        dump_dwords(stack,16);
+        dump_kvm_memmap(emu);
         break;
     }
 }
@@ -219,14 +302,14 @@ void setup_gdt(struct kvm_sregs *sregs, struct emu *emu) {
     memset(gdt,0,GDT_SIZE);
 
     /* code segment */
-    gdt[1].limit_l     = 0xffff;
     gdt[1].type_flags  = 0x9e;
-    gdt[1].limit_flags = 0xcf;
+    gdt[1].limit_flags = 0x40; /* Set the 32bit segment flag */
+    gdt_setlimit(&gdt[1],0xffffffff);
 
     /* data segment */
-    gdt[2].limit_l    = 0xffff;
     gdt[2].type_flags = 0x92;
-    gdt[2].limit_flags = 0xcf;
+    gdt[2].limit_flags = 0x40;
+    gdt_setlimit(&gdt[2],0xffffffff);
 
     emu->mem[MEM_REGION_GDT].slot = MEM_REGION_GDT;
     emu->mem[MEM_REGION_GDT].guest_phys_addr = GDT_BASE;
@@ -237,7 +320,7 @@ void setup_gdt(struct kvm_sregs *sregs, struct emu *emu) {
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
-    emu->gdt_brk = 3;
+    emu->gdt_brk = (MAX_SYS_SEL>>3) +1;
 
     sregs->gdt.base = GDT_BASE;
     sregs->gdt.limit = GDT_SIZE;
@@ -257,7 +340,7 @@ void setup_idt(struct kvm_sregs *sregs,struct emu *emu) {
         idt->hlt[i][0] = 0xe7; /* out imm8,ax */
         idt->hlt[i][1] = 0x7f; /* imm8 = 0x7f */
         idt->hlt[i][2] = 0xcf; /* iret */
-        idt->hlt[i][3] = i;
+        idt->hlt[i][3] = 0xf4; /* hlt */
     }
 
     emu->mem[MEM_REGION_IDT].slot = MEM_REGION_IDT;
@@ -409,11 +492,8 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
-    __u64 bss_size;
-    uint8_t *bss;
-
-    bss_size = BSS_SIZE;
-    bss = mmap(NULL, bss_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    __u64 bss_size = BSS_SIZE;
+    uint8_t *bss = mmap(NULL, bss_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!bss)
         err(1, "allocating bss");
 
@@ -465,9 +545,50 @@ int irq_dos_exit(void *data, struct emu *emu, struct kvm_regs *regs) {
     exit(0);
 }
 
+int irq_dos_version(void *data, struct emu *emu, struct kvm_regs *regs) {
+    regs->rax = 0x0004; /* DOS 4.00 */
+    regs->rbx = 0x0; /* DOS OEM is IBM */
+    return WANT_SET_REGS;
+}
+
+/* allocate ldt desriptors */
+int irq_dpmi_0000(void *data, struct emu *emu, struct kvm_regs *regs) {
+    /* for the moment, try just giving it a GDT entry... */
+
+    /* make it a copy of the data segment */
+    struct gdt_entry *gdt = (struct gdt_entry *)emu->mem[MEM_REGION_GDT].userspace_addr;
+    memcpy(&gdt[emu->gdt_brk],&gdt[SEL_DATA>>3],sizeof(*gdt));
+
+    regs->rax = emu->gdt_brk<<3;
+    emu->gdt_brk++;
+
+    return WANT_SET_REGS;
+}
+
 /* get segment base address */
 int irq_dpmi_0006(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rcx = regs->rdx = 0;
+    return WANT_SET_REGS;
+}
+
+/* set segment limit */
+int irq_dpmi_0008(void *data, struct emu *emu, struct kvm_regs *regs) {
+    struct gdt_entry *gdt = (struct gdt_entry *)emu->mem[MEM_REGION_GDT].userspace_addr;
+
+    if (regs->rbx & 0x7) {
+        err(1, "Unexpected selector options");
+    }
+    int selector = (regs->rbx & 0xffff);
+    if (selector <= MAX_SYS_SEL ) {
+        printf("Cowardly refusing to change system segments\n");
+        return WANT_NONE;
+    }
+    __u32 limit = (regs->rcx & 0xffff)<<16 | (regs->rdx & 0xffff);
+    printf("limit(0x%x)=0x%08x",selector,limit);
+
+    int entry = selector>>3;
+    gdt_setlimit(&gdt[entry],limit);
+
     return WANT_SET_REGS;
 }
 
@@ -522,11 +643,19 @@ int irq_dpmi_0300(void *data, struct emu *emu, struct kvm_regs *regs) {
     call.rflags = call16->flags;
     printf("Real mode registers:\n");
     dump_kvm_regs(&call);
-    int ret = handle_irqno(emu->irq,irqno,emu,&call);
+    handle_irqno(emu->irq,irqno,emu,&call); /* TODO - something with ret */
 
-    dump_kvm_sregs(emu->vcpufd);
-    err(1, "int");
-    return 0;
+    /* always repopulate the call structure - it is just simpler */
+    call16->eax = call.rax;
+    call16->ebx = call.rbx;
+    call16->ecx = call.rcx;
+    call16->edx = call.rdx;
+    call16->esi = call.rsi;
+    call16->edi = call.rdi;
+    call16->ebp = call.rbp;
+    call16->flags = call.rflags;
+
+    return WANT_NONE;
 }
 
 int irq_dpmi_0501(void *data, struct emu *emu, struct kvm_regs *regs) {
@@ -557,11 +686,12 @@ int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
             (errcode&0x2)?"IDT": (errcode&0x4)?"LDT":"GDT",
             errcode>>3
         );
+        printf("Stack:");
+        dump_dwords(stack,16);
     }
 
-    dump_kvm_sregs(emu->vcpufd);
-    err(1, "GPF");
-    return 0;
+    dump_kvm_sregs(emu);
+    exit(1);
 }
 
 int handle_subcode(struct irq_subhandler_entry *p, int subcode, struct emu *emu, struct kvm_regs *regs) {
@@ -574,9 +704,8 @@ int handle_subcode(struct irq_subhandler_entry *p, int subcode, struct emu *emu,
         }
         p++;
     }
-    printf("\n");
-    err(1, "undefined subcode");
-    return 0;
+    printf("\nundefined subcode\n");
+    exit(1);
 }
 
 int irq_subcode_ah(void *data, struct emu *emu, struct kvm_regs *regs) {
@@ -603,9 +732,10 @@ int irq_ignore(void *data, struct emu *emu, struct kvm_regs *regs) {
 }
 
 struct irq_subhandler_entry irq_dpmi_subcode[] = {
+    { .subcode = 0x0000, .name = "ALLOCATE LDT DESCRIPTORS", .handler = irq_dpmi_0000 },
     { .subcode = 0x0006, .name = "GET SEGMENT BASE ADDRESS", .handler = irq_dpmi_0006 },
     { .subcode = 0x0007, .name = "SET SEGMENT BASE ADDRESS", .handler = irq_ignore },
-    { .subcode = 0x0008, .name = "SET SEGMENT LIMIT", .handler = irq_ignore },
+    { .subcode = 0x0008, .name = "SET SEGMENT LIMIT", .handler = irq_dpmi_0008 },
     { .subcode = 0x0009, .name = "SET DESCRIPTOR ACCESS RIGHTS", .handler = irq_ignore },
     { .subcode = 0x0300, .name = "SIMULATE REAL MODE INTERRUPT", .handler = irq_dpmi_0300 },
     { .subcode = 0x000a, .name = "CREATE ALIAS DESCRIPTOR", .handler = irq_dpmi_000a },
@@ -615,6 +745,7 @@ struct irq_subhandler_entry irq_dpmi_subcode[] = {
 };
 
 struct irq_subhandler_entry irq_dos_subcode[] = {
+    { .subcode = 0x30, .name = "VERSION", .handler = irq_dos_version },
     { .subcode = 0x4c, .name = "EXIT", .handler = irq_dos_exit },
     { 0 },
 };
@@ -637,7 +768,8 @@ int handle_irqno(struct irq_handler_entry *p, unsigned char irqno, struct emu *e
         if (stack) {
             printf("retaddr=0x%08x\n",stack[4]);
         }
-        err(1, "undefined irq");
+        printf("undefined irq");
+        exit(1);
     }
 
     printf("'%s' -%02X",p[irqno].name,irqno);
