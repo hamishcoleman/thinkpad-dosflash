@@ -3,10 +3,10 @@
 #
 # Copyright (C) 2016 Hamish Coleman
 #
+CFLAGS:=-Wall
 
-all:
+all: kvm_flat
 	$(info See README file for additional details)
-	false
 
 .PHONY: all
 
@@ -41,3 +41,5 @@ FAT_OFFSET := 71680
 %.dosflash.flat.orig: %.dosflash.coff.orig
 	./dump_coff.pl $< write_flat $@
 
+%.dosflash.flat.test: %.dosflash.flat.orig %.dosflash.flat.patch kvm_flat
+	./kvm_flat $< 0x18d0 $(basename $<).patch
