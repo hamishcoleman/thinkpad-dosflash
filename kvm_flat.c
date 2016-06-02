@@ -138,6 +138,12 @@ void gdt_setlimit(struct gdt_entry *gdt, __u32 limit) {
     gdt->limit_flags |= (limit & 0xf0000) >> 16;
 }
 
+void gdt_setbase(struct gdt_entry *gdt, __u32 base) {
+    gdt->base_l = base & 0xffff;
+    gdt->base_m = (base & 0xff0000) >> 16;
+    gdt->base_h = (base & 0xff000000) >> 24;
+}
+
 void dump_kvm_run(struct kvm_run *run) {
     const char * kvm_exit_str[] = {
         "KVM_EXIT_UNKNOWN", "KVM_EXIT_EXCEPTION", "KVM_EXIT_IO",
@@ -313,18 +319,19 @@ void setup_gdt(struct kvm_sregs *sregs, struct emu *emu) {
     gdt[1].type_flags  = 0x9e;
     gdt[1].limit_flags = 0x40; /* Set the 32bit segment flag */
     gdt_setlimit(&gdt[1],0xffffffff);
+    gdt_setbase(&gdt[1],0);
 
     /* data segment */
     gdt[2].type_flags = 0x92;
     gdt[2].limit_flags = 0x40;
     gdt_setlimit(&gdt[2],0xffffffff);
+    gdt_setbase(&gdt[2],0);
 
     /* PSP segment */
     gdt[3].type_flags = 0x92;
     gdt[3].limit_flags = 0x40;
-    gdt[3].base_m = (PSP_BASE & 0xff0000) >>16;
-    gdt[3].base_h = (PSP_BASE & 0xff000000) >>24;
     gdt_setlimit(&gdt[3],PSP_SIZE);
+    gdt_setbase(&gdt[3],PSP_BASE);
 
     emu->mem[MEM_REGION_GDT].slot = MEM_REGION_GDT;
     emu->mem[MEM_REGION_GDT].guest_phys_addr = GDT_BASE;
@@ -724,6 +731,25 @@ int irq_dos_version(void *data, struct emu *emu, struct kvm_regs *regs) {
     return WANT_SET_REGS;
 }
 
+int irq_dos_write(void *data, struct emu *emu, struct kvm_regs *regs) {
+    int handle = (regs->rbx & 0xffff);
+    int count = (regs->rcx & 0xffff);
+    uint8_t *buf =  mem_guest2host(emu, regs->rdx);
+
+    printf("write(%i,%p,%i)",handle,buf,count);
+
+    exit(1);
+    if (handle == 1 || handle == 2) {
+        write(handle,buf,count);
+    } else {
+        printf(" - invalid handle\n");
+        exit(1);
+    }
+
+    regs->rax = count; /* just claim to have written everything */
+    return WANT_SET_REGS;
+}
+
 int irq_dos_get_drive(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rax = 0x02; /* drive C: */
     return WANT_SET_REGS;
@@ -756,6 +782,27 @@ int irq_dpmi_0000(void *data, struct emu *emu, struct kvm_regs *regs) {
 /* get segment base address */
 int irq_dpmi_0006(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rcx = regs->rdx = 0;
+    return WANT_SET_REGS;
+}
+
+/* set segment base address */
+int irq_dpmi_0007(void *data, struct emu *emu, struct kvm_regs *regs) {
+    struct gdt_entry *gdt = (struct gdt_entry *)emu->mem[MEM_REGION_GDT].userspace_addr;
+
+    if (regs->rbx & 0x7) {
+        err(1, "Unexpected selector options");
+    }
+    int selector = (regs->rbx & 0xffff);
+    if (selector <= MAX_SYS_SEL ) {
+        printf("Cowardly refusing to change system segments\n");
+        iret_setflags(regs,1); /* set CF */
+        return WANT_NONE;
+    }
+    __u32 base = (regs->rcx & 0xffff)<<16 | (regs->rdx & 0xffff);
+    printf("base(0x%x)=0x%08x",selector,base);
+
+    int entry = selector>>3;
+    gdt_setbase(&gdt[entry],base);
     return WANT_SET_REGS;
 }
 
@@ -967,6 +1014,28 @@ int irq_dpmi_0501(void *data, struct emu *emu, struct kvm_regs *regs) {
     return WANT_SET_REGS;
 }
 
+/* PHYSICAL ADDRESS MAPPING */
+int irq_dpmi_0800(void *data, struct emu *emu, struct kvm_regs *regs) {
+    __u32 phys_start = (regs->rbx & 0xffff) << 16 | (regs->rcx & 0xffff);
+    __u32 size = (regs->rsi & 0xffff) << 16 | (regs->rdi & 0xffff);
+
+    printf(" 0x%08x(0x%08x)",phys_start, size);
+    __u32 phys_finish = phys_start + size;
+
+    /* TODO - make this more generic? */
+    if (phys_start >= BIOS_BASE && phys_finish <= BIOS_BASE+BIOS_SIZE) {
+        /* we can give you that mapping, yes */
+        regs->rbx = (phys_start & 0xffff0000) >>16;
+        regs->rcx = (phys_start & 0xffff);
+        return WANT_SET_REGS;
+    }
+
+    printf(" - DENIED\n");
+    iret_setflags(regs,1); /* set CF */
+    regs->rax = 0x8021; /* invalid value for numeric or flag parameter */
+    return WANT_SET_REGS;
+}
+
 int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
     printf("- General Protection");
     __u32 *stack = mem_guest2host(emu, regs->rsp);
@@ -1064,7 +1133,7 @@ struct irq_subhandler_entry irq_dpmi_subcode[] = {
     { .subcode = 0x0000, .name = "ALLOCATE LDT DESCRIPTORS", .handler = irq_dpmi_0000 },
     { .subcode = 0x0001, .name = "FREE LDT DESCRIPTORS", .handler = irq_ignore },
     { .subcode = 0x0006, .name = "GET SEGMENT BASE ADDRESS", .handler = irq_dpmi_0006 },
-    { .subcode = 0x0007, .name = "SET SEGMENT BASE ADDRESS", .handler = irq_ignore },
+    { .subcode = 0x0007, .name = "SET SEGMENT BASE ADDRESS", .handler = irq_dpmi_0007 },
     { .subcode = 0x0008, .name = "SET SEGMENT LIMIT", .handler = irq_dpmi_0008 },
     { .subcode = 0x0009, .name = "SET DESCRIPTOR ACCESS RIGHTS", .handler = irq_ignore },
     { .subcode = 0x000a, .name = "CREATE ALIAS DESCRIPTOR", .handler = irq_dpmi_000a },
@@ -1076,11 +1145,20 @@ struct irq_subhandler_entry irq_dpmi_subcode[] = {
     { .subcode = 0x0205, .name = "SET PROTECTED MODE INTERRUPT VECTOR", .handler = irq_dpmi_0205 },
     { .subcode = 0x0300, .name = "SIMULATE REAL MODE INTERRUPT", .handler = irq_dpmi_0300 },
     { .subcode = 0x0303, .name = "ALLOCATE REAL MODE CALLBACK ADDRESS", .handler = irq_dpmi_0303 },
+    { .subcode = 0x0304, .name = "FREE REAL MODE CALLBACK ADDRESS", .handler = irq_ignore },
     { .subcode = 0x0400, .name = "GET DPMI VERSION", .handler = irq_dpmi_0400 },
     { .subcode = 0x0501, .name = "ALLOCATE MEMORY BLOCK", .handler = irq_dpmi_0501 },
+    { .subcode = 0x0502, .name = "FREE MEMORY BLOCK", .handler = irq_ignore },
     { .subcode = 0x0507, .name = "SET PAGE ATTRIBUTES", .handler = irq_ignore },
     { .subcode = 0x0600, .name = "LOCK LINEAR REGION", .handler = irq_ignore },
+    { .subcode = 0x0800, .name = "PHYSICAL ADDRESS MAPPING", .handler = irq_dpmi_0800 },
+    { .subcode = 0x0801, .name = "FREE PHYSICAL ADDRESS MAPPING", .handler = irq_ignore },
     { .subcode = 0x0e01, .name = "SET FP EMULATION", .handler = irq_ignore },
+    { 0 },
+};
+
+struct irq_subhandler_entry irq_dos_ioctl[] = {
+    { .subcode = 0x00, .name = "IOCTL - GET DEVICE INFO", .handler = irq_ignore },
     { 0 },
 };
 
@@ -1093,6 +1171,9 @@ struct irq_subhandler_entry irq_dos_lfn[] = {
 struct irq_subhandler_entry irq_dos_subcode[] = {
     { .subcode = 0x19, .name = "GET DRIVE", .handler = irq_dos_get_drive },
     { .subcode = 0x30, .name = "VERSION", .handler = irq_dos_version },
+    { .subcode = 0x3e, .name = "CLOSE", .handler = irq_ignore },
+    { .subcode = 0x40, .name = "WRITE", .handler = irq_dos_write },
+    { .subcode = 0x44, .handler = irq_subcode_al, .data = irq_dos_ioctl },
     { .subcode = 0x4c, .name = "EXIT", .handler = irq_dos_exit },
     { .subcode = 0x71, .handler = irq_subcode_al, .data = irq_dos_lfn },
     { 0 },
