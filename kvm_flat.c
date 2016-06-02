@@ -734,11 +734,11 @@ int irq_dos_version(void *data, struct emu *emu, struct kvm_regs *regs) {
 int irq_dos_write(void *data, struct emu *emu, struct kvm_regs *regs) {
     int handle = (regs->rbx & 0xffff);
     int count = (regs->rcx & 0xffff);
-    uint8_t *buf =  mem_guest2host(emu, regs->rdx);
+    int dos_bufaddr = (regs->r9 << 4) | (regs->rdx & 0xffff);
+    uint8_t *buf =  mem_guest2host(emu, dos_bufaddr);
 
-    printf("write(%i,%p,%i)",handle,buf,count);
+    printf("write(%i,0x%x,%i)\n",handle,dos_bufaddr,count);
 
-    exit(1);
     if (handle == 1 || handle == 2) {
         write(handle,buf,count);
     } else {
@@ -929,6 +929,14 @@ void dpmi_call2regs(void *data, struct kvm_regs *call) {
     call->rbp = call16->ebp;
     call->rip = call16->ip;
     call->rflags = call16->flags;
+
+    /* repurpose these registers to store the segments */
+    call->r8 = call16->cs;
+    call->r9 = call16->ds;
+    call->r10 = call16->es;
+    call->r11 = call16->fs;
+    call->r12 = call16->gs;
+    call->r13 = call16->ss;
 }
 
 void dpmi_regs2call(struct kvm_regs *call, void *data) {
@@ -941,6 +949,19 @@ void dpmi_regs2call(struct kvm_regs *call, void *data) {
     call16->edi = call->rdi;
     call16->ebp = call->rbp;
     call16->flags = call->rflags;
+
+    call16->cs = call->r8;
+    call16->ds = call->r9;
+    call16->es = call->r10;
+    call16->fs = call->r11;
+    call16->gs = call->r12;
+    call16->ss = call->r13;
+}
+
+void dump_fake_segments(struct kvm_regs *call) {
+    printf("cs=0x%04llx ds=0x%04llx es=0x%04llx fs=0x%04llx gs=0x%04llx ss=0x%04llx\n",
+        call->r8, call->r9, call->r10, call->r11, call->r12, call->r13
+    );
 }
 
 /* SIMULATE REAL MODE INTERRUPT */
@@ -956,6 +977,7 @@ int irq_dpmi_0300(void *data, struct emu *emu, struct kvm_regs *regs) {
     dpmi_call2regs(call16,&call);
     printf("Real mode registers:\n");
     dump_kvm_regs(&call);
+    dump_fake_segments(&call);
     handle_irqno(emu->irq,irqno,emu,&call); /* TODO - something with ret */
 
     /* always repopulate the call structure - it is just simpler */
