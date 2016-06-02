@@ -37,6 +37,41 @@
 
 #include <unistd.h>
 
+#define SEG_TEXT 0x08 /* gdt[1] */
+#define SEG_DATA 0x10 /* gdt[2] */
+#define SEG_PSP  0x18
+#define SEG_GO32 0x20
+#define SEG_SYS_MAX SEG_GO32
+
+#define SEG_PSP_SIZE  (128+128)
+#define SEG_PSP_BASE  0xf0030000
+#define SEG_GO32_SIZE (0x5000-SEG_PSP_SIZE)
+#define SEG_GO32_BASE (SEG_PSP_BASE+SEG_PSP_SIZE)
+
+#define MEM_REGION_GDT   0
+#define MEM_REGION_IDT   1
+#define MEM_REGION_STACK 2
+#define MEM_REGION_TEXT  3
+#define MEM_REGION_BIOS  4
+#define MEM_REGION_BSS   5
+#define MEM_REGION_PSP   6
+#define MEM_REGION_MAX   7
+
+#define REGION_STACK_SIZE 0x1000
+#define REGION_STACK_BASE 0xf0000000
+#define REGION_IDT_SIZE   0x1000
+#define REGION_IDT_BASE   0xf0010000
+#define REGION_GDT_SIZE   0x1000
+#define REGION_GDT_BASE   0xf0020000
+#define REGION_PSP_SIZE   (SEG_PSP_SIZE+SEG_GO32_SIZE)
+#define REGION_PSP_BASE   0xf0030000
+
+#define REGION_BIOS_BASE  0x000c0000
+#define REGION_BIOS_SIZE  0x00040000
+
+#define REGION_BSS_BASE   0x00200000
+#define REGION_BSS_SIZE   0x00100000
+
 struct __attribute__ ((__packed__)) gdt_entry {
     __u16 limit_l;
     __u16 base_l;
@@ -59,47 +94,18 @@ struct __attribute__ ((__packed__)) idt {
     uint8_t hlt[256][4];
 };
 
-#define MAX_MEM_REGIONS 7
-#define MEM_REGION_GDT   0
-#define MEM_REGION_IDT   1
-#define MEM_REGION_STACK 2
-#define MEM_REGION_TEXT  3
-#define MEM_REGION_BIOS  4
-#define MEM_REGION_BSS   5
-#define MEM_REGION_PSP   6
-
 struct irq_handler_entry; /* forward definition */
 struct emu {
     int kvm;
     int vmfd;
     int vcpufd;
     struct kvm_run *run;
-    struct kvm_userspace_memory_region mem[MAX_MEM_REGIONS];
+    struct kvm_userspace_memory_region mem[MEM_REGION_MAX];
     unsigned int bss_brk; /* start of available bss */
     unsigned int gdt_brk; /* start of available descriptors */
 
     struct irq_handler_entry *irq;
 } emu_global;
-
-#define STACK_SIZE 0x1000
-#define STACK_BASE 0xf0000000
-#define IDT_SIZE 0x1000
-#define IDT_BASE 0xf0010000
-#define GDT_SIZE 0x1000
-#define GDT_BASE 0xf0020000
-#define PSP_SIZE 0x1000
-#define PSP_BASE 0xf0030000
-
-#define BIOS_BASE 0x000c0000
-#define BIOS_SIZE 0x00040000
-
-#define BSS_BASE 0x00200000
-#define BSS_SIZE 0x00100000
-
-#define SEL_TEXT 0x08 /* gdt[1] */
-#define SEL_DATA 0x10 /* gdt[2] */
-#define SEL_PSP  0x18
-#define MAX_SYS_SEL SEL_PSP
 
 struct irq_subhandler_entry {
     int subcode;
@@ -118,7 +124,7 @@ struct irq_handler_entry {
 int handle_irqno(struct irq_handler_entry *, unsigned char, struct emu *, struct kvm_regs *); /* forward definition */
 
 void *mem_guest2host(struct emu *emu, __u64 guestaddr) {
-    for (int i=0; i<MAX_MEM_REGIONS; i++) {
+    for (int i=0; i<MEM_REGION_MAX; i++) {
         if (guestaddr >= emu->mem[i].guest_phys_addr && guestaddr <= emu->mem[i].guest_phys_addr + emu->mem[i].memory_size) {
             return (uint8_t *)emu->mem[i].userspace_addr + (guestaddr - emu->mem[i].guest_phys_addr);
         }
@@ -279,7 +285,7 @@ void dump_kvm_sregs(struct emu *emu) {
 void dump_kvm_memmap(struct emu *emu) {
     struct kvm_userspace_memory_region *p = &emu->mem[0];
     printf("Memmap:\n");
-    for (int i=0; i<MAX_MEM_REGIONS; i++,p++) {
+    for (int i=0; i<MEM_REGION_MAX; i++,p++) {
         printf("%i: 0x%08llx(0x%08llx) = 0x%08llx (flags=%x)\n",
             p->slot, p->guest_phys_addr, p->memory_size,
             p->userspace_addr, p->flags
@@ -309,11 +315,11 @@ void dump_kvm_exit(struct emu *emu) {
 }
 
 void setup_gdt(struct kvm_sregs *sregs, struct emu *emu) {
-    struct gdt_entry *gdt = mmap(NULL, GDT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    struct gdt_entry *gdt = mmap(NULL, REGION_GDT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!gdt)
         err(1, "allocating gdt memory");
 
-    memset(gdt,0,GDT_SIZE);
+    memset(gdt,0,REGION_GDT_SIZE);
 
     /* code segment */
     gdt[1].type_flags  = 0x9e;
@@ -330,35 +336,41 @@ void setup_gdt(struct kvm_sregs *sregs, struct emu *emu) {
     /* PSP segment */
     gdt[3].type_flags = 0x92;
     gdt[3].limit_flags = 0x40;
-    gdt_setlimit(&gdt[3],PSP_SIZE);
-    gdt_setbase(&gdt[3],PSP_BASE);
+    gdt_setlimit(&gdt[3],SEG_PSP_SIZE);
+    gdt_setbase(&gdt[3],SEG_PSP_BASE);
+
+    /* GO32 segment */
+    gdt[4].type_flags = 0x92;
+    gdt[4].limit_flags = 0x40;
+    gdt_setlimit(&gdt[4],SEG_GO32_SIZE);
+    gdt_setbase(&gdt[4],SEG_GO32_BASE);
 
     emu->mem[MEM_REGION_GDT].slot = MEM_REGION_GDT;
-    emu->mem[MEM_REGION_GDT].guest_phys_addr = GDT_BASE;
-    emu->mem[MEM_REGION_GDT].memory_size = GDT_SIZE;
+    emu->mem[MEM_REGION_GDT].guest_phys_addr = REGION_GDT_BASE;
+    emu->mem[MEM_REGION_GDT].memory_size = REGION_GDT_SIZE;
     emu->mem[MEM_REGION_GDT].userspace_addr = (uint64_t)gdt;
 
     int ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_GDT]);
     if (ret == -1)
-        err(1, "KVM_SET_USER_MEMORY_REGION");
+        errx(1, "KVM_SET_USER_MEMORY_REGION %i",__LINE__);
 
-    emu->gdt_brk = (MAX_SYS_SEL>>3) +1;
+    emu->gdt_brk = (SEG_SYS_MAX>>3) +1;
 
-    sregs->gdt.base = GDT_BASE;
-    sregs->gdt.limit = GDT_SIZE;
+    sregs->gdt.base = REGION_GDT_BASE;
+    sregs->gdt.limit = REGION_GDT_SIZE;
 }
 
 void setup_idt(struct kvm_sregs *sregs,struct emu *emu) {
-    struct idt *idt = mmap(NULL, IDT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    struct idt *idt = mmap(NULL, REGION_IDT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!idt)
         err(1, "allocating idt memory");
 
     for (int i=0; i<256; i++) {
         idt->entry[i].offset_l = sizeof(idt->entry) + i*sizeof(idt->hlt[i]);
-        idt->entry[i].selector = SEL_TEXT;
+        idt->entry[i].selector = SEG_TEXT;
         idt->entry[i].always0 = 0;
         idt->entry[i].type_flags = 0xee; /* dpl=3, present, 32-bit interrupt */
-        idt->entry[i].offset_h = IDT_BASE>>16;
+        idt->entry[i].offset_h = REGION_IDT_BASE>>16;
         idt->hlt[i][0] = 0xe7; /* out imm8,ax */
         idt->hlt[i][1] = 0x7f; /* imm8 = 0x7f */
         idt->hlt[i][2] = 0xcf; /* iret */
@@ -366,27 +378,27 @@ void setup_idt(struct kvm_sregs *sregs,struct emu *emu) {
     }
 
     emu->mem[MEM_REGION_IDT].slot = MEM_REGION_IDT;
-    emu->mem[MEM_REGION_IDT].guest_phys_addr = IDT_BASE;
-    emu->mem[MEM_REGION_IDT].memory_size = IDT_SIZE;
+    emu->mem[MEM_REGION_IDT].guest_phys_addr = REGION_IDT_BASE;
+    emu->mem[MEM_REGION_IDT].memory_size = REGION_IDT_SIZE;
     emu->mem[MEM_REGION_IDT].userspace_addr = (uint64_t)idt;
 
     int ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_IDT]);
     if (ret == -1)
-        err(1, "KVM_SET_USER_MEMORY_REGION");
+        errx(1, "KVM_SET_USER_MEMORY_REGION %i",__LINE__);
 
-    sregs->idt.base = IDT_BASE;
+    sregs->idt.base = REGION_IDT_BASE;
     sregs->idt.limit = sizeof(idt->entry);
 }
 
 void setup_flat_segments(struct kvm_sregs *sregs) {
     sregs->cs.base = 0;
     sregs->cs.limit = 0xfffff;
-    sregs->cs.selector = SEL_TEXT; /* gdt[1] */
+    sregs->cs.selector = SEG_TEXT; /* gdt[1] */
     sregs->cs.db = 1;
     sregs->cs.g = 1;
     sregs->cs.type = 0xe; /* x=1, c=1, r=1, a=0 */
     memcpy(&sregs->ds,&sregs->cs,sizeof(sregs->cs));
-    sregs->ds.selector = SEL_DATA; /* gdt[2] */
+    sregs->ds.selector = SEG_DATA; /* gdt[2] */
     sregs->ds.type = 2; /* x=0, e=0, w=1, a=0 */
     /* FIXME - set ds.type correctly sregs->ds.type = 2 ? */
     memcpy(&sregs->es,&sregs->ds,sizeof(sregs->ds));
@@ -444,67 +456,67 @@ int kvm_init(struct emu *emu) {
     if (ret == -1)
         err(1, "KVM_SET_SREGS");
 
-    void *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    void *stack = mmap(NULL, REGION_STACK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!stack)
         err(1, "allocating guest stack");
 
     emu->mem[MEM_REGION_STACK].slot = MEM_REGION_STACK;
-    emu->mem[MEM_REGION_STACK].guest_phys_addr = STACK_BASE;
-    emu->mem[MEM_REGION_STACK].memory_size = STACK_SIZE;
+    emu->mem[MEM_REGION_STACK].guest_phys_addr = REGION_STACK_BASE;
+    emu->mem[MEM_REGION_STACK].memory_size = REGION_STACK_SIZE;
     emu->mem[MEM_REGION_STACK].userspace_addr = (uint64_t)stack;
 
     ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_STACK]);
     if (ret == -1)
-        err(1, "KVM_SET_USER_MEMORY_REGION");
+        errx(1, "KVM_SET_USER_MEMORY_REGION %i",__LINE__);
 
     /* Stack canary - this should point to unmapped memory */
-    *((__u32*)stack+STACK_SIZE-4) = 0xbad0add0;
+    *((__u32*)stack+REGION_STACK_SIZE-4) = 0xbad0add0;
 
-    uint8_t *bss = mmap(NULL, BSS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    uint8_t *bss = mmap(NULL, REGION_BSS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!bss)
         err(1, "allocating bss");
 
     emu->mem[MEM_REGION_BSS].slot = MEM_REGION_BSS;
-    emu->mem[MEM_REGION_BSS].guest_phys_addr = BSS_BASE;
-    emu->mem[MEM_REGION_BSS].memory_size = BSS_SIZE;
+    emu->mem[MEM_REGION_BSS].guest_phys_addr = REGION_BSS_BASE;
+    emu->mem[MEM_REGION_BSS].memory_size = REGION_BSS_SIZE;
     emu->mem[MEM_REGION_BSS].userspace_addr = (uint64_t)bss;
 
     ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_BSS]);
     if (ret == -1)
-        err(1, "KVM_SET_USER_MEMORY_REGION");
+        errx(1, "KVM_SET_USER_MEMORY_REGION %i",__LINE__);
 
     emu->bss_brk = 0;
 
-    void *bios = mmap(NULL, BIOS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    void *bios = mmap(NULL, REGION_BIOS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!bios)
         err(1, "allocating bios area");
 
     emu->mem[MEM_REGION_BIOS].slot = MEM_REGION_BIOS;
-    emu->mem[MEM_REGION_BIOS].guest_phys_addr = BIOS_BASE;
-    emu->mem[MEM_REGION_BIOS].memory_size = BIOS_SIZE;
+    emu->mem[MEM_REGION_BIOS].guest_phys_addr = REGION_BIOS_BASE;
+    emu->mem[MEM_REGION_BIOS].memory_size = REGION_BIOS_SIZE;
     emu->mem[MEM_REGION_BIOS].userspace_addr = (uint64_t)bios;
 
     ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_BIOS]);
     if (ret == -1)
-        err(1, "KVM_SET_USER_MEMORY_REGION");
+        errx(1, "KVM_SET_USER_MEMORY_REGION %i",__LINE__);
 
-    void *psp = mmap(NULL, PSP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    void *psp = mmap(NULL, REGION_PSP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!psp)
         err(1, "allocating PSP area");
 
     emu->mem[MEM_REGION_PSP].slot = MEM_REGION_PSP;
-    emu->mem[MEM_REGION_PSP].guest_phys_addr = PSP_BASE;
-    emu->mem[MEM_REGION_PSP].memory_size = PSP_SIZE;
+    emu->mem[MEM_REGION_PSP].guest_phys_addr = REGION_PSP_BASE;
+    emu->mem[MEM_REGION_PSP].memory_size = REGION_PSP_SIZE;
     emu->mem[MEM_REGION_PSP].userspace_addr = (uint64_t)psp;
 
     ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_PSP]);
     if (ret == -1)
-        err(1, "KVM_SET_USER_MEMORY_REGION");
+        errx(1, "KVM_SET_USER_MEMORY_REGION %i",__LINE__);
 
     /* This segment is going to need more data, so fill it with a canary so
      * that it will be simpler to see
      */
-    memset(psp,0xf5,PSP_SIZE);
+    memset(psp,0xf5,REGION_PSP_SIZE);
 #if 0
     int start = 0x00;
     int finish = 0x40;
@@ -516,7 +528,7 @@ int kvm_init(struct emu *emu) {
     }
 #endif
 
-    *(__u16*)((__u8*)psp+0x2c) = SEL_PSP; /* environment segment */
+    *(__u16*)((__u8*)psp+0x2c) = SEG_PSP; /* environment segment */
 
     return 0;
 }
@@ -573,7 +585,7 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
 
     ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_TEXT]);
     if (ret == -1)
-        err(1, "KVM_SET_USER_MEMORY_REGION");
+        errx(1, "KVM_SET_USER_MEMORY_REGION %i",__LINE__);
 
     /* Details from djgcc djlsr205.zip/src/stub/stub.asm
      *
@@ -590,7 +602,7 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
         .rax = 0,
         .rbx = 0,
         .rflags = 0x2,
-        .rsp = STACK_BASE + emu->mem[MEM_REGION_STACK].memory_size - 0x10,
+        .rsp = REGION_STACK_BASE + emu->mem[MEM_REGION_STACK].memory_size - 0x10,
     };
     ret = ioctl(emu->vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
@@ -602,10 +614,10 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
         __u32 minstack;         /* minimum amount of DPMI stack space */
         __u32 memory_handle;    /* DPMI memory handle */
         __u32 initial_size;     /* size of initial segment */
-        __u16 minkeep;         /* amount of automatic real-mode buffer (16384) */
-        __u16 ds_selector;     /* our DS selector (used for transfer buffer) */
-        __u16 ds_segment;      /* our DS segment (used for simulated calls) */
-        __u16 psp_selector;    /* PSP selector */
+        __u16 minkeep;         /* size of transfer buffer */
+        __u16 ds_selector;     /* selector used for transfer buffer */
+        __u16 ds_segment;      /* segment address of transfer buffer */
+        __u16 psp_selector;    /* PSP selector (PSP is at offset 0) */
         __u16 cs_selector;     /* to be freed */
         __u16 env_size;        /* number of bytes of environment */
         char basename[8];       /* base name of executable to load (asciiz if < 8) */
@@ -619,10 +631,10 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     stubinfo->memory_handle = 0xfeedbad0;
     stubinfo->initial_size = text_size;
     stubinfo->minkeep = 16384;
-    stubinfo->ds_selector = SEL_DATA;
+    stubinfo->ds_selector = SEG_DATA;
     stubinfo->ds_segment = 0x10; /* gets shl 4 and xref 0x0003de8d */
-    stubinfo->psp_selector = SEL_PSP;
-    stubinfo->cs_selector = SEL_TEXT;
+    stubinfo->psp_selector = SEG_PSP;
+    stubinfo->cs_selector = SEG_TEXT;
     stubinfo->env_size = 10;
     memcpy(&stubinfo->basename,"emu1",8);
     memcpy(&stubinfo->argv0,"emu2",16);
@@ -771,7 +783,7 @@ int irq_dpmi_0000(void *data, struct emu *emu, struct kvm_regs *regs) {
 
     /* make it a copy of the data segment */
     struct gdt_entry *gdt = (struct gdt_entry *)emu->mem[MEM_REGION_GDT].userspace_addr;
-    memcpy(&gdt[emu->gdt_brk],&gdt[SEL_DATA>>3],sizeof(*gdt));
+    memcpy(&gdt[emu->gdt_brk],&gdt[SEG_DATA>>3],sizeof(*gdt));
 
     regs->rax = emu->gdt_brk<<3;
     emu->gdt_brk++;
@@ -793,7 +805,7 @@ int irq_dpmi_0007(void *data, struct emu *emu, struct kvm_regs *regs) {
         err(1, "Unexpected selector options");
     }
     int selector = (regs->rbx & 0xffff);
-    if (selector <= MAX_SYS_SEL ) {
+    if (selector <= SEG_SYS_MAX ) {
         printf("Cowardly refusing to change system segments\n");
         iret_setflags(regs,1); /* set CF */
         return WANT_NONE;
@@ -814,7 +826,7 @@ int irq_dpmi_0008(void *data, struct emu *emu, struct kvm_regs *regs) {
         err(1, "Unexpected selector options");
     }
     int selector = (regs->rbx & 0xffff);
-    if (selector <= MAX_SYS_SEL ) {
+    if (selector <= SEG_SYS_MAX ) {
         printf("Cowardly refusing to change system segments\n");
         return WANT_NONE;
     }
@@ -874,8 +886,8 @@ int irq_dpmi_0202(void *data, struct emu *emu, struct kvm_regs *regs) {
     int exception = regs->rbx & 0xff;
     printf("exception(0x%x)\n", exception );
     regs->rax = 0;
-    regs->rcx = SEL_TEXT;
-    regs->rdx = IDT_BASE + 2048;
+    regs->rcx = SEG_TEXT;
+    regs->rdx = REGION_IDT_BASE + 2048;
     return WANT_SET_REGS;
 }
 
@@ -894,8 +906,8 @@ int irq_dpmi_0203(void *data, struct emu *emu, struct kvm_regs *regs) {
 int irq_dpmi_0204(void *data, struct emu *emu, struct kvm_regs *regs) {
     int irqno = regs->rbx & 0xff;
     printf("irq(0x%x)\n", irqno );
-    regs->rcx = SEL_TEXT;
-    regs->rdx = IDT_BASE + 2048 + 4 * irqno;
+    regs->rcx = SEG_TEXT;
+    regs->rdx = REGION_IDT_BASE + 2048 + 4 * irqno;
     return WANT_SET_REGS;
 }
 
@@ -999,7 +1011,7 @@ int irq_dpmi_0303(void *data, struct emu *emu, struct kvm_regs *regs) {
     printf("Real mode registers:\n");
     dump_kvm_regs(&call);
 
-    regs->rcx = SEL_TEXT;
+    regs->rcx = SEG_TEXT;
     regs->rdx = 0xaa55aa55;
     return WANT_SET_REGS;
 
@@ -1045,7 +1057,7 @@ int irq_dpmi_0800(void *data, struct emu *emu, struct kvm_regs *regs) {
     __u32 phys_finish = phys_start + size;
 
     /* TODO - make this more generic? */
-    if (phys_start >= BIOS_BASE && phys_finish <= BIOS_BASE+BIOS_SIZE) {
+    if (phys_start >= REGION_BIOS_BASE && phys_finish <= REGION_BIOS_BASE+REGION_BIOS_SIZE) {
         /* we can give you that mapping, yes */
         regs->rbx = (phys_start & 0xffff0000) >>16;
         regs->rcx = (phys_start & 0xffff);
@@ -1083,7 +1095,7 @@ int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
     if (sregs.ds.selector == 0) {
         printf("Applying wierd segment fixup\n");
 
-        sregs.ds.selector = SEL_DATA;
+        sregs.ds.selector = SEG_DATA;
         sregs.ds.base = 0;
         sregs.ds.limit = 0xffffffff;
         sregs.ds.type = 3; /* x=0, e=0, w=1, a=1 */
@@ -1252,7 +1264,7 @@ int handle_softirq(struct emu *emu) {
         err(1, "softirq from outside idt region");
     }
 
-    unsigned char irqno = (regs.rip - IDT_BASE - 0x800) >> 2;
+    unsigned char irqno = (regs.rip - REGION_IDT_BASE - 0x800) >> 2;
     ret = handle_irqno(emu->irq,irqno,emu,&regs);
 
     if (ret == WANT_SET_REGS) {
