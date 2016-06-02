@@ -43,7 +43,7 @@
 #define SEG_GO32 0x20
 #define SEG_SYS_MAX SEG_GO32
 
-#define SEG_PSP_SIZE  (128+128)
+#define SEG_PSP_SIZE  256
 #define SEG_PSP_BASE  0xf0030000
 #define SEG_GO32_SIZE (0x5000-SEG_PSP_SIZE)
 #define SEG_GO32_BASE (SEG_PSP_BASE+SEG_PSP_SIZE)
@@ -94,6 +94,31 @@ struct __attribute__ ((__packed__)) idt {
     uint8_t hlt[256][4];
 };
 
+struct __attribute__ ((__packed__)) djgcc_stubinfo {
+    char magic[16];
+    __u32 size;             /* bytes in structure */
+    __u32 minstack;         /* minimum amount of DPMI stack space */
+    __u32 memory_handle;    /* DPMI memory handle */
+    __u32 initial_size;     /* size of initial segment */
+    __u16 minkeep;         /* size of transfer buffer */
+    __u16 ds_selector;     /* selector used for transfer buffer */
+    __u16 ds_segment;      /* segment address of transfer buffer */
+    __u16 psp_selector;    /* PSP selector (PSP is at offset 0) */
+    __u16 cs_selector;     /* to be freed */
+    __u16 env_size;        /* number of bytes of environment */
+    char basename[8];       /* base name of executable to load (asciiz if < 8) */
+    char argv0[16];         /* used ONLY by the application (asciiz if < 16) */
+    char dpmi_server[16];   /* used by stub to load DPMI server if no DPMI already present */
+};
+
+struct __attribute__ ((__packed__)) region_psp {
+    char psp[256];
+    struct djgcc_stubinfo stubinfo; /* offset 0 in go32 */
+    char padding[172];
+    char buffer[16384];             /* offset 0x100 in go32 */
+    char padding2[3584];
+};
+
 struct irq_handler_entry; /* forward definition */
 struct emu {
     int kvm;
@@ -130,6 +155,28 @@ void *mem_guest2host(struct emu *emu, __u64 guestaddr) {
         }
     }
     return NULL;
+}
+
+/*
+ * Do the same as mem_guest2host, but take some extra steps
+ * if it looks like we are running a strange stack
+ */
+void *mem_getstack(struct emu *emu, struct kvm_regs *regs) {
+    if (regs->rsp>0 && regs->rsp<0x1000) {
+        /* Stack is in the zero-page area, possibly we are using the
+         * GO32 segment for the stack
+         */
+
+        struct kvm_sregs sregs;
+        int ret = ioctl(emu_global.vcpufd, KVM_GET_SREGS, &sregs);
+        if (ret == -1)
+            err(1, "KVM_GET_SREGS");
+
+        if (sregs.ss.selector == SEG_GO32) {
+            return mem_guest2host(&emu_global, SEG_GO32_BASE + regs->rsp);
+        }
+    }
+    return mem_guest2host(emu, regs->rsp);
 }
 
 void gdt_setlimit(struct gdt_entry *gdt, __u32 limit) {
@@ -199,13 +246,9 @@ void dump_kvm_regs(struct kvm_regs *regs) {
     printf("si=0x%08llx di=0x%08llx sp=0x%08llx bp=0x%08llx ip=0x%08llx ",
         regs->rsi,regs->rdi,regs->rsp,regs->rbp,regs->rip);
 
-    __u32 *stack = mem_guest2host(&emu_global, regs->rsp);
+    __u32 *stack = mem_getstack(&emu_global, regs);
     if (stack) {
         printf("(%07x)\n",*stack);
-#if 0
-        printf("Stack:");
-        dump_dwords(stack,6);
-#endif
     }
 }
 
@@ -306,7 +349,7 @@ void dump_kvm_exit(struct emu *emu) {
     case KVM_EXIT_SHUTDOWN:
     case KVM_EXIT_MMIO:
         dump_kvm_sregs(emu);
-        __u32 *stack = mem_guest2host(&emu_global, regs.rsp);
+        __u32 *stack = mem_getstack(&emu_global, &regs);
         printf("Stack:");
         dump_dwords(stack,16);
         dump_kvm_memmap(emu);
@@ -403,6 +446,12 @@ void setup_flat_segments(struct kvm_sregs *sregs) {
     /* FIXME - set ds.type correctly sregs->ds.type = 2 ? */
     memcpy(&sregs->es,&sregs->ds,sizeof(sregs->ds));
     memcpy(&sregs->fs,&sregs->ds,sizeof(sregs->ds));
+    sregs->fs.g = 0;
+    sregs->fs.selector = SEG_GO32;
+    sregs->fs.base = SEG_GO32_BASE;
+    sregs->fs.limit = SEG_GO32_SIZE;
+#if 0
+#endif
     memcpy(&sregs->gs,&sregs->ds,sizeof(sregs->ds));
     memcpy(&sregs->ss,&sregs->ds,sizeof(sregs->ds));
     sregs->ss.type = 6; /* x=0,e=1,w=1,a=0 */
@@ -500,36 +549,6 @@ int kvm_init(struct emu *emu) {
     if (ret == -1)
         errx(1, "KVM_SET_USER_MEMORY_REGION %i",__LINE__);
 
-    void *psp = mmap(NULL, REGION_PSP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (!psp)
-        err(1, "allocating PSP area");
-
-    emu->mem[MEM_REGION_PSP].slot = MEM_REGION_PSP;
-    emu->mem[MEM_REGION_PSP].guest_phys_addr = REGION_PSP_BASE;
-    emu->mem[MEM_REGION_PSP].memory_size = REGION_PSP_SIZE;
-    emu->mem[MEM_REGION_PSP].userspace_addr = (uint64_t)psp;
-
-    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_PSP]);
-    if (ret == -1)
-        errx(1, "KVM_SET_USER_MEMORY_REGION %i",__LINE__);
-
-    /* This segment is going to need more data, so fill it with a canary so
-     * that it will be simpler to see
-     */
-    memset(psp,0xf5,REGION_PSP_SIZE);
-#if 0
-    int start = 0x00;
-    int finish = 0x40;
-    int stride = 4;
-    for (int i = start; i<finish; i+=stride) {
-        unsigned char ch = 0xa0+((i-start)/stride);
-        memset(psp+i,ch,stride);
-        printf("Canary: 0x%08x(0x%x) = 0x%02x\n",i,stride,ch);
-    }
-#endif
-
-    *(__u16*)((__u8*)psp+0x2c) = SEG_PSP; /* environment segment */
-
     return 0;
 }
 
@@ -587,6 +606,44 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     if (ret == -1)
         errx(1, "KVM_SET_USER_MEMORY_REGION %i",__LINE__);
 
+    void *psp = mmap(NULL, REGION_PSP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!psp)
+        err(1, "allocating PSP area");
+
+    emu->mem[MEM_REGION_PSP].slot = MEM_REGION_PSP;
+    emu->mem[MEM_REGION_PSP].guest_phys_addr = REGION_PSP_BASE;
+    emu->mem[MEM_REGION_PSP].memory_size = REGION_PSP_SIZE;
+    emu->mem[MEM_REGION_PSP].userspace_addr = (uint64_t)psp;
+
+    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_PSP]);
+    if (ret == -1)
+        errx(1, "KVM_SET_USER_MEMORY_REGION %i",__LINE__);
+
+    /* This segment is going to need more data, so fill it with a canary so
+     * that it will be simpler to see
+     */
+    memset(psp,0xf5,REGION_PSP_SIZE);
+
+    /* FIXME - define the PSP structure */
+    *(__u16*)((__u8*)psp+0x2c) = SEG_PSP; /* environment segment */
+
+    struct region_psp *region_psp = psp;
+
+    memcpy(&region_psp->stubinfo.magic,"go32stub, v 2.HC",16);
+    region_psp->stubinfo.size = sizeof(struct djgcc_stubinfo);
+    region_psp->stubinfo.minstack = 0x80000; /* 512k */
+    region_psp->stubinfo.memory_handle = 0xfeedbad0;
+    region_psp->stubinfo.initial_size = text_size;
+    region_psp->stubinfo.minkeep = 16384;
+    region_psp->stubinfo.ds_selector = SEG_GO32;
+    region_psp->stubinfo.ds_segment = 0x10; /* gets shl 4 and xref 0x0003de8d */
+    region_psp->stubinfo.psp_selector = SEG_PSP;
+    region_psp->stubinfo.cs_selector = SEG_TEXT;
+    region_psp->stubinfo.env_size = 10;
+    memcpy(&region_psp->stubinfo.basename,"emu1",8);
+    memcpy(&region_psp->stubinfo.argv0,"emu2",16);
+    memcpy(&region_psp->stubinfo.dpmi_server,"emu3",16);
+
     /* Details from djgcc djlsr205.zip/src/stub/stub.asm
      *
      * Interface to 32-bit executable:
@@ -608,38 +665,7 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     if (ret == -1)
         err(1, "KVM_SET_REGS");
 
-    struct __attribute__ ((__packed__)) djgcc_stubinfo {
-        char magic[16];
-        __u32 size;             /* bytes in structure */
-        __u32 minstack;         /* minimum amount of DPMI stack space */
-        __u32 memory_handle;    /* DPMI memory handle */
-        __u32 initial_size;     /* size of initial segment */
-        __u16 minkeep;         /* size of transfer buffer */
-        __u16 ds_selector;     /* selector used for transfer buffer */
-        __u16 ds_segment;      /* segment address of transfer buffer */
-        __u16 psp_selector;    /* PSP selector (PSP is at offset 0) */
-        __u16 cs_selector;     /* to be freed */
-        __u16 env_size;        /* number of bytes of environment */
-        char basename[8];       /* base name of executable to load (asciiz if < 8) */
-        char argv0[16];         /* used ONLY by the application (asciiz if < 16) */
-        char dpmi_server[16];   /* used by stub to load DPMI server if no DPMI already present */
-    } *stubinfo = (struct djgcc_stubinfo*)text;
-
-    memcpy(&stubinfo->magic,"go32stub, v 2.HC",16);
-    stubinfo->size = sizeof(struct djgcc_stubinfo);
-    stubinfo->minstack = 0x80000; /* 512k */
-    stubinfo->memory_handle = 0xfeedbad0;
-    stubinfo->initial_size = text_size;
-    stubinfo->minkeep = 16384;
-    stubinfo->ds_selector = SEG_DATA;
-    stubinfo->ds_segment = 0x10; /* gets shl 4 and xref 0x0003de8d */
-    stubinfo->psp_selector = SEG_PSP;
-    stubinfo->cs_selector = SEG_TEXT;
-    stubinfo->env_size = 10;
-    memcpy(&stubinfo->basename,"emu1",8);
-    memcpy(&stubinfo->argv0,"emu2",16);
-    memcpy(&stubinfo->dpmi_server,"emu3",16);
-
+    *text = 0xf4; /* hlt - hack to allow the code to stop */
     return 0;
 }
 
