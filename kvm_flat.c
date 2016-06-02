@@ -466,7 +466,7 @@ int kvm_init(struct emu *emu) {
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
-    emu->bss_brk = BSS_SIZE/2; /* things put stacks here, so start halfway */
+    emu->bss_brk = 0;
 
     void *bios = mmap(NULL, BIOS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!bios)
@@ -494,7 +494,22 @@ int kvm_init(struct emu *emu) {
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
+    /* This segment is going to need more data, so fill it with a canary so
+     * that it will be simpler to see
+     */
     memset(psp,0xf5,PSP_SIZE);
+#if 0
+    int start = 0x00;
+    int finish = 0x40;
+    int stride = 4;
+    for (int i = start; i<finish; i+=stride) {
+        unsigned char ch = 0xa0+((i-start)/stride);
+        memset(psp+i,ch,stride);
+        printf("Canary: 0x%08x(0x%x) = 0x%02x\n",i,stride,ch);
+    }
+#endif
+
+    *(__u16*)((__u8*)psp+0x2c) = SEL_PSP; /* environment segment */
 
     return 0;
 }
@@ -598,7 +613,7 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     stubinfo->initial_size = text_size;
     stubinfo->minkeep = 16384;
     stubinfo->ds_selector = SEL_DATA;
-    stubinfo->ds_segment = 0xbad1;
+    stubinfo->ds_segment = 0x10; /* gets shl 4 and xref 0x0003de8d */
     stubinfo->psp_selector = SEL_PSP;
     stubinfo->cs_selector = SEL_TEXT;
     stubinfo->env_size = 10;
