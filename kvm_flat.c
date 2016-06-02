@@ -724,6 +724,21 @@ int irq_dos_version(void *data, struct emu *emu, struct kvm_regs *regs) {
     return WANT_SET_REGS;
 }
 
+int irq_dos_get_drive(void *data, struct emu *emu, struct kvm_regs *regs) {
+    regs->rax = 0x02; /* drive C: */
+    return WANT_SET_REGS;
+}
+
+int irq_dos_lfn_volinfo(void *data, struct emu *emu, struct kvm_regs *regs) {
+    /* theoretically passed a pathname in DS:DX, but one was not seen */
+    regs->rax = 0;
+    regs->rbx = 0x4003; /* supports LFN, case sensitive and preserving */
+    regs->rcx = 0xff; /* max filename length */
+    regs->rdx = 260; /* max path length */
+    /* wants ES:DI filled in with filesystem name */
+    return WANT_SET_REGS;
+}
+
 /* allocate ldt desriptors */
 int irq_dpmi_0000(void *data, struct emu *emu, struct kvm_regs *regs) {
     /* for the moment, try just giving it a GDT entry... */
@@ -999,9 +1014,11 @@ int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
 }
 
 int handle_subcode(struct irq_subhandler_entry *p, int subcode, struct emu *emu, struct kvm_regs *regs) {
-    while (p && p->name) {
+    while (p && p->handler) {
         if (p->subcode == subcode) {
-            printf(" (%s):",p->name);
+            if (p->name) {
+                printf(" (%s):",p->name);
+            }
             int ret = p->handler(p->data, emu, regs);
             printf("\n");
             return ret;
@@ -1019,6 +1036,13 @@ int irq_subcode_ah(void *data, struct emu *emu, struct kvm_regs *regs) {
     return handle_subcode(table, subcode, emu, regs);
 }
 
+int irq_subcode_al(void *data, struct emu *emu, struct kvm_regs *regs) {
+    struct irq_subhandler_entry *table = data;
+    int subcode = regs->rax & 0xff;
+    printf("%02X",subcode);
+    return handle_subcode(table, subcode, emu, regs);
+}
+
 int irq_subcode_ax(void *data, struct emu *emu, struct kvm_regs *regs) {
     struct irq_subhandler_entry *table = data;
     int subcode = regs->rax & 0xffff;
@@ -1027,7 +1051,7 @@ int irq_subcode_ax(void *data, struct emu *emu, struct kvm_regs *regs) {
 }
 
 int irq_unhandled(void *data, struct emu *emu, struct kvm_regs *regs) {
-    printf("unhandled irq");
+    printf("unhandled irq\n");
     exit(1);
 }
 
@@ -1038,6 +1062,7 @@ int irq_ignore(void *data, struct emu *emu, struct kvm_regs *regs) {
 
 struct irq_subhandler_entry irq_dpmi_subcode[] = {
     { .subcode = 0x0000, .name = "ALLOCATE LDT DESCRIPTORS", .handler = irq_dpmi_0000 },
+    { .subcode = 0x0001, .name = "FREE LDT DESCRIPTORS", .handler = irq_ignore },
     { .subcode = 0x0006, .name = "GET SEGMENT BASE ADDRESS", .handler = irq_dpmi_0006 },
     { .subcode = 0x0007, .name = "SET SEGMENT BASE ADDRESS", .handler = irq_ignore },
     { .subcode = 0x0008, .name = "SET SEGMENT LIMIT", .handler = irq_dpmi_0008 },
@@ -1055,12 +1080,30 @@ struct irq_subhandler_entry irq_dpmi_subcode[] = {
     { .subcode = 0x0501, .name = "ALLOCATE MEMORY BLOCK", .handler = irq_dpmi_0501 },
     { .subcode = 0x0507, .name = "SET PAGE ATTRIBUTES", .handler = irq_ignore },
     { .subcode = 0x0600, .name = "LOCK LINEAR REGION", .handler = irq_ignore },
+    { .subcode = 0x0e01, .name = "SET FP EMULATION", .handler = irq_ignore },
+    { 0 },
+};
+
+struct irq_subhandler_entry irq_dos_lfn[] = {
+    { .subcode = 0x43, .name = "LFN - GET/SET FILE ATTR", .handler = irq_ignore },
+    { .subcode = 0xa0, .name = "LFN - GET VOL INFO", .handler = irq_dos_lfn_volinfo },
     { 0 },
 };
 
 struct irq_subhandler_entry irq_dos_subcode[] = {
+    { .subcode = 0x19, .name = "GET DRIVE", .handler = irq_dos_get_drive },
     { .subcode = 0x30, .name = "VERSION", .handler = irq_dos_version },
     { .subcode = 0x4c, .name = "EXIT", .handler = irq_dos_exit },
+    { .subcode = 0x71, .handler = irq_subcode_al, .data = irq_dos_lfn },
+    { 0 },
+};
+
+struct irq_subhandler_entry irq_video_subcode[] = {
+    { .subcode = 0x03, .name = "GET CURSOR POSITION", .handler = irq_ignore },
+    { .subcode = 0x08, .name = "READ CHAR and ATTR", .handler = irq_ignore },
+    { .subcode = 0x12, .name = "MISC STUFF", .handler = irq_ignore },
+    { .subcode = 0x1a, .name = "DISPLAY COMBO", .handler = irq_ignore },
+    { .subcode = 0xfe, .name = "GET SHADOW BUFFER", .handler = irq_ignore },
     { 0 },
 };
 
@@ -1068,15 +1111,16 @@ struct irq_subhandler_entry irq_dos_subcode[] = {
  * Top level table of every IRQ possible
  */
 struct irq_handler_entry irq_handlers[256] = {
-    [0x0d] = { .name = "GPF",  .handler = irq_gpf },
-    [0x21] = { .name = "DOS",  .handler = irq_subcode_ah, .data = irq_dos_subcode },
-    [0x31] = { .name = "DPMI", .handler = irq_subcode_ax, .data = irq_dpmi_subcode },
+    [0x0d] = { .name = "GPF",   .handler = irq_gpf },
+    [0x10] = { .name = "VIDEO", .handler = irq_subcode_ah, .data = irq_video_subcode },
+    [0x21] = { .name = "DOS",   .handler = irq_subcode_ah, .data = irq_dos_subcode },
+    [0x31] = { .name = "DPMI",  .handler = irq_subcode_ax, .data = irq_dpmi_subcode },
 };
 
 int handle_irqno(struct irq_handler_entry *p, unsigned char irqno, struct emu *emu, struct kvm_regs *regs) {
     printf("INT ");
 
-    if (!p[irqno].name) {
+    if (!p[irqno].handler) {
         printf("-%02X ",irqno);
         __u32 *stack = mem_guest2host(emu, regs->rsp);
         if (stack) {
@@ -1086,7 +1130,10 @@ int handle_irqno(struct irq_handler_entry *p, unsigned char irqno, struct emu *e
         exit(1);
     }
 
-    printf("'%s' -%02X",p[irqno].name,irqno);
+    if (p[irqno].name) {
+        printf("'%s'",p[irqno].name);
+    }
+    printf(" -%02X",irqno);
     return p[irqno].handler(p[irqno].data,emu,regs);
 }
 
