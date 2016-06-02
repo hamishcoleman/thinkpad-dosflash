@@ -59,13 +59,14 @@ struct __attribute__ ((__packed__)) idt {
     uint8_t hlt[256][4];
 };
 
-#define MAX_MEM_REGIONS 6
+#define MAX_MEM_REGIONS 7
 #define MEM_REGION_GDT   0
 #define MEM_REGION_IDT   1
 #define MEM_REGION_STACK 2
 #define MEM_REGION_TEXT  3
 #define MEM_REGION_BIOS  4
 #define MEM_REGION_BSS   5
+#define MEM_REGION_PSP   6
 
 struct irq_handler_entry; /* forward definition */
 struct emu {
@@ -80,22 +81,25 @@ struct emu {
     struct irq_handler_entry *irq;
 } emu_global;
 
-#define STACK_SIZE 0x4000
+#define STACK_SIZE 0x1000
 #define STACK_BASE 0xf0000000
 #define IDT_SIZE 0x1000
 #define IDT_BASE 0xf0010000
 #define GDT_SIZE 0x1000
 #define GDT_BASE 0xf0020000
+#define PSP_SIZE 0x1000
+#define PSP_BASE 0xf0030000
 
 #define BIOS_BASE 0x000c0000
 #define BIOS_SIZE 0x00040000
 
 #define BSS_BASE 0x00200000
-#define BSS_SIZE 0x00080000
+#define BSS_SIZE 0x00100000
 
 #define SEL_TEXT 0x08 /* gdt[1] */
 #define SEL_DATA 0x10 /* gdt[2] */
-#define MAX_SYS_SEL SEL_DATA
+#define SEL_PSP  0x18
+#define MAX_SYS_SEL SEL_PSP
 
 struct irq_subhandler_entry {
     int subcode;
@@ -315,6 +319,13 @@ void setup_gdt(struct kvm_sregs *sregs, struct emu *emu) {
     gdt[2].limit_flags = 0x40;
     gdt_setlimit(&gdt[2],0xffffffff);
 
+    /* PSP segment */
+    gdt[3].type_flags = 0x92;
+    gdt[3].limit_flags = 0x40;
+    gdt[3].base_m = (PSP_BASE & 0xff0000) >>16;
+    gdt[3].base_h = (PSP_BASE & 0xff000000) >>24;
+    gdt_setlimit(&gdt[3],PSP_SIZE);
+
     emu->mem[MEM_REGION_GDT].slot = MEM_REGION_GDT;
     emu->mem[MEM_REGION_GDT].guest_phys_addr = GDT_BASE;
     emu->mem[MEM_REGION_GDT].memory_size = GDT_SIZE;
@@ -439,6 +450,9 @@ int kvm_init(struct emu *emu) {
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
+    /* Stack canary - this should point to unmapped memory */
+    *((__u32*)stack+STACK_SIZE-4) = 0xbad0add0;
+
     uint8_t *bss = mmap(NULL, BSS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!bss)
         err(1, "allocating bss");
@@ -466,6 +480,21 @@ int kvm_init(struct emu *emu) {
     ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_BIOS]);
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
+
+    void *psp = mmap(NULL, PSP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!psp)
+        err(1, "allocating PSP area");
+
+    emu->mem[MEM_REGION_PSP].slot = MEM_REGION_PSP;
+    emu->mem[MEM_REGION_PSP].guest_phys_addr = PSP_BASE;
+    emu->mem[MEM_REGION_PSP].memory_size = PSP_SIZE;
+    emu->mem[MEM_REGION_PSP].userspace_addr = (uint64_t)psp;
+
+    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_PSP]);
+    if (ret == -1)
+        err(1, "KVM_SET_USER_MEMORY_REGION");
+
+    memset(psp,0xf5,PSP_SIZE);
 
     return 0;
 }
@@ -524,8 +553,16 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     if (ret == -1)
         err(1, "KVM_SET_USER_MEMORY_REGION");
 
-    /* Initialize registers: instruction pointer for our code and
-     * initial flags required by x86 architecture. */
+    /* Details from djgcc djlsr205.zip/src/stub/stub.asm
+     *
+     * Interface to 32-bit executable:
+     *
+     *    cs:eip     according to COFF header
+     *    ds         32-bit data segment for COFF program
+     *    fs         selector for our data segment (fs:0 is stubinfo)
+     *    ss:sp      our stack (ss to be freed)
+     *    <others>   All unspecified registers have unspecified values in them.
+     */
     struct kvm_regs regs = {
         .rip = entry,
         .rax = 0,
@@ -536,6 +573,38 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     ret = ioctl(emu->vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
         err(1, "KVM_SET_REGS");
+
+    struct __attribute__ ((__packed__)) djgcc_stubinfo {
+        char magic[16];
+        __u32 size;             /* bytes in structure */
+        __u32 minstack;         /* minimum amount of DPMI stack space */
+        __u32 memory_handle;    /* DPMI memory handle */
+        __u32 initial_size;     /* size of initial segment */
+        __u16 minkeep;         /* amount of automatic real-mode buffer (16384) */
+        __u16 ds_selector;     /* our DS selector (used for transfer buffer) */
+        __u16 ds_segment;      /* our DS segment (used for simulated calls) */
+        __u16 psp_selector;    /* PSP selector */
+        __u16 cs_selector;     /* to be freed */
+        __u16 env_size;        /* number of bytes of environment */
+        char basename[8];       /* base name of executable to load (asciiz if < 8) */
+        char argv0[16];         /* used ONLY by the application (asciiz if < 16) */
+        char dpmi_server[16];   /* used by stub to load DPMI server if no DPMI already present */
+    } *stubinfo = (struct djgcc_stubinfo*)text;
+
+    memcpy(&stubinfo->magic,"go32stub, v 2.HC",16);
+    stubinfo->size = sizeof(struct djgcc_stubinfo);
+    stubinfo->minstack = 0x80000; /* 512k */
+    stubinfo->memory_handle = 0xfeedbad0;
+    stubinfo->initial_size = text_size;
+    stubinfo->minkeep = 16384;
+    stubinfo->ds_selector = SEL_DATA;
+    stubinfo->ds_segment = 0xbad1;
+    stubinfo->psp_selector = SEL_PSP;
+    stubinfo->cs_selector = SEL_TEXT;
+    stubinfo->env_size = 10;
+    memcpy(&stubinfo->basename,"emu1",8);
+    memcpy(&stubinfo->argv0,"emu2",16);
+    memcpy(&stubinfo->dpmi_server,"emu3",16);
 
     return 0;
 }
@@ -625,7 +694,7 @@ int alloc_bss(struct emu *emu, unsigned int size) {
 void iret_setflags(struct kvm_regs *regs, unsigned int setflags) {
     __u32 *stack = mem_guest2host(&emu_global, regs->rsp);
     if (stack) {
-        stack[1] |= setflags;
+        stack[2] |= setflags;
     }
 }
 
