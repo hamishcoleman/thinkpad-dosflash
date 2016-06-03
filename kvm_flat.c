@@ -546,7 +546,11 @@ int kvm_init(struct emu *emu) {
 
     emu->bss_brk = 0;
 
-    void *bios = mmap(NULL, REGION_BIOS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    int fd = open("mem", O_RDONLY);
+    if (fd == -1)
+        err(1, "opening mem");
+
+    void *bios = mmap(NULL, REGION_BIOS_SIZE, PROT_READ, MAP_SHARED , fd, REGION_BIOS_BASE);
     if (!bios)
         err(1, "allocating bios area");
 
@@ -1331,7 +1335,7 @@ int handle_mmio(struct emu *emu) {
     if (run->mmio.is_write) {
         return 0;
     }
-    memset(run->mmio.data,0xa5,run->mmio.len);
+    memcpy(run->mmio.data, mem_guest2host(emu, run->mmio.phys_addr) ,run->mmio.len);
     emu->mmio_next = run->mmio.phys_addr+run->mmio.len;
 
     if (run->mmio.phys_addr == old_mmio_next) {

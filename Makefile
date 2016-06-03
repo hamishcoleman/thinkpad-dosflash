@@ -41,5 +41,9 @@ FAT_OFFSET := 71680
 %.dosflash.flat.orig: %.dosflash.coff.orig
 	./dump_coff.pl $< write_flat $@
 
-%.dosflash.flat.test: %.dosflash.flat.orig kvm_flat
+%.dosflash.flat.test: %.dosflash.flat.orig kvm_flat mem
 	./kvm_flat $< 0x18d0
+
+# A copy of low memory, including all the bios ROMS
+mem:
+	sudo dd if=/dev/mem of=mem bs=65536 count=16
