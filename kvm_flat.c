@@ -40,13 +40,16 @@
 #define SEG_TEXT 0x08 /* gdt[1] */
 #define SEG_DATA 0x10 /* gdt[2] */
 #define SEG_PSP  0x18
-#define SEG_GO32 0x20
+#define SEG_ENV  0x20
+#define SEG_GO32 0x28
 #define SEG_SYS_MAX SEG_GO32
 
 #define SEG_PSP_SIZE  256
 #define SEG_PSP_BASE  0xf0030000
-#define SEG_GO32_SIZE (0x5000-SEG_PSP_SIZE)
-#define SEG_GO32_BASE (SEG_PSP_BASE+SEG_PSP_SIZE)
+#define SEG_ENV_SIZE  256
+#define SEG_ENV_BASE  (SEG_PSP_BASE+SEG_PSP_SIZE)
+#define SEG_GO32_SIZE (0x5000-SEG_PSP_SIZE-SEG_ENV_SIZE)
+#define SEG_GO32_BASE (SEG_ENV_BASE+SEG_ENV_SIZE)
 
 #define MEM_REGION_GDT   0
 #define MEM_REGION_IDT   1
@@ -63,7 +66,7 @@
 #define REGION_IDT_BASE   0xf0010000
 #define REGION_GDT_SIZE   0x1000
 #define REGION_GDT_BASE   0xf0020000
-#define REGION_PSP_SIZE   (SEG_PSP_SIZE+SEG_GO32_SIZE)
+#define REGION_PSP_SIZE   (SEG_PSP_SIZE+SEG_ENV_SIZE+SEG_GO32_SIZE)
 #define REGION_PSP_BASE   0xf0030000
 
 #define REGION_BIOS_BASE  0x000c0000
@@ -113,11 +116,13 @@ struct __attribute__ ((__packed__)) djgcc_stubinfo {
 
 struct __attribute__ ((__packed__)) region_psp {
     char psp[128];
-    char cmdline[128];
+    char cmdline_len;
+    char cmdline[127];
+    char env[256];
     struct djgcc_stubinfo stubinfo; /* offset 0 in go32 */
     char padding[172];
     char buffer[16384];             /* offset 0x100 in go32 */
-    char padding2[3584];
+    char padding2[3328];
 };
 
 struct irq_handler_entry; /* forward definition */
@@ -229,7 +234,7 @@ void dump_backtrace(struct emu *emu, struct kvm_regs *called_regs) {
     printf("\t0x%08llx\n",called_regs->rip);
     printf("\t0x%08x\n",*stack);
 
-    int maxdepth = 5;
+    int maxdepth = 18;
     int depth = 0;
 
     while (depth<maxdepth) {
@@ -426,11 +431,17 @@ void setup_gdt(struct kvm_sregs *sregs, struct emu *emu) {
     gdt_setlimit(&gdt[3],SEG_PSP_SIZE);
     gdt_setbase(&gdt[3],SEG_PSP_BASE);
 
-    /* GO32 segment */
+    /* ENV segment */
     gdt[4].type_flags = 0x92;
     gdt[4].limit_flags = 0x40;
-    gdt_setlimit(&gdt[4],SEG_GO32_SIZE);
-    gdt_setbase(&gdt[4],SEG_GO32_BASE);
+    gdt_setlimit(&gdt[4],SEG_ENV_SIZE);
+    gdt_setbase(&gdt[4],SEG_ENV_BASE);
+
+    /* GO32 segment */
+    gdt[5].type_flags = 0x92;
+    gdt[5].limit_flags = 0x40;
+    gdt_setlimit(&gdt[5],SEG_GO32_SIZE);
+    gdt_setbase(&gdt[5],SEG_GO32_BASE);
 
     emu->mem[MEM_REGION_GDT].slot = MEM_REGION_GDT;
     emu->mem[MEM_REGION_GDT].guest_phys_addr = REGION_GDT_BASE;
@@ -494,8 +505,6 @@ void setup_flat_segments(struct kvm_sregs *sregs) {
     sregs->fs.selector = SEG_GO32;
     sregs->fs.base = SEG_GO32_BASE;
     sregs->fs.limit = SEG_GO32_SIZE;
-#if 0
-#endif
     memcpy(&sregs->gs,&sregs->ds,sizeof(sregs->ds));
     memcpy(&sregs->ss,&sregs->ds,sizeof(sregs->ds));
     sregs->ss.type = 6; /* x=0,e=1,w=1,a=0 */
@@ -655,7 +664,7 @@ int load_image(struct emu *emu, char *filename, unsigned long entry, char *cmdli
     if (ret == -1)
         errx(1, "KVM_SET_USER_MEMORY_REGION %i",__LINE__);
 
-    void *psp = mmap(NULL, REGION_PSP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    uint8_t *psp = mmap(NULL, REGION_PSP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!psp)
         err(1, "allocating PSP area");
 
@@ -673,13 +682,18 @@ int load_image(struct emu *emu, char *filename, unsigned long entry, char *cmdli
      */
     memset(psp,0xf5,REGION_PSP_SIZE);
 
-    struct region_psp *region_psp = psp;
+    struct region_psp *region_psp = (struct region_psp *)psp;
 
     /* FIXME - define the PSP structure */
-    *(__u16*)((__u8*)psp+0x2c) = SEG_PSP; /* environment segment */
+    *(__u16*)((__u8*)psp+0x2c) = SEG_ENV; /* environment segment */
+    memset(region_psp->env,0,sizeof(region_psp->env));
 
+    region_psp->cmdline_len=0;
+    region_psp->cmdline[0]=0;
     if (cmdline) {
-        strncpy(region_psp->cmdline,cmdline,sizeof(region_psp->cmdline));
+        strncat(region_psp->cmdline,cmdline,sizeof(region_psp->cmdline));
+        strncat(region_psp->cmdline,"\r",sizeof(region_psp->cmdline));
+        region_psp->cmdline_len = strlen(region_psp->cmdline);
     }
 
     memcpy(&region_psp->stubinfo.magic,"go32stub, v 2.HC",16);
@@ -692,7 +706,7 @@ int load_image(struct emu *emu, char *filename, unsigned long entry, char *cmdli
     region_psp->stubinfo.ds_segment = 0x10; /* gets shl 4 and xref 0x0003de8d */
     region_psp->stubinfo.psp_selector = SEG_PSP;
     region_psp->stubinfo.cs_selector = SEG_TEXT;
-    region_psp->stubinfo.env_size = 300;
+    region_psp->stubinfo.env_size = 1;
     memset(&region_psp->stubinfo.basename,0,8);
     memset(&region_psp->stubinfo.argv0,0,16);
     memset(&region_psp->stubinfo.dpmi_server,0,16);
@@ -885,7 +899,8 @@ int irq_dos_lfn_volinfo(void *data, struct emu *emu, struct kvm_regs *regs) {
 }
 
 int irq_dos_lfn_open(void *data, struct emu *emu, struct kvm_regs *regs) {
-    int dos_bufaddr = (regs->r9 << 4) | (regs->rdx & 0xffff);
+    /* note: r9 is a fake DS here */
+    int dos_bufaddr = (regs->r9 << 4) | (regs->rsi & 0xffff);
     uint8_t *buf =  mem_guest2host(emu, dos_bufaddr);
     printf("path='%s' = 3\n",buf);
     regs->rax = 3;
