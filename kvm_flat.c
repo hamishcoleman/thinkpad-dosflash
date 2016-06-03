@@ -131,6 +131,8 @@ struct emu {
     unsigned int gdt_brk; /* start of available descriptors */
 
     struct irq_handler_entry *irq;
+    __u32 mmio_next; /* if mmio matches this, avoid verbosity */
+    int mmio_count; /* just how many mmio_next matches have we seen */
 } emu_global;
 
 struct irq_subhandler_entry {
@@ -553,9 +555,10 @@ int kvm_init(struct emu *emu) {
     emu->mem[MEM_REGION_BIOS].memory_size = REGION_BIOS_SIZE;
     emu->mem[MEM_REGION_BIOS].userspace_addr = (uint64_t)bios;
 
-    ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_BIOS]);
-    if (ret == -1)
-        errx(1, "KVM_SET_USER_MEMORY_REGION %i",__LINE__);
+    /*
+     * by adding the bios to the mem table, but not registering it, it becomes
+     * straightforward to use the same tools for MMIO as for faults
+     */
 
     return 0;
 }
@@ -1067,7 +1070,7 @@ int irq_dpmi_0400(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rax = 0x0100; /* DPMI version 1.0 */
     regs->rbx = 0x3; /* 386 and no v86 */
     regs->rcx = 0x04; /* 80486 */
-    regs->rdx = 0x5aa5; /* some virtual interrupt thing */
+    regs->rdx = 0x5a5a; /* some virtual interrupt thing */
     return WANT_NEWLINE|WANT_SET_REGS;
 }
 
@@ -1287,6 +1290,11 @@ int handle_irqno(struct irq_handler_entry *p, unsigned char irqno, struct emu *e
 }
 
 int handle_softirq(struct emu *emu) {
+    struct kvm_run *run = emu->run;
+    if (run->io.direction != KVM_EXIT_IO_OUT || run->io.size != 4 || run->io.port != 0x7f || run->io.count != 1) {
+        return 0;
+    }
+
     struct kvm_regs regs;
     int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &regs);
     if (ret == -1)
@@ -1310,7 +1318,48 @@ int handle_softirq(struct emu *emu) {
         printf("\n");
     }
 
-    return 0;
+    return 1;
+}
+
+int handle_mmio(struct emu *emu) {
+    int mmio_verbose;
+    struct kvm_run *run = emu->run;
+    __u32 old_mmio_next = emu->mmio_next;
+    if (run->mmio.phys_addr < REGION_BIOS_BASE || run->mmio.phys_addr > REGION_BIOS_BASE+REGION_BIOS_SIZE) {
+        return 0;
+    }
+    if (run->mmio.is_write) {
+        return 0;
+    }
+    memset(run->mmio.data,0xa5,run->mmio.len);
+    emu->mmio_next = run->mmio.phys_addr+run->mmio.len;
+
+    if (run->mmio.phys_addr == old_mmio_next) {
+        /* quickly detect repeated sequential access and be less verbose */
+        emu->mmio_count++;
+        mmio_verbose = 0;
+    } else {
+        emu->mmio_count = 0;
+        mmio_verbose = 1;
+    }
+
+    if (emu->mmio_count%32768 == 0) {
+        /* show data every now and again, regardless */
+        mmio_verbose = 1;
+    }
+
+    if (mmio_verbose) {
+        struct kvm_regs regs;
+        int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &regs);
+        if (ret == -1)
+            err(1, "KVM_GET_REGS");
+
+        printf("%07llx: MMIO read: 0x%08llx(0x%08x)\n",regs.rip,run->mmio.phys_addr,run->mmio.len);
+        dump_kvm_regs(&regs);
+    } else {
+        printf(".");
+    }
+    return 1;
 }
 
 int main(int argc, char **argv)
@@ -1352,8 +1401,7 @@ int main(int argc, char **argv)
             puts("KVM_EXIT_HLT");
             return 0;
         case KVM_EXIT_IO:
-            if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 4 && run->io.port == 0x7f && run->io.count == 1) {
-                handle_softirq(emu);
+            if (handle_softirq(emu)) {
                 continue;
             }
             if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 1 && run->io.port == 0x3f8 && run->io.count == 1) {
@@ -1362,7 +1410,12 @@ int main(int argc, char **argv)
             }
             dump_kvm_exit(emu);
             errx(1, "unhandled KVM_EXIT_IO");
-            break;
+        case KVM_EXIT_MMIO:
+            if (handle_mmio(emu)) {
+                continue;
+            }
+            dump_kvm_exit(emu);
+            err(1, "unhandled MMIO");
         case KVM_EXIT_FAIL_ENTRY:
             dump_kvm_exit(emu);
             errx(1, "KVM_EXIT_FAIL_ENTRY: hardware_entry_failure_reason = 0x%llx",
