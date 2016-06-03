@@ -36,6 +36,27 @@
 #include <sys/types.h>
 
 #include <unistd.h>
+#include <stdarg.h>
+
+int debug_level = 2;
+int debug_printf(unsigned char level, const char *fmt, ...)
+{
+    va_list args;
+    char buf[1025];
+    int i;
+
+    if (level > debug_level)
+        return 0;
+
+    va_start(args, fmt);
+    i=vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+
+    fprintf(stderr,buf);
+
+    return i;
+}
+
 
 #define SEG_TEXT 0x08 /* gdt[1] */
 #define SEG_DATA 0x10 /* gdt[2] */
@@ -224,15 +245,15 @@ void dump_backtrace(struct emu *emu, struct kvm_regs *called_regs) {
     regs.rsp = called_regs->rsp;
     regs.rbp = called_regs->rbp;
 
-    printf("Backtrace:\n");
+    debug_printf(2,"Backtrace:\n");
 
     __u32 *stack = mem_getstack(emu,&regs);
     if (!stack) {
         return;
     }
 
-    printf("\t0x%08llx\n",called_regs->rip);
-    printf("\t0x%08x\n",*stack);
+    debug_printf(2,"\t0x%08llx\n",called_regs->rip);
+    debug_printf(2,"\t0x%08x\n",*stack);
 
     int maxdepth = 18;
     int depth = 0;
@@ -244,7 +265,7 @@ void dump_backtrace(struct emu *emu, struct kvm_regs *called_regs) {
             return;
         }
         regs.rbp = stack[0];
-        printf("\t0x%08x\n",stack[1]);
+        debug_printf(2,"\t0x%08x\n",stack[1]);
         depth++;
     }
 }
@@ -260,13 +281,13 @@ void dump_kvm_run(struct kvm_run *run) {
         "KVM_EXIT_OSI", "KVM_EXIT_PAPR_HCALL",
     };
 
-    printf("%s(%i)\n",kvm_exit_str[run->exit_reason],run->exit_reason);
+    debug_printf(1,"%s(%i)\n",kvm_exit_str[run->exit_reason],run->exit_reason);
     switch (run->exit_reason) {
     case KVM_EXIT_INTERNAL_ERROR:
-        printf("\tsuberror: 0x%x\n",run->internal.suberror);
+        debug_printf(1,"\tsuberror: 0x%x\n",run->internal.suberror);
         break;
     case KVM_EXIT_MMIO:
-        printf("\tphys_addr: 0x%llx\n",run->mmio.phys_addr);
+        debug_printf(1,"\tphys_addr: 0x%llx\n",run->mmio.phys_addr);
         break;
     }
 }
@@ -280,25 +301,25 @@ void dump_dwords(void *data, int words) {
     /* FIXME - can run off the end of the segment easily */
     while(i<words) {
         if (i%8 == 0) {
-            printf("\n ");
+            debug_printf(1,"\n ");
         }
-        printf("0x%08x ",*p++);
+        debug_printf(1,"0x%08x ",*p++);
         i++;
     }
-    printf("\n");
+    debug_printf(1,"\n");
 }
 
 void dump_kvm_regs(struct kvm_regs *regs) {
-    printf("ax=0x%08llx bx=0x%08llx cx=0x%08llx dx=0x%08llx flags=0x%08llx\n",
+    debug_printf(1,"ax=0x%08llx bx=0x%08llx cx=0x%08llx dx=0x%08llx flags=0x%08llx\n",
         regs->rax,regs->rbx,regs->rcx,regs->rdx,regs->rflags);
 #if 0
-    printf("8=0x%08x 9=0x%08x 10=0x%08x 11=0x%08x 12=0x%08x\n",
+    debug_printf(1,"8=0x%08x 9=0x%08x 10=0x%08x 11=0x%08x 12=0x%08x\n",
         regs->r8,regs->r9,regs->r10,regs->r11,regs->r12);
 #endif
-    printf("si=0x%08llx di=0x%08llx sp=0x%08llx bp=0x%08llx ip=0x%08llx ",
+    debug_printf(1,"si=0x%08llx di=0x%08llx sp=0x%08llx bp=0x%08llx ip=0x%08llx ",
         regs->rsi,regs->rdi,regs->rsp,regs->rbp,regs->rip);
 
-    printf("(%07x)\n",get_retaddr(&emu_global,regs));
+    debug_printf(1,"(%07x)\n",get_retaddr(&emu_global,regs));
 }
 
 void dump_kvm_segment(struct kvm_segment *seg, char *name) {
@@ -308,7 +329,7 @@ void dump_kvm_segment(struct kvm_segment *seg, char *name) {
     } else {
         limit = seg->limit;
     }
-    printf("%s:%02x %08llx(%08x) type=%x dpl=%i %s%s%s%s%s\n",
+    debug_printf(1,"%s:%02x %08llx(%08x) type=%x dpl=%i %s%s%s%s%s\n",
         name,seg->selector,seg->base,limit,
         seg->type, seg->dpl,
         seg->present?"P":"_",
@@ -338,7 +359,7 @@ void dump_descriptor(struct gdt_entry *gdt, __u16 selector) {
 
 
 void dump_kvm_dtable(struct kvm_dtable *seg, char *name) {
-    printf("%s: %08llx(%08x)\n",
+    debug_printf(1,"%s: %08llx(%08x)\n",
         name,seg->base,seg->limit);
 }
 
@@ -347,7 +368,7 @@ void dump_kvm_sregs(struct emu *emu) {
     int ret = ioctl(emu->vcpufd, KVM_GET_SREGS, &sregs);
     if (ret == -1)
         err(1, "KVM_GET_SREGS");
-    printf("cr0=0x%08llx\n",
+    debug_printf(1,"cr0=0x%08llx\n",
         sregs.cr0);
     dump_kvm_segment(&sregs.cs,"cs");
     dump_kvm_segment(&sregs.ds,"ds");
@@ -366,19 +387,19 @@ void dump_kvm_sregs(struct emu *emu) {
     }
 
 #if 0
-    printf("irq:");
+    debug_printf(1,"irq:");
     for (int i = 0; i < (KVM_NR_INTERRUPTS + 63) / 64; i++) {
-        printf("%016llx",sregs.interrupt_bitmap[i]);
+        debug_printf(1,"%016llx",sregs.interrupt_bitmap[i]);
     }
 #endif
-    printf("\n");
+    debug_printf(1,"\n");
 }
 
 void dump_kvm_memmap(struct emu *emu) {
     struct kvm_userspace_memory_region *p = &emu->mem[0];
-    printf("Memmap:\n");
+    debug_printf(1,"Memmap:\n");
     for (int i=0; i<MEM_REGION_MAX; i++,p++) {
-        printf("%i: 0x%08llx(0x%08llx) = 0x%08llx (flags=%x)\n",
+        debug_printf(1,"%i: 0x%08llx(0x%08llx) = 0x%08llx (flags=%x)\n",
             p->slot, p->guest_phys_addr, p->memory_size,
             p->userspace_addr, p->flags
         );
@@ -391,7 +412,7 @@ void dump_kvm_exit(struct emu *emu) {
     if (ret == -1)
         err(1, "KVM_GET_REGS");
 
-    printf("\n");
+    debug_printf(1,"\n");
     dump_kvm_run(emu->run);
     dump_kvm_regs(&regs);
     switch(emu->run->exit_reason) {
@@ -399,7 +420,7 @@ void dump_kvm_exit(struct emu *emu) {
     case KVM_EXIT_MMIO:
         dump_kvm_sregs(emu);
         __u32 *stack = mem_getstack(&emu_global, &regs);
-        printf("Stack:");
+        debug_printf(1,"Stack:");
         dump_dwords(stack,16);
         dump_kvm_memmap(emu);
         break;
@@ -741,7 +762,7 @@ void patch_image(struct emu *emu, char *filename) {
     if (!file)
         err(1, "opening patch file");
 
-    printf("Patching memory image\n");
+    debug_printf(0,"Patching memory image\n");
 
     char *line = NULL;
     size_t len = 0;
@@ -763,14 +784,14 @@ void patch_image(struct emu *emu, char *filename) {
         char *p2;
         addr = strtoul(p,&p2,16);
         if (p2==p) {
-            printf("unexpected patch data\n");
+            debug_printf(0,"unexpected patch data\n");
             exit(1);
         }
         p=p2;
 
         uint8_t *data = mem_guest2host(emu, addr);
         if (!data) {
-            printf("Could not locate address 0x%08llx\n",addr);
+            debug_printf(0,"Could not locate address 0x%08llx\n",addr);
             exit(1);
         }
 
@@ -786,20 +807,20 @@ void patch_image(struct emu *emu, char *filename) {
             p=p2;
         }
 
-        printf("%s (host %p) 0x%08llx ",
+        debug_printf(0,"%s (host %p) 0x%08llx ",
             patch?"Patch":"Verify",
             data,
             addr
         );
         for (int i=0; i<size; i++) {
-            printf("%02x ",buf[i]);
+            debug_printf(0,"%02x ",buf[i]);
         }
-        printf("\n");
+        debug_printf(0,"\n");
 
         if (!patch) {
             /* not patch means verify */
             if (memcmp(data,&buf,size)) {
-                printf("mismatched data\n");
+                debug_printf(0,"mismatched data\n");
                 exit(1);
             }
         } else {
@@ -826,7 +847,7 @@ void iret_setflags(struct kvm_regs *regs, unsigned int setflags) {
 }
 
 int irq_dos_exit(void *data, struct emu *emu, struct kvm_regs *regs) {
-    printf(" return=0x%02llx\n",regs->rax & 0xff);
+    debug_printf(1," return=0x%02llx\n",regs->rax & 0xff);
     exit(0);
 }
 
@@ -842,15 +863,16 @@ int irq_dos_write(void *data, struct emu *emu, struct kvm_regs *regs) {
     int dos_bufaddr = (regs->r9 << 4) | (regs->rdx & 0xffff);
     uint8_t *buf =  mem_guest2host(emu, dos_bufaddr);
 
-    printf("write(%i,0x%x,%i)\n",handle,dos_bufaddr,count);
+    debug_printf(1,"write(%i,0x%x,%i)\n",handle,dos_bufaddr,count);
 
     if (handle == 1 || handle == 2) {
         fwrite(buf,count,1,stdout);
+        fflush(stdout);
     } else {
-        printf(" - invalid handle\n");
+        debug_printf(1," - invalid handle\n");
         exit(1);
     }
-    printf("\n");
+    debug_printf(1,"\n");
 
     regs->rax = count; /* just claim to have written everything */
     return WANT_SET_REGS;
@@ -872,7 +894,7 @@ int irq_dos_lseek(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rdx = new_pos >> 16;
     regs->rax = new_pos & 0xffff;
 
-    printf("lseek(%i,%i,%s) = %i - Faked\n",
+    debug_printf(1,"lseek(%i,%i,%s) = %i - Faked\n",
         handle,offset,
         (whence==SEEK_SET)?"SEEK_SET":(whence==SEEK_CUR)?"SEEK_CUR":(whence==SEEK_END)?"SEEK_END":"UNK",
         new_pos
@@ -888,7 +910,7 @@ int irq_dos_get_drive(void *data, struct emu *emu, struct kvm_regs *regs) {
 int irq_dos_lfn_volinfo(void *data, struct emu *emu, struct kvm_regs *regs) {
     int dos_bufaddr = (regs->r9 << 4) | (regs->rdx & 0xffff);
     uint8_t *buf =  mem_guest2host(emu, dos_bufaddr);
-    printf("path='%s'\n",buf);
+    debug_printf(1,"path='%s'\n",buf);
 
     regs->rax = 0;
     regs->rbx = 0x4003; /* supports LFN, case sensitive and preserving */
@@ -902,7 +924,7 @@ int irq_dos_lfn_open(void *data, struct emu *emu, struct kvm_regs *regs) {
     /* note: r9 is a fake DS here */
     int dos_bufaddr = (regs->r9 << 4) | (regs->rsi & 0xffff);
     uint8_t *buf =  mem_guest2host(emu, dos_bufaddr);
-    printf("path='%s' = 3\n",buf);
+    debug_printf(1,"path='%s' = 3\n",buf);
     regs->rax = 3;
 
     struct kvm_regs real_regs;
@@ -911,7 +933,7 @@ int irq_dos_lfn_open(void *data, struct emu *emu, struct kvm_regs *regs) {
         err(1, "KVM_GET_REGS");
     dump_kvm_regs(&real_regs);
     __u32 *stack = mem_getstack(emu, &real_regs);
-    printf("Stack:");
+    debug_printf(1,"Stack:");
     dump_dwords(stack,16);
     dump_backtrace(emu,&real_regs);
 
@@ -929,7 +951,7 @@ int irq_dpmi_0000(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rax = emu->gdt_brk<<3;
     emu->gdt_brk++;
 
-    printf("selector=0x%llx\n",regs->rax);
+    debug_printf(1,"selector=0x%llx\n",regs->rax);
     return WANT_SET_REGS;
 }
 
@@ -939,7 +961,7 @@ int irq_dpmi_0006(void *data, struct emu *emu, struct kvm_regs *regs) {
     int selector = (regs->rbx & 0xffff);
     int entry = selector>>3;
     __u32 base = gdt_getbase(&gdt[entry]);
-    printf("getbase(0x%x)=0x%08x\n",selector,base);
+    debug_printf(1,"getbase(0x%x)=0x%08x\n",selector,base);
 
     regs->rcx = base >> 16;
     regs->rdx = base & 0xffff;
@@ -955,12 +977,12 @@ int irq_dpmi_0007(void *data, struct emu *emu, struct kvm_regs *regs) {
     }
     int selector = (regs->rbx & 0xffff);
     if (selector <= SEG_SYS_MAX ) {
-        printf("Cowardly refusing to change system segments\n");
+        debug_printf(1,"Cowardly refusing to change system segments\n");
         iret_setflags(regs,1); /* set CF */
         return WANT_NONE;
     }
     __u32 base = (regs->rcx & 0xffff)<<16 | (regs->rdx & 0xffff);
-    printf("base(0x%x)=0x%08x\n",selector,base);
+    debug_printf(1,"base(0x%x)=0x%08x\n",selector,base);
 
     int entry = selector>>3;
     gdt_setbase(&gdt[entry],base);
@@ -976,11 +998,11 @@ int irq_dpmi_0008(void *data, struct emu *emu, struct kvm_regs *regs) {
     }
     int selector = (regs->rbx & 0xffff);
     if (selector <= SEG_SYS_MAX ) {
-        printf("Cowardly refusing to change system segments\n");
+        debug_printf(1,"Cowardly refusing to change system segments\n");
         return WANT_NONE;
     }
     __u32 limit = (regs->rcx & 0xffff)<<16 | (regs->rdx & 0xffff);
-    printf("limit(0x%x)=0x%08x\n",selector,limit);
+    debug_printf(1,"limit(0x%x)=0x%08x\n",selector,limit);
 
     int entry = selector>>3;
     gdt_setlimit(&gdt[entry],limit);
@@ -1007,7 +1029,7 @@ int irq_dpmi_000a(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rax = emu->gdt_brk<<3;
     emu->gdt_brk++;
 
-    printf("selector=0x%llx\n",regs->rax);
+    debug_printf(1,"selector=0x%llx\n",regs->rax);
 
     return WANT_SET_REGS;
 }
@@ -1015,7 +1037,7 @@ int irq_dpmi_000a(void *data, struct emu *emu, struct kvm_regs *regs) {
 /* GET REAL MODE INTERRUPT VECTOR */
 int irq_dpmi_0200(void *data, struct emu *emu, struct kvm_regs *regs) {
     int irqno = regs->rbx & 0xff;
-    printf("irq(0x%x)\n", irqno );
+    debug_printf(1,"irq(0x%x)\n", irqno );
     regs->rcx = 0xfee1;
     regs->rdx = 0xbad2;
     return WANT_SET_REGS;
@@ -1023,7 +1045,7 @@ int irq_dpmi_0200(void *data, struct emu *emu, struct kvm_regs *regs) {
 
 /* SET REAL MODE INTERRUPT VECTOR */
 int irq_dpmi_0201(void *data, struct emu *emu, struct kvm_regs *regs) {
-    printf("irq(0x%llx)=0x%04llx:0x%04llx - Ignored\n",
+    debug_printf(1,"irq(0x%llx)=0x%04llx:0x%04llx - Ignored\n",
         regs->rbx & 0xff,
         regs->rcx & 0xffff,
         regs->rdx & 0xffff
@@ -1035,7 +1057,7 @@ int irq_dpmi_0201(void *data, struct emu *emu, struct kvm_regs *regs) {
 /* GET PROCESSOR EXCEPTION HANDLER VECTOR */
 int irq_dpmi_0202(void *data, struct emu *emu, struct kvm_regs *regs) {
     int exception = regs->rbx & 0xff;
-    printf("exception(0x%x)\n", exception );
+    debug_printf(1,"exception(0x%x)\n", exception );
     regs->rax = 0;
     regs->rcx = SEG_TEXT;
     regs->rdx = REGION_IDT_BASE + 2048;
@@ -1044,7 +1066,7 @@ int irq_dpmi_0202(void *data, struct emu *emu, struct kvm_regs *regs) {
 
 /* SET PROCESSOR EXCEPTION HANDLER VECTOR */
 int irq_dpmi_0203(void *data, struct emu *emu, struct kvm_regs *regs) {
-    printf("exception(0x%llx)=0x%llx:0x%08llx - Ignored\n",
+    debug_printf(1,"exception(0x%llx)=0x%llx:0x%08llx - Ignored\n",
         regs->rbx & 0xff,
         regs->rcx & 0xffff,
         regs->rdx
@@ -1056,7 +1078,7 @@ int irq_dpmi_0203(void *data, struct emu *emu, struct kvm_regs *regs) {
 /* GET PROTECTED MODE INTERRUPT VECTOR */
 int irq_dpmi_0204(void *data, struct emu *emu, struct kvm_regs *regs) {
     int irqno = regs->rbx & 0xff;
-    printf("irq(0x%x)\n", irqno );
+    debug_printf(1,"irq(0x%x)\n", irqno );
     regs->rcx = SEG_TEXT;
     regs->rdx = REGION_IDT_BASE + 2048 + 4 * irqno;
     return WANT_SET_REGS;
@@ -1064,7 +1086,7 @@ int irq_dpmi_0204(void *data, struct emu *emu, struct kvm_regs *regs) {
 
 /* SET PROTECTED MODE INTERRUPT VECTOR */
 int irq_dpmi_0205(void *data, struct emu *emu, struct kvm_regs *regs) {
-    printf("irq(0x%llx)=0x%llx:0x%08llx - Ignored\n",
+    debug_printf(1,"irq(0x%llx)=0x%llx:0x%08llx - Ignored\n",
         regs->rbx & 0xff,
         regs->rcx & 0xffff,
         regs->rdx
@@ -1122,7 +1144,7 @@ void dpmi_regs2call(struct kvm_regs *call, void *data) {
 }
 
 void dump_fake_segments(struct kvm_regs *call) {
-    printf("cs=0x%04llx ds=0x%04llx es=0x%04llx fs=0x%04llx gs=0x%04llx ss=0x%04llx\n",
+    debug_printf(1,"cs=0x%04llx ds=0x%04llx es=0x%04llx fs=0x%04llx gs=0x%04llx ss=0x%04llx\n",
         call->r8, call->r9, call->r10, call->r11, call->r12, call->r13
     );
 }
@@ -1130,7 +1152,7 @@ void dump_fake_segments(struct kvm_regs *call) {
 /* SIMULATE REAL MODE INTERRUPT */
 int irq_dpmi_0300(void *data, struct emu *emu, struct kvm_regs *regs) {
     int irqno = regs->rbx & 0xff;
-    printf("irq 0x%02x\n",irqno);
+    debug_printf(1,"irq 0x%02x\n",irqno);
 
     void *call16 = mem_guest2host(emu, regs->rdi);
     if (!call16) {
@@ -1138,7 +1160,7 @@ int irq_dpmi_0300(void *data, struct emu *emu, struct kvm_regs *regs) {
     }
     struct kvm_regs call;
     dpmi_call2regs(call16,&call);
-    printf("Real mode registers:\n");
+    debug_printf(1,"Real mode registers:\n");
     dump_kvm_regs(&call);
     dump_fake_segments(&call);
     int ret = handle_irqno(emu->irq,irqno,emu,&call);
@@ -1154,8 +1176,8 @@ int irq_dpmi_0300(void *data, struct emu *emu, struct kvm_regs *regs) {
 }
 
 int irq_dpmi_0303(void *data, struct emu *emu, struct kvm_regs *regs) {
-    printf("\n");
-    printf("Callback to DS:0x%08llx\n", regs->rsi);
+    debug_printf(1,"\n");
+    debug_printf(1,"Callback to DS:0x%08llx\n", regs->rsi);
 
     void *call16 = mem_guest2host(emu, regs->rdi);
     if (!call16) {
@@ -1163,7 +1185,7 @@ int irq_dpmi_0303(void *data, struct emu *emu, struct kvm_regs *regs) {
     }
     struct kvm_regs call;
     dpmi_call2regs(call16,&call);
-    printf("Real mode registers:\n");
+    debug_printf(1,"Real mode registers:\n");
     dump_kvm_regs(&call);
     dump_fake_segments(&call);
 
@@ -1185,7 +1207,7 @@ int irq_dpmi_0501(void *data, struct emu *emu, struct kvm_regs *regs) {
     unsigned int size = (regs->rbx & 0xffff) <<16 | (regs->rcx & 0xffff);
     unsigned int addr = alloc_bss(emu, size);
 
-    printf("alloc(%i) = 0x%08x\n",size,addr);
+    debug_printf(1,"alloc(%i) = 0x%08x\n",size,addr);
 
     if (!addr) {
         iret_setflags(regs,1); /* set CF */
@@ -1203,7 +1225,7 @@ int irq_dpmi_0800(void *data, struct emu *emu, struct kvm_regs *regs) {
     __u32 phys_start = (regs->rbx & 0xffff) << 16 | (regs->rcx & 0xffff);
     __u32 size = (regs->rsi & 0xffff) << 16 | (regs->rdi & 0xffff);
 
-    printf(" 0x%08x(0x%08x)",phys_start, size);
+    debug_printf(1," 0x%08x(0x%08x)",phys_start, size);
     __u32 phys_finish = phys_start + size;
 
     /* TODO - make this more generic? */
@@ -1214,18 +1236,18 @@ int irq_dpmi_0800(void *data, struct emu *emu, struct kvm_regs *regs) {
         return WANT_NEWLINE|WANT_SET_REGS;
     }
 
-    printf(" - DENIED\n");
+    debug_printf(1," - DENIED\n");
     iret_setflags(regs,1); /* set CF */
     regs->rax = 0x8021; /* invalid value for numeric or flag parameter */
     return WANT_SET_REGS;
 }
 
 int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
-    printf(" - General Protection");
+    debug_printf(0," - General Protection");
     __u32 *stack = mem_guest2host(emu, regs->rsp);
     if (stack) {
         __u32 errcode = stack[0];
-        printf(" at address 0x%08x with %s%s selector 0x%x\n",
+        debug_printf(0," at address 0x%08x with %s%s selector 0x%x\n",
             stack[1],
             (errcode&0x1)?"EXT ":"",
             (errcode&0x2)?"IDT": (errcode&0x4)?"LDT":"GDT",
@@ -1234,7 +1256,7 @@ int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
     }
     dump_kvm_regs(regs);
     if (stack) {
-        printf("Stack:");
+        debug_printf(0,"Stack:");
         dump_dwords(stack,16);
     }
     dump_backtrace(emu,regs);
@@ -1247,7 +1269,7 @@ int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
         err(1, "KVM_GET_SREGS");
 
     if (sregs.ds.selector == 0) {
-        printf("Applying wierd segment fixup\n");
+        debug_printf(1,"Applying wierd segment fixup\n");
 
         sregs.ds.selector = SEG_DATA;
         sregs.ds.base = 0;
@@ -1274,52 +1296,52 @@ int handle_subcode(struct irq_subhandler_entry *p, int subcode, struct emu *emu,
     while (p && p->handler) {
         if (p->subcode == subcode) {
             if (p->name) {
-                printf(" (%s):",p->name);
+                debug_printf(1," (%s):",p->name);
             }
             int ret = p->handler(p->data, emu, regs);
             return ret;
         }
         p++;
     }
-    printf(" undefined subcode\n");
+    debug_printf(0," undefined subcode\n");
     exit(1);
 }
 
 int irq_subcode_cl(void *data, struct emu *emu, struct kvm_regs *regs) {
     struct irq_subhandler_entry *table = data;
     int subcode = regs->rcx & 0xff;
-    printf("CL%02X",subcode);
+    debug_printf(1,"CL%02X",subcode);
     return handle_subcode(table, subcode, emu, regs);
 }
 
 int irq_subcode_ah(void *data, struct emu *emu, struct kvm_regs *regs) {
     struct irq_subhandler_entry *table = data;
     int subcode = (regs->rax & 0xff00) >>8;
-    printf("%02X",subcode);
+    debug_printf(1,"%02X",subcode);
     return handle_subcode(table, subcode, emu, regs);
 }
 
 int irq_subcode_al(void *data, struct emu *emu, struct kvm_regs *regs) {
     struct irq_subhandler_entry *table = data;
     int subcode = regs->rax & 0xff;
-    printf("%02X",subcode);
+    debug_printf(1,"%02X",subcode);
     return handle_subcode(table, subcode, emu, regs);
 }
 
 int irq_subcode_ax(void *data, struct emu *emu, struct kvm_regs *regs) {
     struct irq_subhandler_entry *table = data;
     int subcode = regs->rax & 0xffff;
-    printf("%04X",subcode);
+    debug_printf(1,"%04X",subcode);
     return handle_subcode(table, subcode, emu, regs);
 }
 
 int irq_unhandled(void *data, struct emu *emu, struct kvm_regs *regs) {
-    printf("unhandled irq\n");
+    debug_printf(0,"unhandled irq\n");
     exit(1);
 }
 
 int irq_ignore(void *data, struct emu *emu, struct kvm_regs *regs) {
-    printf("Ignored\n");
+    debug_printf(1,"Ignored\n");
     return 0;
 }
 
@@ -1402,16 +1424,16 @@ struct irq_handler_entry irq_handlers[256] = {
 };
 
 int handle_irqno(struct irq_handler_entry *p, unsigned char irqno, struct emu *emu, struct kvm_regs *regs) {
-    printf("%07x: -%02X",get_retaddr(emu,regs),irqno);
+    debug_printf(1,"%07x: -%02X",get_retaddr(emu,regs),irqno);
 
     if (!p[irqno].handler) {
-        printf(" undefined irq\n");
+        debug_printf(0," undefined irq\n");
         dump_kvm_exit(emu);
         exit(1);
     }
 
     if (p[irqno].name) {
-        printf("'%s'",p[irqno].name);
+        debug_printf(1,"'%s'",p[irqno].name);
     }
     return p[irqno].handler(p[irqno].data,emu,regs);
 }
@@ -1442,7 +1464,7 @@ int handle_softirq(struct emu *emu) {
             err(1, "KVM_SET_REGS");
     }
     if (ret & WANT_NEWLINE) {
-        printf("\n");
+        debug_printf(1,"\n");
     }
 
     return 1;
@@ -1481,13 +1503,13 @@ int handle_mmio(struct emu *emu) {
         if (ret == -1)
             err(1, "KVM_GET_REGS");
 
-        printf("%07llx: MMIO read: 0x%08llx(0x%08x)\n",regs.rip,run->mmio.phys_addr,run->mmio.len);
+        debug_printf(1,"%07llx: MMIO read: 0x%08llx(0x%08x)\n",regs.rip,run->mmio.phys_addr,run->mmio.len);
         dump_kvm_regs(&regs);
         __u32 *stack = mem_getstack(&emu_global, &regs);
-        printf("Stack:");
+        debug_printf(1,"Stack:");
         dump_dwords(stack,16);
     } else {
-        printf(".");
+        debug_printf(1,".");
     }
     return 1;
 }
