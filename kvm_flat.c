@@ -159,6 +159,9 @@ struct emu {
     struct irq_handler_entry *irq;
     __u32 mmio_next; /* if mmio matches this, avoid verbosity */
     int mmio_count; /* just how many mmio_next matches have we seen */
+
+    __u32 debug_addr;
+    int debug_count;
 } emu_global;
 
 struct irq_subhandler_entry {
@@ -1518,6 +1521,38 @@ int handle_mmio(struct emu *emu) {
     return 1;
 }
 
+int handle_debug(struct emu *emu) {
+    struct kvm_regs regs;
+    int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &regs);
+    if (ret == -1)
+        err(1, "KVM_GET_REGS");
+
+    int verbose;
+    int old_debug_count = emu->debug_count;
+
+    if (regs.rip == emu->debug_addr) {
+        verbose = 0;
+    } else if (regs.rip > emu->debug_addr && regs.rip < emu->debug_addr+8) {
+        /* this looks like a continuation of the previous exec stream */
+        emu->debug_count++;
+        verbose = 0;
+    } else {
+        emu->debug_count = 0;
+        verbose = 1;
+    }
+
+    if (emu->debug_count%256 == 0) {
+        /* show data every now and again, regardless */
+        verbose = 1;
+    }
+
+    if (verbose) {
+        debug_printf(1,"T 0x%llx %i\n", regs.rip, old_debug_count);
+    }
+    emu->debug_addr = regs.rip;
+    return 1;
+}
+
 int main(int argc, char **argv)
 {
     int ret;
@@ -1537,15 +1572,21 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (argc>5) {
+    if (argc>4) {
         patch_image(emu,argv[4]);
     }
 
     emu->irq = &irq_handlers[0];
 
+    struct kvm_guest_debug debug;
+    debug.control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP;
+
     /* Repeatedly run code and handle VM exits. */
     while (1) {
         struct kvm_run *run = emu->run;
+        ret = ioctl(emu->vcpufd, KVM_SET_GUEST_DEBUG, &debug);
+        if (ret == -1)
+            err(1, "KVM_SET_GUEST_DEBUG");
         ret = ioctl(emu->vcpufd, KVM_RUN, NULL);
         if (ret == -1)
             err(1, "KVM_RUN");
@@ -1578,6 +1619,9 @@ int main(int argc, char **argv)
         case KVM_EXIT_INTERNAL_ERROR:
             dump_kvm_exit(emu);
             errx(1, "KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x", run->internal.suberror);
+        case KVM_EXIT_DEBUG:
+            handle_debug(emu);
+            break;
         default:
             dump_kvm_exit(emu);
             errx(1, "exit_reason = 0x%x", run->exit_reason);
