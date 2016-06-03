@@ -145,8 +145,10 @@ struct irq_handler_entry {
     int (*handler)(void *, struct emu *, struct kvm_regs *);
     void *data;
 };
+
 #define WANT_NONE     0
 #define WANT_SET_REGS 1
+#define WANT_NEWLINE  2
 int handle_irqno(struct irq_handler_entry *, unsigned char, struct emu *, struct kvm_regs *); /* forward definition */
 
 void *mem_guest2host(struct emu *emu, __u64 guestaddr) {
@@ -169,15 +171,23 @@ void *mem_getstack(struct emu *emu, struct kvm_regs *regs) {
          */
 
         struct kvm_sregs sregs;
-        int ret = ioctl(emu_global.vcpufd, KVM_GET_SREGS, &sregs);
+        int ret = ioctl(emu->vcpufd, KVM_GET_SREGS, &sregs);
         if (ret == -1)
             err(1, "KVM_GET_SREGS");
 
         if (sregs.ss.selector == SEG_GO32) {
-            return mem_guest2host(&emu_global, SEG_GO32_BASE + regs->rsp);
+            return mem_guest2host(emu, SEG_GO32_BASE + regs->rsp);
         }
     }
     return mem_guest2host(emu, regs->rsp);
+}
+
+__u32 get_retaddr(struct emu *emu, struct kvm_regs *regs) {
+    __u32 *stack = mem_getstack(emu,regs);
+    if (stack) {
+        return *stack;
+    }
+    return 0;
 }
 
 void gdt_setlimit(struct gdt_entry *gdt, __u32 limit) {
@@ -247,10 +257,7 @@ void dump_kvm_regs(struct kvm_regs *regs) {
     printf("si=0x%08llx di=0x%08llx sp=0x%08llx bp=0x%08llx ip=0x%08llx ",
         regs->rsi,regs->rdi,regs->rsp,regs->rbp,regs->rip);
 
-    __u32 *stack = mem_getstack(&emu_global, regs);
-    if (stack) {
-        printf("(%07x)\n",*stack);
-    }
+    printf("(%07x)\n",get_retaddr(&emu_global,regs));
 }
 
 void dump_kvm_segment(struct kvm_segment *seg, char *name) {
@@ -767,7 +774,7 @@ int irq_dos_exit(void *data, struct emu *emu, struct kvm_regs *regs) {
 int irq_dos_version(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rax = 0x0004; /* DOS 4.00 */
     regs->rbx = 0x0; /* DOS OEM is IBM */
-    return WANT_SET_REGS;
+    return WANT_NEWLINE|WANT_SET_REGS;
 }
 
 int irq_dos_write(void *data, struct emu *emu, struct kvm_regs *regs) {
@@ -779,7 +786,7 @@ int irq_dos_write(void *data, struct emu *emu, struct kvm_regs *regs) {
     printf("write(%i,0x%x,%i)\n",handle,dos_bufaddr,count);
 
     if (handle == 1 || handle == 2) {
-        write(handle,buf,count);
+        fwrite(buf,count,1,stdout);
     } else {
         printf(" - invalid handle\n");
         exit(1);
@@ -791,11 +798,14 @@ int irq_dos_write(void *data, struct emu *emu, struct kvm_regs *regs) {
 
 int irq_dos_get_drive(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rax = 0x02; /* drive C: */
-    return WANT_SET_REGS;
+    return WANT_NEWLINE|WANT_SET_REGS;
 }
 
 int irq_dos_lfn_volinfo(void *data, struct emu *emu, struct kvm_regs *regs) {
-    /* theoretically passed a pathname in DS:DX, but one was not seen */
+    int dos_bufaddr = (regs->r9 << 4) | (regs->rdx & 0xffff);
+    uint8_t *buf =  mem_guest2host(emu, dos_bufaddr);
+    printf("path='%s'\n",buf);
+
     regs->rax = 0;
     regs->rbx = 0x4003; /* supports LFN, case sensitive and preserving */
     regs->rcx = 0xff; /* max filename length */
@@ -815,12 +825,14 @@ int irq_dpmi_0000(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rax = emu->gdt_brk<<3;
     emu->gdt_brk++;
 
+    printf("selector=0x%llx\n",regs->rax);
     return WANT_SET_REGS;
 }
 
 /* get segment base address */
 int irq_dpmi_0006(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rcx = regs->rdx = 0;
+    printf("Fake answer=0\n");
     return WANT_SET_REGS;
 }
 
@@ -838,7 +850,7 @@ int irq_dpmi_0007(void *data, struct emu *emu, struct kvm_regs *regs) {
         return WANT_NONE;
     }
     __u32 base = (regs->rcx & 0xffff)<<16 | (regs->rdx & 0xffff);
-    printf("base(0x%x)=0x%08x",selector,base);
+    printf("base(0x%x)=0x%08x\n",selector,base);
 
     int entry = selector>>3;
     gdt_setbase(&gdt[entry],base);
@@ -858,7 +870,7 @@ int irq_dpmi_0008(void *data, struct emu *emu, struct kvm_regs *regs) {
         return WANT_NONE;
     }
     __u32 limit = (regs->rcx & 0xffff)<<16 | (regs->rdx & 0xffff);
-    printf("limit(0x%x)=0x%08x",selector,limit);
+    printf("limit(0x%x)=0x%08x\n",selector,limit);
 
     int entry = selector>>3;
     gdt_setlimit(&gdt[entry],limit);
@@ -877,13 +889,15 @@ int irq_dpmi_000a(void *data, struct emu *emu, struct kvm_regs *regs) {
     int entry_orig = (regs->rbx & 0xffff)>>3;
     if (entry_orig >= emu->gdt_brk) {
         iret_setflags(regs,1); /* set CF */
-        return WANT_NONE;
+        return WANT_NEWLINE|WANT_NONE;
     }
 
     memcpy(&gdt[emu->gdt_brk],&gdt[entry_orig],sizeof(*gdt));
 
     regs->rax = emu->gdt_brk<<3;
     emu->gdt_brk++;
+
+    printf("selector=0x%llx\n",regs->rax);
 
     return WANT_SET_REGS;
 }
@@ -893,13 +907,13 @@ int irq_dpmi_0200(void *data, struct emu *emu, struct kvm_regs *regs) {
     int irqno = regs->rbx & 0xff;
     printf("irq(0x%x)\n", irqno );
     regs->rcx = 0xfee1;
-    regs->rdx = 0xbad0;
+    regs->rdx = 0xbad2;
     return WANT_SET_REGS;
 }
 
 /* SET REAL MODE INTERRUPT VECTOR */
 int irq_dpmi_0201(void *data, struct emu *emu, struct kvm_regs *regs) {
-    printf("irq(0x%llx)=0x%04llx:0x%04llx\n",
+    printf("irq(0x%llx)=0x%04llx:0x%04llx - Ignored\n",
         regs->rbx & 0xff,
         regs->rcx & 0xffff,
         regs->rdx & 0xffff
@@ -920,7 +934,7 @@ int irq_dpmi_0202(void *data, struct emu *emu, struct kvm_regs *regs) {
 
 /* SET PROCESSOR EXCEPTION HANDLER VECTOR */
 int irq_dpmi_0203(void *data, struct emu *emu, struct kvm_regs *regs) {
-    printf("exception(0x%llx)=0x%llx:0x%08llx\n",
+    printf("exception(0x%llx)=0x%llx:0x%08llx - Ignored\n",
         regs->rbx & 0xff,
         regs->rcx & 0xffff,
         regs->rdx
@@ -940,7 +954,7 @@ int irq_dpmi_0204(void *data, struct emu *emu, struct kvm_regs *regs) {
 
 /* SET PROTECTED MODE INTERRUPT VECTOR */
 int irq_dpmi_0205(void *data, struct emu *emu, struct kvm_regs *regs) {
-    printf("irq(0x%llx)=0x%llx:0x%08llx\n",
+    printf("irq(0x%llx)=0x%llx:0x%08llx - Ignored\n",
         regs->rbx & 0xff,
         regs->rcx & 0xffff,
         regs->rdx
@@ -1017,10 +1031,14 @@ int irq_dpmi_0300(void *data, struct emu *emu, struct kvm_regs *regs) {
     printf("Real mode registers:\n");
     dump_kvm_regs(&call);
     dump_fake_segments(&call);
-    handle_irqno(emu->irq,irqno,emu,&call); /* TODO - something with ret */
+    int ret = handle_irqno(emu->irq,irqno,emu,&call);
 
     /* always repopulate the call structure - it is just simpler */
     dpmi_regs2call(&call, call16);
+
+    if (ret & WANT_NEWLINE) {
+        return WANT_NEWLINE;
+    }
 
     return WANT_NONE;
 }
@@ -1037,16 +1055,11 @@ int irq_dpmi_0303(void *data, struct emu *emu, struct kvm_regs *regs) {
     dpmi_call2regs(call16,&call);
     printf("Real mode registers:\n");
     dump_kvm_regs(&call);
+    dump_fake_segments(&call);
 
     regs->rcx = SEG_TEXT;
     regs->rdx = 0xaa55aa55;
     return WANT_SET_REGS;
-
-    dump_kvm_sregs(emu);
-    __u32 *stack = mem_guest2host(&emu_global, regs->rsp);
-    printf("Stack:");
-    dump_dwords(stack,16);
-    exit(1);
 }
 
 /* GET DPMI VERSION */
@@ -1055,14 +1068,14 @@ int irq_dpmi_0400(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rbx = 0x3; /* 386 and no v86 */
     regs->rcx = 0x04; /* 80486 */
     regs->rdx = 0x5aa5; /* some virtual interrupt thing */
-    return WANT_SET_REGS;
+    return WANT_NEWLINE|WANT_SET_REGS;
 }
 
 int irq_dpmi_0501(void *data, struct emu *emu, struct kvm_regs *regs) {
     unsigned int size = (regs->rbx & 0xffff) <<16 | (regs->rcx & 0xffff);
     unsigned int addr = alloc_bss(emu, size);
 
-    printf("alloc(%i) = 0x%08x",size,addr);
+    printf("alloc(%i) = 0x%08x\n",size,addr);
 
     if (!addr) {
         iret_setflags(regs,1); /* set CF */
@@ -1088,7 +1101,7 @@ int irq_dpmi_0800(void *data, struct emu *emu, struct kvm_regs *regs) {
         /* we can give you that mapping, yes */
         regs->rbx = (phys_start & 0xffff0000) >>16;
         regs->rcx = (phys_start & 0xffff);
-        return WANT_SET_REGS;
+        return WANT_NEWLINE|WANT_SET_REGS;
     }
 
     printf(" - DENIED\n");
@@ -1150,12 +1163,11 @@ int handle_subcode(struct irq_subhandler_entry *p, int subcode, struct emu *emu,
                 printf(" (%s):",p->name);
             }
             int ret = p->handler(p->data, emu, regs);
-            printf("\n");
             return ret;
         }
         p++;
     }
-    printf("\nundefined subcode\n");
+    printf("undefined subcode\n");
     exit(1);
 }
 
@@ -1186,7 +1198,7 @@ int irq_unhandled(void *data, struct emu *emu, struct kvm_regs *regs) {
 }
 
 int irq_ignore(void *data, struct emu *emu, struct kvm_regs *regs) {
-    printf("Ignored");
+    printf("Ignored\n");
     return 0;
 }
 
@@ -1254,28 +1266,23 @@ struct irq_subhandler_entry irq_video_subcode[] = {
  */
 struct irq_handler_entry irq_handlers[256] = {
     [0x0d] = { .name = "GPF",   .handler = irq_gpf },
-    [0x10] = { .name = "VIDEO", .handler = irq_subcode_ah, .data = irq_video_subcode },
-    [0x21] = { .name = "DOS",   .handler = irq_subcode_ah, .data = irq_dos_subcode },
-    [0x31] = { .name = "DPMI",  .handler = irq_subcode_ax, .data = irq_dpmi_subcode },
+    [0x10] = { .handler = irq_subcode_ah, .data = irq_video_subcode },
+    [0x21] = { .handler = irq_subcode_ah, .data = irq_dos_subcode },
+    [0x31] = { .handler = irq_subcode_ax, .data = irq_dpmi_subcode },
 };
 
 int handle_irqno(struct irq_handler_entry *p, unsigned char irqno, struct emu *emu, struct kvm_regs *regs) {
-    printf("INT ");
+    printf("%07x: -%02X",get_retaddr(emu,regs),irqno);
 
     if (!p[irqno].handler) {
-        printf("-%02X ",irqno);
-        __u32 *stack = mem_guest2host(emu, regs->rsp);
-        if (stack) {
-            printf("retaddr=0x%08x\n",stack[4]);
-        }
-        printf("undefined irq");
+        printf(" undefined irq\n");
+        dump_kvm_exit(emu);
         exit(1);
     }
 
     if (p[irqno].name) {
         printf("'%s'",p[irqno].name);
     }
-    printf(" -%02X",irqno);
     return p[irqno].handler(p[irqno].data,emu,regs);
 }
 
@@ -1294,10 +1301,13 @@ int handle_softirq(struct emu *emu) {
     unsigned char irqno = (regs.rip - REGION_IDT_BASE - 0x800) >> 2;
     ret = handle_irqno(emu->irq,irqno,emu,&regs);
 
-    if (ret == WANT_SET_REGS) {
+    if (ret & WANT_SET_REGS) {
         int ret = ioctl(emu->vcpufd, KVM_SET_REGS, &regs);
         if (ret == -1)
             err(1, "KVM_SET_REGS");
+    }
+    if (ret & WANT_NEWLINE) {
+        printf("\n");
     }
 
     return 0;
@@ -1335,25 +1345,33 @@ int main(int argc, char **argv)
         ret = ioctl(emu->vcpufd, KVM_RUN, NULL);
         if (ret == -1)
             err(1, "KVM_RUN");
-        dump_kvm_exit(emu);
+
         switch (run->exit_reason) {
         case KVM_EXIT_HLT:
+            dump_kvm_exit(emu);
             puts("KVM_EXIT_HLT");
             return 0;
         case KVM_EXIT_IO:
             if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 4 && run->io.port == 0x7f && run->io.count == 1) {
                 handle_softirq(emu);
-            } else if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 1 && run->io.port == 0x3f8 && run->io.count == 1)
+                continue;
+            }
+            if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 1 && run->io.port == 0x3f8 && run->io.count == 1) {
                 putchar(*(((char *)run) + run->io.data_offset));
-            else
-                errx(1, "unhandled KVM_EXIT_IO");
+                continue;
+            }
+            dump_kvm_exit(emu);
+            errx(1, "unhandled KVM_EXIT_IO");
             break;
         case KVM_EXIT_FAIL_ENTRY:
+            dump_kvm_exit(emu);
             errx(1, "KVM_EXIT_FAIL_ENTRY: hardware_entry_failure_reason = 0x%llx",
                  (unsigned long long)run->fail_entry.hardware_entry_failure_reason);
         case KVM_EXIT_INTERNAL_ERROR:
+            dump_kvm_exit(emu);
             errx(1, "KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x", run->internal.suberror);
         default:
+            dump_kvm_exit(emu);
             errx(1, "exit_reason = 0x%x", run->exit_reason);
         }
     }
