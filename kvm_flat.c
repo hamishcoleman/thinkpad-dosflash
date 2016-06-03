@@ -245,29 +245,32 @@ void dump_backtrace(struct emu *emu, struct kvm_regs *called_regs) {
     regs.rsp = called_regs->rsp;
     regs.rbp = called_regs->rbp;
 
-    debug_printf(2,"Backtrace:\n");
+    debug_printf(2,"Backtrace:");
 
     __u32 *stack = mem_getstack(emu,&regs);
     if (!stack) {
         return;
     }
 
-    debug_printf(2,"\t0x%08llx\n",called_regs->rip);
-    debug_printf(2,"\t0x%08x\n",*stack);
+    debug_printf(2," (0x%08llx 0x%08x)", called_regs->rip, *stack);
 
     int maxdepth = 18;
     int depth = 0;
 
     while (depth<maxdepth) {
+        if (depth%7==0) {
+            debug_printf(2,"\n ");
+        }
         regs.rsp = regs.rbp;
         stack = mem_getstack(emu,&regs);
         if (!stack) {
             return;
         }
         regs.rbp = stack[0];
-        debug_printf(2,"\t0x%08x\n",stack[1]);
+        debug_printf(2,"0x%08x ",stack[1]);
         depth++;
     }
+    debug_printf(2,"\n");
 }
 
 void dump_kvm_run(struct kvm_run *run) {
@@ -300,7 +303,7 @@ void dump_dwords(void *data, int words) {
     int i = 0;
     /* FIXME - can run off the end of the segment easily */
     while(i<words) {
-        if (i%8 == 0) {
+        if (i%7 == 0) {
             debug_printf(1,"\n ");
         }
         debug_printf(1,"0x%08x ",*p++);
@@ -857,6 +860,12 @@ int irq_dos_version(void *data, struct emu *emu, struct kvm_regs *regs) {
     return WANT_NEWLINE|WANT_SET_REGS;
 }
 
+void dump_fake_segments(struct kvm_regs *call) {
+    debug_printf(1,"cs=0x%04llx ds=0x%04llx es=0x%04llx fs=0x%04llx gs=0x%04llx ss=0x%04llx\n",
+        call->r8, call->r9, call->r10, call->r11, call->r12, call->r13
+    );
+}
+
 int irq_dos_write(void *data, struct emu *emu, struct kvm_regs *regs) {
     int handle = (regs->rbx & 0xffff);
     int count = (regs->rcx & 0xffff);
@@ -875,6 +884,20 @@ int irq_dos_write(void *data, struct emu *emu, struct kvm_regs *regs) {
     debug_printf(1,"\n");
 
     regs->rax = count; /* just claim to have written everything */
+
+    struct kvm_regs real_regs;
+    int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &real_regs);
+    if (ret == -1)
+        err(1, "KVM_GET_REGS");
+    dump_kvm_regs(&real_regs);
+    __u32 *stack = mem_getstack(emu, &real_regs);
+    debug_printf(1,"Stack:");
+    dump_dwords(stack,16);
+    dump_backtrace(emu,&real_regs);
+    debug_printf(1,"Real mode registers:\n");
+    dump_kvm_regs(regs);
+    dump_fake_segments(regs);
+
     return WANT_SET_REGS;
 }
 
@@ -924,18 +947,8 @@ int irq_dos_lfn_open(void *data, struct emu *emu, struct kvm_regs *regs) {
     /* note: r9 is a fake DS here */
     int dos_bufaddr = (regs->r9 << 4) | (regs->rsi & 0xffff);
     uint8_t *buf =  mem_guest2host(emu, dos_bufaddr);
-    debug_printf(1,"path='%s' = 3\n",buf);
-    regs->rax = 3;
-
-    struct kvm_regs real_regs;
-    int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &real_regs);
-    if (ret == -1)
-        err(1, "KVM_GET_REGS");
-    dump_kvm_regs(&real_regs);
-    __u32 *stack = mem_getstack(emu, &real_regs);
-    debug_printf(1,"Stack:");
-    dump_dwords(stack,16);
-    dump_backtrace(emu,&real_regs);
+    debug_printf(1,"path='%s' = 3 - Faked\n",buf);
+    regs->rax = 3; /* a Fake handle */
 
     return WANT_SET_REGS;
 }
@@ -1143,12 +1156,6 @@ void dpmi_regs2call(struct kvm_regs *call, void *data) {
     call16->ss = call->r13;
 }
 
-void dump_fake_segments(struct kvm_regs *call) {
-    debug_printf(1,"cs=0x%04llx ds=0x%04llx es=0x%04llx fs=0x%04llx gs=0x%04llx ss=0x%04llx\n",
-        call->r8, call->r9, call->r10, call->r11, call->r12, call->r13
-    );
-}
-
 /* SIMULATE REAL MODE INTERRUPT */
 int irq_dpmi_0300(void *data, struct emu *emu, struct kvm_regs *regs) {
     int irqno = regs->rbx & 0xff;
@@ -1160,9 +1167,6 @@ int irq_dpmi_0300(void *data, struct emu *emu, struct kvm_regs *regs) {
     }
     struct kvm_regs call;
     dpmi_call2regs(call16,&call);
-    debug_printf(1,"Real mode registers:\n");
-    dump_kvm_regs(&call);
-    dump_fake_segments(&call);
     int ret = handle_irqno(emu->irq,irqno,emu,&call);
 
     /* always repopulate the call structure - it is just simpler */
