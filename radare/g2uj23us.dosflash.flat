@@ -12,15 +12,15 @@ fs functions
 f fcn.0000df92 54 0x0000df92 
 f fcn.maybe_printf 67 0x00036600 
 fs *
-f esp 1 0xfffffff4 
+f esp 1 0xffffffd4 
 fs functions
-f fcn.00001b8d 33 0x00001b8d 
-f fcn.00001bb0 550 0x00001bb0 
-f fcn.00034380 71 0x00034380 
-f fcn.00036118 184 0x00036118 
+f lock_memory 33 0x00001b8d 
+f ___sbrk 550 0x00001bb0 
+f ___register_frame_info 71 0x00034380 
+f ___crt1_startup 184 0x00036118 
 f fcn.000360f4 33 0x000360f4 
 f fcn.0003d9a4 261 0x0003d9a4 
-f fcn.0003a270 132 0x0003a270 
+f __dpmi_int 132 0x0003a270 
 fs *
 f str.MS_DOS_ 7 0x0003d8f0 
 fs *
@@ -241,14 +241,14 @@ f fcn.00045f70 46 0x00045f70
 f fcn.00045efc 113 0x00045efc 
 f fcn.0003656c 80 0x0003656c 
 f fcn.0003f320 26 0x0003f320 
-f fcn.00045b90 40 0x00045b90 
+f copy.0x00045b90 40 0x00045b90 
 f fcn.000464d0 200 0x000464d0 
 f fcn.0003d47c 43 0x0003d47c 
 f fcn.00046340 119 0x00046340 
 f fcn.00046840 290 0x00046840 
 f fcn.0003d630 238 0x0003d630 
 f fcn.00041420 36 0x00041420 
-f fcn.0003d890 41 0x0003d890 
+f wrapper_copy.0x0003d890 41 0x0003d890 
 f fcn.0003a370 240 0x0003a370 
 f fcn.0003a460 87 0x0003a460 
 f fcn.00036690 237 0x00036690 
@@ -282,9 +282,9 @@ f fcn.00004350 32 0x00004350
 f loc.000044b7 2 0x000044b7 
 f fcn.00013570 75 0x00013570 
 fs *
-f ebp 1 0xfffffffc 
+f ebp 1 0xffffffe4 
 fs *
-f eflags 1 0x00000080 
+f eflags 1 0x00000084 
 fs *
 f str.BIOS_doesn_t_support_SMM_TDK_Service._Some_functions_might_not_work__ 69 0x00001e05 
 fs *
@@ -644,6 +644,86 @@ f print_barchart_dots 122 0x000262f7
 f fcn.0002c4a0 277 0x0002c4a0 
 f fcn.0002ffc0 155 0x0002ffc0 
 f fcn.00030060 16 0x00030060 
+f fcn.00041340 65 0x00041340 
+f fcn.00035f68 283 0x00035f68 
+fs *
+f oeax 1 0x00000000 
+fs *
+f eax 1 0x00000000 
+fs *
+f ebx 1 0x0000fffe 
+fs *
+f ecx 1 0xffffff72 
+fs *
+f edx 1 0x00000000 
+fs *
+f esi 1 0x0000008c 
+fs *
+f edi 1 0x0000008c 
+fs *
+f eip 1 0xffffffff 
+fs functions
+f exception_0x0 72 0x000359e0 
+f fcn.00035a28 264 0x00035a28 
+f exception_0xf 4 0x00035a1c 
+f irq_0x75 21 0x00035c56 
+f fcn.00035d80 60 0x00035d80 
+f irq_0x9 98 0x00035c70 
+f real_mode_callback.0x00035d50 44 0x00035d50 
+fs *
+f memory_handle 1 0x00053218 
+fs *
+f sbrk16_api_ofs 1 0x00048e80 
+fs *
+f sbrk16_api_seg 1 0x00048e84 
+fs *
+f zero 1 0x00048e86 
+fs *
+f ___djgpp_ds_alias 1 0x00035c54 
+fs *
+f sel_buf 1 0x0004c600 
+fs *
+f ___djgpp_stack_top 1 0x00052e0c 
+fs *
+f ___djgpp_stack_limit 1 0x00048fe8 
+fs *
+f ___djgpp_selector_limit 1 0x00048fe4 
+fs *
+f ___djgpp_base_address 1 0x00053214 
+fs *
+f __stubinfo 1 0x00053a1c 
+fs *
+f __stklen 1 0x00053210 
+fs *
+f __crt0_startup_flags_1 1 0x00048ff1 
+fs *
+f sbrk16_first_byte 1 0x00048e14 
+fs *
+f ___djgpp_memory_handle_list_8 1 0x00053220 
+fs *
+f ___djgpp_memory_handle_pointer 1 0x00048e10 
+fs *
+f ___djgpp_base_address_2 1 0x00053216 
+fs *
+f __what_size_dpmi_thinks_we_are 1 0x0004c60c 
+fs *
+f ___djgpp_memory_handle_size 1 0x00052e10 
+fs *
+f _frame_struct 1 0x00048e8a 
+fs *
+f _CRT0_EH_FRAME_BEGIN_ 1 0x0004c498 
+fs *
+f exit 1 0x00001ad4 
+fs *
+f ___exit 1 0x00001ad0 
+fs *
+f __go32_info_block_26 1 0x00056602 
+fs *
+f sbrk16_first_byte_6 1 0x00048e1a 
+fs *
+f exit16_first_byte 1 0x00048eba 
+fs *
+f __bss_count 1 0x0004a9f0 
 # eval
 "e anal.a2f = false"
 "e anal.afterjmp = true"
@@ -1052,14 +1132,14 @@ Cd 1 @ 0x0000df8e
 Cs 3 @ 0x0000df8f # _s
 Cd 1 @ 0x0000df90
 Cd 1 @ 0x0000df91
-Cs 7 @ 0x0003d8f0 # MS_DOS_
+Cs 7 @ 0x0003d8f0 # MS_DOS
 Cd 1 @ 0x0003d8f1
 Cd 1 @ 0x0003d8f2
 Cd 1 @ 0x0003d8f3
 Cd 1 @ 0x0003d8f4
 Cd 1 @ 0x0003d8f5
 Cd 1 @ 0x0003d8f6
-Cs 9 @ 0x0003d8f7 # NovelDOS_
+Cs 9 @ 0x0003d8f7 # NovelDOS
 Cd 1 @ 0x0003d8f8
 Cd 1 @ 0x0003d8f9
 Cd 1 @ 0x0003d8fa
@@ -1068,14 +1148,14 @@ Cd 1 @ 0x0003d8fc
 Cd 1 @ 0x0003d8fd
 Cd 1 @ 0x0003d8fe
 Cd 1 @ 0x0003d8ff
-Cs 7 @ 0x0003d900 # DR_DOS_
+Cs 7 @ 0x0003d900 # DR_DOS
 Cd 1 @ 0x0003d901
 Cd 1 @ 0x0003d902
 Cd 1 @ 0x0003d903
 Cd 1 @ 0x0003d904
 Cd 1 @ 0x0003d905
 Cd 1 @ 0x0003d906
-Cs 8 @ 0x0003d907 # GenSoft_
+Cs 8 @ 0x0003d907 # GenSoft
 Cd 1 @ 0x0003d908
 Cd 1 @ 0x0003d909
 Cd 1 @ 0x0003d90a
@@ -1083,7 +1163,7 @@ Cd 1 @ 0x0003d90b
 Cd 1 @ 0x0003d90c
 Cd 1 @ 0x0003d90d
 Cd 1 @ 0x0003d90e
-Cs 8 @ 0x0003d90f # PTS_DOS_
+Cs 8 @ 0x0003d90f # PTS_DOS
 Cd 1 @ 0x0003d910
 Cd 1 @ 0x0003d911
 Cd 1 @ 0x0003d912
@@ -1091,13 +1171,13 @@ Cd 1 @ 0x0003d913
 Cd 1 @ 0x0003d914
 Cd 1 @ 0x0003d915
 Cd 1 @ 0x0003d916
-Cs 6 @ 0x0003d917 # RxDOS_
+Cs 6 @ 0x0003d917 # RxDOS
 Cd 1 @ 0x0003d918
 Cd 1 @ 0x0003d919
 Cd 1 @ 0x0003d91a
 Cd 1 @ 0x0003d91b
 Cd 1 @ 0x0003d91c
-Cs 9 @ 0x0003d91d # MSWinDev_
+Cs 9 @ 0x0003d91d # MSWinDev
 Cd 1 @ 0x0003d91e
 Cd 1 @ 0x0003d91f
 Cd 1 @ 0x0003d920
@@ -1106,7 +1186,7 @@ Cd 1 @ 0x0003d922
 Cd 1 @ 0x0003d923
 Cd 1 @ 0x0003d924
 Cd 1 @ 0x0003d925
-Cs 9 @ 0x0003d926 # NWin3Dev_
+Cs 9 @ 0x0003d926 # NWin3Dev
 Cd 1 @ 0x0003d927
 Cd 1 @ 0x0003d928
 Cd 1 @ 0x0003d929
@@ -1115,7 +1195,7 @@ Cd 1 @ 0x0003d92b
 Cd 1 @ 0x0003d92c
 Cd 1 @ 0x0003d92d
 Cd 1 @ 0x0003d92e
-Cs 8 @ 0x0003d92f # Toshiba_
+Cs 8 @ 0x0003d92f # Toshiba
 Cd 1 @ 0x0003d930
 Cd 1 @ 0x0003d931
 Cd 1 @ 0x0003d932
@@ -1123,14 +1203,14 @@ Cd 1 @ 0x0003d933
 Cd 1 @ 0x0003d934
 Cd 1 @ 0x0003d935
 Cd 1 @ 0x0003d936
-Cs 7 @ 0x0003d937 # TI_DOS_
+Cs 7 @ 0x0003d937 # TI_DOS
 Cd 1 @ 0x0003d938
 Cd 1 @ 0x0003d939
 Cd 1 @ 0x0003d93a
 Cd 1 @ 0x0003d93b
 Cd 1 @ 0x0003d93c
 Cd 1 @ 0x0003d93d
-Cs 9 @ 0x0003d93e # OlivtDOS_
+Cs 9 @ 0x0003d93e # OlivtDOS
 Cd 1 @ 0x0003d93f
 Cd 1 @ 0x0003d940
 Cd 1 @ 0x0003d941
@@ -1139,7 +1219,7 @@ Cd 1 @ 0x0003d943
 Cd 1 @ 0x0003d944
 Cd 1 @ 0x0003d945
 Cd 1 @ 0x0003d946
-Cs 8 @ 0x0003d947 # DEC_DOS_
+Cs 8 @ 0x0003d947 # DEC_DOS
 Cd 1 @ 0x0003d948
 Cd 1 @ 0x0003d949
 Cd 1 @ 0x0003d94a
@@ -1147,7 +1227,7 @@ Cd 1 @ 0x0003d94b
 Cd 1 @ 0x0003d94c
 Cd 1 @ 0x0003d94d
 Cd 1 @ 0x0003d94e
-Cs 9 @ 0x0003d94f # PBellDOS_
+Cs 9 @ 0x0003d94f # PBellDOS
 Cd 1 @ 0x0003d950
 Cd 1 @ 0x0003d951
 Cd 1 @ 0x0003d952
@@ -1156,7 +1236,7 @@ Cd 1 @ 0x0003d954
 Cd 1 @ 0x0003d955
 Cd 1 @ 0x0003d956
 Cd 1 @ 0x0003d957
-Cs 9 @ 0x0003d958 # GrBulDOS_
+Cs 9 @ 0x0003d958 # GrBulDOS
 Cd 1 @ 0x0003d959
 Cd 1 @ 0x0003d95a
 Cd 1 @ 0x0003d95b
@@ -1165,14 +1245,14 @@ Cd 1 @ 0x0003d95d
 Cd 1 @ 0x0003d95e
 Cd 1 @ 0x0003d95f
 Cd 1 @ 0x0003d960
-Cs 7 @ 0x0003d961 # HP_DOS_
+Cs 7 @ 0x0003d961 # HP_DOS
 Cd 1 @ 0x0003d962
 Cd 1 @ 0x0003d963
 Cd 1 @ 0x0003d964
 Cd 1 @ 0x0003d965
 Cd 1 @ 0x0003d966
 Cd 1 @ 0x0003d967
-Cs 9 @ 0x0003d968 # ZenitDOS_
+Cs 9 @ 0x0003d968 # ZenitDOS
 Cd 1 @ 0x0003d969
 Cd 1 @ 0x0003d96a
 Cd 1 @ 0x0003d96b
@@ -1181,7 +1261,7 @@ Cd 1 @ 0x0003d96d
 Cd 1 @ 0x0003d96e
 Cd 1 @ 0x0003d96f
 Cd 1 @ 0x0003d970
-Cs 9 @ 0x0003d971 # AT_T_DOS_
+Cs 9 @ 0x0003d971 # AT_T_DOS
 Cd 1 @ 0x0003d972
 Cd 1 @ 0x0003d973
 Cd 1 @ 0x0003d974
@@ -1190,7 +1270,7 @@ Cd 1 @ 0x0003d976
 Cd 1 @ 0x0003d977
 Cd 1 @ 0x0003d978
 Cd 1 @ 0x0003d979
-Cs 9 @ 0x0003d97a # MsoftDOS_
+Cs 9 @ 0x0003d97a # MsoftDOS
 Cd 1 @ 0x0003d97b
 Cd 1 @ 0x0003d97c
 Cd 1 @ 0x0003d97d
@@ -1199,7 +1279,7 @@ Cd 1 @ 0x0003d97f
 Cd 1 @ 0x0003d980
 Cd 1 @ 0x0003d981
 Cd 1 @ 0x0003d982
-Cs 9 @ 0x0003d983 # CompqDOS_
+Cs 9 @ 0x0003d983 # CompqDOS
 Cd 1 @ 0x0003d984
 Cd 1 @ 0x0003d985
 Cd 1 @ 0x0003d986
@@ -1208,7 +1288,7 @@ Cd 1 @ 0x0003d988
 Cd 1 @ 0x0003d989
 Cd 1 @ 0x0003d98a
 Cd 1 @ 0x0003d98b
-Cs 9 @ 0x0003d98c # IBMPcDos_
+Cs 9 @ 0x0003d98c # IBMPcDos
 Cd 1 @ 0x0003d98d
 Cd 1 @ 0x0003d98e
 Cd 1 @ 0x0003d98f
@@ -1217,7 +1297,7 @@ Cd 1 @ 0x0003d991
 Cd 1 @ 0x0003d992
 Cd 1 @ 0x0003d993
 Cd 1 @ 0x0003d994
-Cs 12 @ 0x0003d995 # __Unknown___
+Cs 12 @ 0x0003d995 # __Unknown__
 Cd 1 @ 0x0003d996
 Cd 1 @ 0x0003d997
 Cd 1 @ 0x0003d998
@@ -1229,7 +1309,7 @@ Cd 1 @ 0x0003d99d
 Cd 1 @ 0x0003d99e
 Cd 1 @ 0x0003d99f
 Cd 1 @ 0x0003d9a0
-Cs 34 @ 0x0000dd60 # _nFailed_to_detect_Phoenix_BIOS._n_n_
+Cs 34 @ 0x0000dd60 # _nFailed_to_detect_Phoenix_BIOS._n_n
 Cd 1 @ 0x0000dd61
 Cd 1 @ 0x0000dd62
 Cd 1 @ 0x0000dd63
@@ -1263,7 +1343,7 @@ Cd 1 @ 0x0000dd7e
 Cd 1 @ 0x0000dd7f
 Cd 1 @ 0x0000dd80
 Cd 1 @ 0x0000dd81
-Cs 36 @ 0x0000dd82 # _nPlease_run_tool_on_Phoenix_BIOS._n_n_
+Cs 36 @ 0x0000dd82 # _nPlease_run_tool_on_Phoenix_BIOS._n_n
 Cd 1 @ 0x0000dd83
 Cd 1 @ 0x0000dd84
 Cd 1 @ 0x0000dd85
@@ -1299,19 +1379,19 @@ Cd 1 @ 0x0000dda2
 Cd 1 @ 0x0000dda3
 Cd 1 @ 0x0000dda4
 Cd 1 @ 0x0000dda5
-Cs 6 @ 0x0000dda6 # _file_
+Cs 6 @ 0x0000dda6 # _file
 Cd 1 @ 0x0000dda7
 Cd 1 @ 0x0000dda8
 Cd 1 @ 0x0000dda9
 Cd 1 @ 0x0000ddaa
 Cd 1 @ 0x0000ddab
-Cs 6 @ 0x0000ddac # _file_
+Cs 6 @ 0x0000ddac # _file
 Cd 1 @ 0x0000ddad
 Cd 1 @ 0x0000ddae
 Cd 1 @ 0x0000ddaf
 Cd 1 @ 0x0000ddb0
 Cd 1 @ 0x0000ddb1
-Cs 43 @ 0x0000ddb2 # _nIncorrect_package_information_detected._n_n_
+Cs 43 @ 0x0000ddb2 # _nIncorrect_package_information_detected._n_n
 Cd 1 @ 0x0000ddb3
 Cd 1 @ 0x0000ddb4
 Cd 1 @ 0x0000ddb5
@@ -1356,10 +1436,10 @@ Cd 1 @ 0x0000dddb
 Cd 1 @ 0x0000dddc
 Cd 4 @ 0x0004caa0
 Cd 1 @ 0x000493e0
-Cs 3 @ 0x00003ee0 # _s_
+Cs 3 @ 0x00003ee0 # _s
 Cd 1 @ 0x00003ee1
 Cd 1 @ 0x00003ee2
-Cs 29 @ 0x00003ee3 # Press_any_key_to_continue..._
+Cs 29 @ 0x00003ee3 # Press_any_key_to_continue...
 Cd 1 @ 0x00003ee4
 Cd 1 @ 0x00003ee5
 Cd 1 @ 0x00003ee6
@@ -1389,7 +1469,7 @@ Cd 1 @ 0x00003efd
 Cd 1 @ 0x00003efe
 Cd 1 @ 0x00003eff
 Cd 4 @ 0x0004c634
-Cs 8 @ 0x000132d0 # Phoenix_
+Cs 8 @ 0x000132d0 # Phoenix
 Cd 1 @ 0x000132d1
 Cd 1 @ 0x000132d2
 Cd 1 @ 0x000132d3
@@ -1397,7 +1477,7 @@ Cd 1 @ 0x000132d4
 Cd 1 @ 0x000132d5
 Cd 1 @ 0x000132d6
 Cd 1 @ 0x000132d7
-Cs 4 @ 0x000132d4 # nix_
+Cs 4 @ 0x000132d4 # nix
 CCu base64:RFBNSSBzZXQgUEhZU0lDQUwgQUREUkVTUyBNQVBQSU5H @ 0x00039f1d
 Cd 2 @ 0x00056610
 Cd 4 @ 0x00003a10
@@ -1436,30 +1516,30 @@ Cd 4 @ 0x00003a90
 Cd 4 @ 0x00003a94
 Cd 4 @ 0x00003a98
 Cd 4 @ 0x00003a9c
-Cs 6 @ 0x00042da3 # _dev__
+Cs 6 @ 0x00042da3 # _dev_
 Cd 1 @ 0x00042da4
 Cd 1 @ 0x00042da5
 Cd 1 @ 0x00042da6
 Cd 1 @ 0x00042da7
 Cd 1 @ 0x00042da8
-Cs 5 @ 0x00042da9 # null_
+Cs 5 @ 0x00042da9 # null
 Cd 1 @ 0x00042daa
 Cd 1 @ 0x00042dab
 Cd 1 @ 0x00042dac
 Cd 1 @ 0x00042dad
-Cs 4 @ 0x00042dae # nul_
+Cs 4 @ 0x00042dae # nul
 Cd 1 @ 0x00042daf
 Cd 1 @ 0x00042db0
 Cd 1 @ 0x00042db1
-Cs 4 @ 0x00042db2 # tty_
+Cs 4 @ 0x00042db2 # tty
 Cd 1 @ 0x00042db3
 Cd 1 @ 0x00042db4
 Cd 1 @ 0x00042db5
-Cs 4 @ 0x00042db6 # con_
+Cs 4 @ 0x00042db6 # con
 Cd 1 @ 0x00042db7
 Cd 1 @ 0x00042db8
 Cd 1 @ 0x00042db9
-Cs 4 @ 0x00042dba # env_
+Cs 4 @ 0x00042dba # env
 Cd 1 @ 0x00042dbb
 Cd 1 @ 0x00042dbc
 Cd 1 @ 0x00042dbd
@@ -1503,28 +1583,28 @@ Cd 4 @ 0x00004340
 Cd 4 @ 0x00004344
 Cd 4 @ 0x00004348
 Cd 4 @ 0x0000434c
-Cs 69 @ 0x00001e05 # BIOS_doesn_t_support_SMM_TDK_Service._Some_functions_might_not_work__
-Cs 57 @ 0x00001e4a # BIOS_doesn_t_support_SMI._Some_functions_might_not_work__
-Cs 29 @ 0x00001e83 # Failed_to_verify_PFAT_BIOS._n_
-Cs 30 @ 0x00001ea0 # Read_BIOS_image_from_memory._n_
-Cs 28 @ 0x00001ebe # Read_BIOS_image_from_file._n_
-Cs 13 @ 0x00001eda # FlashCommand_
-Cs 26 @ 0x00001ee7 # Initialize_Flash_module._n_
-Cs 11 @ 0x00001f01 # MFG_mode._n_
-Cs 65 @ 0x00001f0c # Going_to_update_with_PUP__this_might_take_a_while__please_wait._n_
-Cs 47 @ 0x00001f4e # The_PUP_is_flashed_through_PFAT_successfully._n_
-Cs 20 @ 0x00001f7d # Read_current_BIOS._n_
-Cs 29 @ 0x00001f91 # Skipping_all_SLP_subregions__
-Cs 28 @ 0x00001fae # Prepare_patched_NvStorage._n_
-Cs 46 @ 0x00001fca # Prepare_NvStorage_of_current_BIOS_for_patch._n_
-Cs 27 @ 0x00001ff8 # Backup_current_BIOS___s_._n_
-Cs 14 @ 0x00002013 # _NO_FILENAME__
-Cs 34 @ 0x00002022 # Failed_to_read__s_for_BCP_merge__n_
-Cs 57 @ 0x00002044 # Error:_EVSA_binary_file_is_required_in_patch_operation__n_
-Cs 46 @ 0x0000207d # Error:_Failed_to_load_file____s__._Status____X_n_
-Cs 52 @ 0x000020ab # Error:_Failed_to_search_sub_region__s._Status____X_n_
-Cs 57 @ 0x000020df # Error:_Failed_to_overwrite_sub_region_data._Status____X_n_
-Cs 12 @ 0x00002118 # Oem_check__n_
+Cs 69 @ 0x00001e05 # BIOS_doesn_t_support_SMM_TDK_Service._Some_functions_might_not_work_
+Cs 57 @ 0x00001e4a # BIOS_doesn_t_support_SMI._Some_functions_might_not_work_
+Cs 29 @ 0x00001e83 # Failed_to_verify_PFAT_BIOS._n
+Cs 30 @ 0x00001ea0 # Read_BIOS_image_from_memory._n
+Cs 28 @ 0x00001ebe # Read_BIOS_image_from_file._n
+Cs 13 @ 0x00001eda # FlashCommand
+Cs 26 @ 0x00001ee7 # Initialize_Flash_module._n
+Cs 11 @ 0x00001f01 # MFG_mode._n
+Cs 65 @ 0x00001f0c # Going_to_update_with_PUP__this_might_take_a_while__please_wait._n
+Cs 47 @ 0x00001f4e # The_PUP_is_flashed_through_PFAT_successfully._n
+Cs 20 @ 0x00001f7d # Read_current_BIOS._n
+Cs 29 @ 0x00001f91 # Skipping_all_SLP_subregions_
+Cs 28 @ 0x00001fae # Prepare_patched_NvStorage._n
+Cs 46 @ 0x00001fca # Prepare_NvStorage_of_current_BIOS_for_patch._n
+Cs 27 @ 0x00001ff8 # Backup_current_BIOS___s_._n
+Cs 14 @ 0x00002013 # _NO_FILENAME_
+Cs 34 @ 0x00002022 # Failed_to_read__s_for_BCP_merge__n
+Cs 57 @ 0x00002044 # Error:_EVSA_binary_file_is_required_in_patch_operation__n
+Cs 46 @ 0x0000207d # Error:_Failed_to_load_file____s__._Status____X_n
+Cs 52 @ 0x000020ab # Error:_Failed_to_search_sub_region__s._Status____X_n
+Cs 57 @ 0x000020df # Error:_Failed_to_overwrite_sub_region_data._Status____X_n
+Cs 12 @ 0x00002118 # Oem_check__n
 Cd 1 @ 0x00001e06
 Cd 1 @ 0x00001e07
 Cd 1 @ 0x00001e08
@@ -1846,7 +1926,7 @@ Cd 1 @ 0x00001f4a
 Cd 1 @ 0x00001f4b
 Cd 1 @ 0x00001f4c
 Cd 1 @ 0x00001f4e
-Cs 48 @ 0x00001f4d # _nThe_PUP_is_flashed_through_PFAT_successfully._n_
+Cs 48 @ 0x00001f4d # _nThe_PUP_is_flashed_through_PFAT_successfully._n
 Cd 1 @ 0x00001f4f
 Cd 1 @ 0x00001f50
 Cd 1 @ 0x00001f51
@@ -2051,7 +2131,7 @@ Cd 1 @ 0x0000201d
 Cd 1 @ 0x0000201e
 Cd 1 @ 0x0000201f
 Cd 1 @ 0x00002020
-Cs 35 @ 0x00002021 # _nFailed_to_read__s_for_BCP_merge__n_
+Cs 35 @ 0x00002021 # _nFailed_to_read__s_for_BCP_merge__n
 Cd 1 @ 0x00002022
 Cd 1 @ 0x00002023
 Cd 1 @ 0x00002024
@@ -2305,7 +2385,7 @@ Cd 1 @ 0x00002120
 Cd 1 @ 0x00002121
 Cd 1 @ 0x00002122
 Cd 1 @ 0x00002123
-Cs 147 @ 0x00003737 # SCT_Flash_Utility_for_Lenovo_n_for_Shell_V1.0.1.3_nCopyright__c__2011_2012_Phoenix_Technologies_Ltd._nCopyright__c__2011_2012_Lenovo_Group_Limited._n_n_
+Cs 147 @ 0x00003737 # SCT_Flash_Utility_for_Lenovo_n_for_Shell_V1.0.1.3_nCopyright__c__2011_2012_Phoenix_Technologies_Ltd._nCopyright__c__2011_2012_Lenovo_Group_Limited._n_n
 Cd 1 @ 0x00003738
 Cd 1 @ 0x00003739
 Cd 1 @ 0x0000373a
@@ -2453,7 +2533,7 @@ Cd 1 @ 0x000037c7
 Cd 1 @ 0x000037c8
 Cd 1 @ 0x000037c9
 Cd 1 @ 0x000037ca
-Cs 26 @ 0x000037cb # Flash_Boot_Block_in_POST._
+Cs 26 @ 0x000037cb # Flash_Boot_Block_in_POST.
 Cd 1 @ 0x000037cc
 Cd 1 @ 0x000037cd
 Cd 1 @ 0x000037ce
@@ -2481,7 +2561,7 @@ Cd 1 @ 0x000037e3
 Cd 1 @ 0x000037e4
 Cd 1 @ 0x00049510
 Cd 1 @ 0x00049511
-Cs 18 @ 0x0000ee5a # Parameter_error__n_
+Cs 18 @ 0x0000ee5a # Parameter_error__n
 Cd 1 @ 0x0000ee5b
 Cd 1 @ 0x0000ee5c
 Cd 1 @ 0x0000ee5d
@@ -2499,7 +2579,7 @@ Cd 1 @ 0x0000ee68
 Cd 1 @ 0x0000ee69
 Cd 1 @ 0x0000ee6a
 Cd 1 @ 0x0000ee6b
-Cs 30 @ 0x0000ee6c # _s_:_is_not_a_valid_command__n_
+Cs 30 @ 0x0000ee6c # _s_:_is_not_a_valid_command__n
 Cd 1 @ 0x0000ee6d
 Cd 1 @ 0x0000ee6e
 Cd 1 @ 0x0000ee6f
@@ -2529,27 +2609,97 @@ Cd 1 @ 0x0000ee86
 Cd 1 @ 0x0000ee87
 Cd 1 @ 0x0000ee88
 Cd 1 @ 0x0000ee89
-Cs 40 @ 0x0000ee32 # Internal_error:_Invalid_syntax_format__n_
-Cs 8 @ 0x00013b79 # __s__s_n_
-Cs 9 @ 0x00013b70 # Syntax:__
-Cs 13 @ 0x00003d30 # FlashCommand_
-Cs 17 @ 0x00007003 # PUPDUMMYSIGN.BIN_
-Cs 12 @ 0x00006ff7 # PUPCERT.BIN_
-Cs 17 @ 0x00006fe6 # PUPDUMMYSCRP.BIN_
-Cs 17 @ 0x00006fd5 # PUPDUMMYHEAD.BIN_
-Cs 12 @ 0x000063b9 # PUPHEAD.BIN_
-Cs 12 @ 0x000085a1 # CloverTrail_
-Cs 10 @ 0x00008593 # PhoenixFD_
-Cs 4 @ 0x0000859d # Pup_
-Cs 5 @ 0x0000858e # Fitc_
-Cs 8 @ 0x00008586 # Capsule_
-Cs 6 @ 0x00008580 # Naked_
-Cs 39 @ 0x0000b50e # _nINFO:_The_BIOS_ROM_is_from__ROM.BIN._n_
-Cs 9 @ 0x0000b505 # _ROM.BIN_
-Cs 33 @ 0x00026242 # Total_blocks_of_the_image____d._n_
-Cs 52 @ 0x00026263 # ___________________________________________________n_
-Cs 2 @ 0x000262dd # ._
-Cs 24 @ 0x000262df # _nImage_flashing_done._n_n_
+Cs 40 @ 0x0000ee32 # Internal_error:_Invalid_syntax_format__n
+Cs 8 @ 0x00013b79 # __s__s_n
+Cs 9 @ 0x00013b70 # Syntax:
+Cs 13 @ 0x00003d30 # FlashCommand
+Cs 17 @ 0x00007003 # PUPDUMMYSIGN.BIN
+Cs 12 @ 0x00006ff7 # PUPCERT.BIN
+Cs 17 @ 0x00006fe6 # PUPDUMMYSCRP.BIN
+Cs 17 @ 0x00006fd5 # PUPDUMMYHEAD.BIN
+Cs 12 @ 0x000063b9 # PUPHEAD.BIN
+Cs 12 @ 0x000085a1 # CloverTrail
+Cs 10 @ 0x00008593 # PhoenixFD
+Cs 4 @ 0x0000859d # Pup
+Cs 5 @ 0x0000858e # Fitc
+Cs 8 @ 0x00008586 # Capsule
+Cs 6 @ 0x00008580 # Naked
+Cs 39 @ 0x0000b50e # _nINFO:_The_BIOS_ROM_is_from__ROM.BIN._n
+Cs 9 @ 0x0000b505 # _ROM.BIN
+Cs 33 @ 0x00026242 # Total_blocks_of_the_image____d._n
+Cs 52 @ 0x00026263 # ___________________________________________________n
+Cs 2 @ 0x000262dd # .
+Cs 24 @ 0x000262df # _nImage_flashing_done._n_n
+CCu base64:c3JjX3NlZw== @ 0x00035fb6
+CCu base64:c3JjX29mZnNldA== @ 0x00035fb1
+CCu base64:ZHN0X3NlZw== @ 0x00035fb0
+CCu base64:ZHN0X29mZnNldA== @ 0x00035fad
+CCu base64:Y291bnQ= @ 0x00035fac
+CCu base64:c3JjX3NlZw== @ 0x00035f9d
+CCu base64:c3JjX29mZnNldA== @ 0x00035f97
+CCu base64:ZHN0X3NlZw== @ 0x00035f96
+CCu base64:ZHN0X29mZnNldA== @ 0x00035f8f
+CCu base64:Y291bnQ= @ 0x00035f8a
+Cd 2 @ 0x00053214
+Cd 2 @ 0x00053216
+Cd 4 @ 0x0004c60c
+Cd 4 @ 0x00052e10
+Cd 4 @ 0x00053218
+Cd 4 @ 0x00053210
+Cd 4 @ 0x00053a1c
+CCu base64:c3M= @ 0x0003a2c9
+CCu base64:c3A= @ 0x0003a2c3
+CCu base64:ZmxhZ3M= @ 0x0003a2bd
+CCu base64:c3M= @ 0x0003a2b7
+CCu base64:c3A= @ 0x0003a2ad
+CCu base64:ZmxhZ3M= @ 0x0003a2a3
+CCu base64:Y2FsbCBzdHJ1Y3R1cmU= @ 0x0003a28b
+CCu base64:d29yZHMgdG8gY29weQ== @ 0x0003a286
+CCu base64:aW50IG51bWJlcg== @ 0x0003a283
+CCu base64:aXJxIG5v @ 0x0003d6c5
+CCu base64:Y2FsbCBzdHJ1Y3Q= @ 0x0003d6c4
+CCu base64:Y2FsbCBzdHJ1Y3Q= @ 0x0003d6c1
+CCu base64:ZG9zIHdyaXRl @ 0x0003d696
+Cd 4 @ 0x00048e80
+Cd 4 @ 0x00048ff0
+Cd 1 @ 0x00048ff1
+Cd 2 @ 0x00048ff4
+Cd 8 @ 0x00048ff6
+Cd 4 @ 0x00048fec
+Cd 4 @ 0x00048fe8
+Cd 4 @ 0x00048fe4
+Cd 4 @ 0x00048fe0
+Cd 4 @ 0x00048fdc
+Cd 4 @ 0x00048fd8
+CCu base64:U1RVQklORk9fTUVNT1JZX0hBTkRMRQ== @ 0x000018eb
+Cd 2 @ 0x00035c54
+Cd 4 @ 0x00048e1c
+Cd 2 @ 0x00048e14
+Cd 2 @ 0x00048e16
+Cd 2 @ 0x00048e18
+CCu base64:c2JyazE2IGNz @ 0x00048e16
+CCu base64:c2JyazE2IGRz @ 0x00048e18
+Cd 2 @ 0x00048e1a
+CCu base64:c2JyazE2IGR4 @ 0x00048e1a
+CCu base64:c2JyazE2IHNpemU= @ 0x000019a0
+CCu base64:bWFrZSAxNi1iaXQ= @ 0x000019bb
+CCu base64:cmVtb3ZlIG9sZCB0eXBl @ 0x000019c2
+CCu base64:c2V0IG5ldyB0eXBlIHRvIGNvZGUvcmVhZA== @ 0x000019c9
+Cd 1 @ 0x00053220
+Cd 4 @ 0x00048e10
+CCu base64:U1RVQklORk9fSU5JVElBTF9TSVpF @ 0x00001a19
+CCu base64:U1RVQklORk9fTUVNT1JZX0hBTkRMRQ== @ 0x00001a40
+CCu base64:U1RVQklORk9fU0laRQ== @ 0x00001a4b
+CCu base64:U1RVQklORk9fU0laRQ== @ 0x00001a63
+CCu base64:U1RVQklORk9fTUlOU1RBQ0s= @ 0x00001a7c
+Cd 4 @ 0x00052e0c
+Cd 1 @ 0x00048e8a
+Cd 1 @ 0x0004c498
+Cd 2 @ 0x00056602
+CCu base64:U1RVQklORk9fQ1NfU0VMRUNUT1I= @ 0x00001b20
+CCu base64:U1RVQklORk9fRFNfU0VMRUNUT1I= @ 0x00001b31
+CCu base64:ZXhpdDE2X2xhc3RfYnl0ZSAtIGV4aXQxNl9maXJzdF9ieXRl @ 0x00001b3b
+Cd 4 @ 0x0004a9f0
 f entry0 701 0x000018d0
 af+ 0x000018d0 701 entry0 f n
 afC cdecl @ 0x000018d0
@@ -2581,14 +2731,14 @@ afb+ 0x000018d0 0x0000193d 16 0x00001968 0xffffffffffffffff n n
 afb+ 0x000018d0 0x0000190b 4 0x0000190f 0xffffffffffffffff n n
 afb+ 0x000018d0 0x000018db 12 0x00001900 0x000018e7 n n
 afb+ 0x000018d0 0x000018e7 25 0x00001900 0xffffffffffffffff n n
-f fcn.00001b8d 33 0x00001b8d
-af+ 0x00001b8d 33 fcn.00001b8d f n
+f lock_memory 33 0x00001b8d
+af+ 0x00001b8d 33 lock_memory f n
 afC cdecl @ 0x00001b8d
 afb+ 0x00001b8d 0x00001b8d 9 0x00001bab 0x00001b96 n n
 afb+ 0x00001b8d 0x00001b96 21 0x00001bab 0xffffffffffffffff n n
 afb+ 0x00001b8d 0x00001bab 3 0xffffffffffffffff 0xffffffffffffffff n n
-f fcn.00001bb0 550 0x00001bb0
-af+ 0x00001bb0 550 fcn.00001bb0 f n
+f ___sbrk 550 0x00001bb0
+af+ 0x00001bb0 550 ___sbrk f n
 afC cdecl @ 0x00001bb0
 afb+ 0x00001bb0 0x00001bb0 13 0x00001bd0 0x00001bbd n n
 afb+ 0x00001bb0 0x00001bd0 26 0x00001c7b 0x00001bea n n
@@ -8323,8 +8473,8 @@ afC cdecl @ 0x00030060
 afb+ 0x00030060 0x00030060 16 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x30060
 afa 12 arg_ch int @ 0x30060
-f fcn.00034380 71 0x00034380
-af+ 0x00034380 71 fcn.00034380 f n
+f ___register_frame_info 71 0x00034380
+af+ 0x00034380 71 ___register_frame_info f n
 afC cdecl @ 0x00034380
 afb+ 0x00034380 0x00034380 13 0x000343c5 0x0003438d n n
 afb+ 0x00034380 0x0003438d 6 0x000343c5 0x00034393 n n
@@ -8390,12 +8540,96 @@ afa 20 arg_14h int @ 0x35660
 afv 28 local_1ch int @ 0x35660
 afv 32 local_20h int @ 0x35660
 afv 36 local_24h int @ 0x35660
+f exception_0x0 72 0x000359e0
+af+ 0x000359e0 72 exception_0x0 f n
+afC cdecl @ 0x000359e0
+afb+ 0x000359e0 0x000359e0 4 0xffffffffffffffff 0xffffffffffffffff n n
+afa 3 arg_3h int @ 0x359e0
+afa 12 arg_ch int @ 0x359e0
+afa 14 arg_eh int @ 0x359e0
+afa 16 arg_10h int @ 0x359e0
+afa 20 arg_14h int @ 0x359e0
+afa 24 arg_18h int @ 0x359e0
+afa 28 arg_1ch int @ 0x359e0
+afa 32 arg_20h int @ 0x359e0
+f exception_0xf 4 0x00035a1c
+af+ 0x00035a1c 4 exception_0xf f n
+afC cdecl @ 0x00035a1c
+afb+ 0x00035a1c 0x00035a1c 4 0x00035a28 0xffffffffffffffff n n
+f fcn.00035a28 264 0x00035a28
+af+ 0x00035a28 264 fcn.00035a28 f n
+afC cdecl @ 0x00035a28
+afb+ 0x00035a28 0x00035a28 12 0x00035a45 0x00035a34 n n
+afb+ 0x00035a28 0x00035a45 137 0x00035ae8 0x00035ace n n
+afb+ 0x00035a28 0x00035ae8 11 0x00035af3 0xffffffffffffffff b n
+afb+ 0x00035a28 0x00035ace 6 0x00035af3 0x00035ad4 n n
+afb+ 0x00035a28 0x00035af3 61 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00035a28 0x00035ad4 14 0x00035ae8 0x00035ae2 n n
+afb+ 0x00035a28 0x00035ae2 6 0x00035af3 0xffffffffffffffff n n
+afb+ 0x00035a28 0x00035a34 17 0x00035a45 0xffffffffffffffff n n
+afa 3 arg_3h int @ 0x35a28
+afa 12 arg_ch int @ 0x35a28
+afa 14 arg_eh int @ 0x35a28
+afa 16 arg_10h int @ 0x35a28
+afa 20 arg_14h int @ 0x35a28
+afa 24 arg_18h int @ 0x35a28
+afa 28 arg_1ch int @ 0x35a28
+afa 32 arg_20h int @ 0x35a28
+f irq_0x75 21 0x00035c56
+af+ 0x00035c56 21 irq_0x75 f n
+afC cdecl @ 0x00035c56
+afb+ 0x00035c56 0x00035c56 21 0xffffffffffffffff 0xffffffffffffffff n n
+f irq_0x9 98 0x00035c70
+af+ 0x00035c70 98 irq_0x9 f n
+afC cdecl @ 0x00035c70
+afb+ 0x00035c70 0x00035c70 13 0x00035cc8 0x00035c7d n n
+afb+ 0x00035c70 0x00035cc8 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00035c70 0x00035c7d 19 0x00035c93 0x00035c90 n n
+afb+ 0x00035c70 0x00035c93 21 0x00035cac 0x00035ca8 n n
+afb+ 0x00035c70 0x00035cac 19 0x00035cc8 0x00035cbf n n
+afb+ 0x00035c70 0x00035cbf 2 0x00035cc1 0xffffffffffffffff b n
+afb+ 0x00035c70 0x00035ca8 4 0x00035cc1 0xffffffffffffffff n n
+afb+ 0x00035c70 0x00035cc1 7 0x00035cc8 0xffffffffffffffff n n
+afb+ 0x00035c70 0x00035c90 3 0x00035c93 0xffffffffffffffff n n
+f real_mode_callback.0x00035d50 44 0x00035d50
+af+ 0x00035d50 44 real_mode_callback.0x00035d50 f n
+afC cdecl @ 0x00035d50
+afb+ 0x00035d50 0x00035d50 30 0x00035d74 0x00035d6e n n
+afb+ 0x00035d50 0x00035d6e 6 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00035d50 0x00035d74 8 0xffffffffffffffff 0xffffffffffffffff n n
+f fcn.00035d80 60 0x00035d80
+af+ 0x00035d80 60 fcn.00035d80 f n
+afC cdecl @ 0x00035d80
+afb+ 0x00035d80 0x00035d80 10 0x00035dbb 0x00035d8a n n
+afb+ 0x00035d80 0x00035d8a 49 0x00035dbb 0xffffffffffffffff n n
+afb+ 0x00035d80 0x00035dbb 1 0xffffffffffffffff 0xffffffffffffffff n n
+f fcn.00035f68 283 0x00035f68
+af+ 0x00035f68 283 fcn.00035f68 f n
+afC cdecl @ 0x00035f68
+afb+ 0x00035f68 0x00035f68 90 0x00035fc2 0xffffffffffffffff b n
+afb+ 0x00035f68 0x00035fce 6 0x00035fc2 0x00035fd4 n n
+afb+ 0x00035f68 0x00035fc2 6 0x00035fce 0x00035fc8 n n
+afb+ 0x00035f68 0x00035fd4 29 0x0003607b 0x00035ff1 n n
+afb+ 0x00035f68 0x0003607b 8 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00035f68 0x00035ff1 5 0x00035ff6 0xffffffffffffffff b n
+afb+ 0x00035f68 0x00036030 6 0x00035ff6 0x00036036 n n
+afb+ 0x00035f68 0x00035ff6 51 0x00036030 0x00036029 n n
+afb+ 0x00035f68 0x00036036 56 0x00036074 0x0003606e n n
+afb+ 0x00035f68 0x00036074 7 0x0003607b 0xffffffffffffffff n n
+afb+ 0x00035f68 0x0003606e 6 0x00036074 0xffffffffffffffff n n
+afb+ 0x00035f68 0x00036029 1 0x0003602a 0xffffffffffffffff b n
+afb+ 0x00035f68 0x0003602a 6 0x0003602a 0x00036030 n n
+afb+ 0x00035f68 0x00035fc8 6 0x00035fc8 0x00035fce n n
+afv 2 src_seg int @ 0x35f68
+afv 8 dst_offset int @ 0x35f68
+afv 12 local_ch int @ 0x35f68
+afv 24 local_18h int @ 0x35f68
 f fcn.000360f4 33 0x000360f4
 af+ 0x000360f4 33 fcn.000360f4 f n
 afC cdecl @ 0x000360f4
 afb+ 0x000360f4 0x000360f4 33 0xffffffffffffffff 0xffffffffffffffff n n
-f fcn.00036118 184 0x00036118
-af+ 0x00036118 184 fcn.00036118 f n
+f ___crt1_startup 184 0x00036118
+af+ 0x00036118 184 ___crt1_startup f n
 afC cdecl @ 0x00036118
 afb+ 0x00036118 0x00036118 118 0x00036192 0x0003618e n n
 afb+ 0x00036118 0x00036192 5 0x00036197 0xffffffffffffffff b n
@@ -9000,8 +9234,8 @@ afb+ 0x0003a1c0 0x0003a1d2 2 0x0003a21b 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x3a1c0
 afv 4 local_4h int @ 0x3a1c0
 afv 16 local_10h int @ 0x3a1c0
-f fcn.0003a270 132 0x0003a270
-af+ 0x0003a270 132 fcn.0003a270 f n
+f __dpmi_int 132 0x0003a270
+af+ 0x0003a270 132 __dpmi_int f n
 afC cdecl @ 0x0003a270
 afb+ 0x0003a270 0x0003a270 45 0x0003a2bd 0x0003a29d n n
 afb+ 0x0003a270 0x0003a2bd 18 0x0003a2cf 0xffffffffffffffff b n
@@ -9111,15 +9345,15 @@ afv 52 local_34h int @ 0x3d630
 afv 56 local_38h int @ 0x3d630
 afv 60 local_3ch int @ 0x3d630
 afv 72 local_48h int @ 0x3d630
-f fcn.0003d890 41 0x0003d890
-af+ 0x0003d890 41 fcn.0003d890 f n
+f wrapper_copy.0x0003d890 41 0x0003d890
+af+ 0x0003d890 41 wrapper_copy.0x0003d890 f n
 afC cdecl @ 0x0003d890
 afb+ 0x0003d890 0x0003d890 41 0xffffffffffffffff 0xffffffffffffffff n n
-afa 8 arg_8h int @ 0x3d890
-afa 12 arg_ch int @ 0x3d890
-afa 16 arg_10h int @ 0x3d890
-afa 20 arg_14h int @ 0x3d890
-afa 24 arg_18h int @ 0x3d890
+afa 8 src_seg int @ 0x3d890
+afa 12 src_offset int @ 0x3d890
+afa 16 dst_seg int @ 0x3d890
+afa 20 dst_offset int @ 0x3d890
+afa 24 count int @ 0x3d890
 f fcn.0003d9a4 261 0x0003d9a4
 af+ 0x0003d9a4 261 fcn.0003d9a4 f n
 afC cdecl @ 0x0003d9a4
@@ -9450,6 +9684,16 @@ f fcn.00041210 13 0x00041210
 af+ 0x00041210 13 fcn.00041210 f n
 afC cdecl @ 0x00041210
 afb+ 0x00041210 0x00041210 13 0xffffffffffffffff 0xffffffffffffffff n n
+f fcn.00041340 65 0x00041340
+af+ 0x00041340 65 fcn.00041340 f n
+afC cdecl @ 0x00041340
+afb+ 0x00041340 0x00041340 34 0x0004136f 0x00041362 n n
+afb+ 0x00041340 0x0004136f 12 0x0004137b 0xffffffffffffffff b n
+afb+ 0x00041340 0x00041362 13 0x0004137b 0xffffffffffffffff n n
+afb+ 0x00041340 0x0004137b 6 0xffffffffffffffff 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x41340
+afa 12 arg_ch int @ 0x41340
+afa 16 arg_10h int @ 0x41340
 f fcn.00041420 36 0x00041420
 af+ 0x00041420 36 fcn.00041420 f n
 afC cdecl @ 0x00041420
@@ -9675,8 +9919,8 @@ afb+ 0x00045984 0x00045998 5 0x0004599d 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x45984
 afv 1 local_1h int @ 0x45984
 afv 16 local_10h int @ 0x45984
-f fcn.00045b90 40 0x00045b90
-af+ 0x00045b90 40 fcn.00045b90 f n
+f copy.0x00045b90 40 0x00045b90
+af+ 0x00045b90 40 copy.0x00045b90 f n
 afC cdecl @ 0x00045b90
 afb+ 0x00045b90 0x00045b90 6 0x00045bb5 0x00045b96 n n
 afb+ 0x00045b90 0x00045bb5 3 0xffffffffffffffff 0xffffffffffffffff n n
@@ -9947,4 +10191,4 @@ afv 64 local_40h int @ 0x46840
 # types
 # macros
 # seek
-s 0x00026430
+s 0x00036118
