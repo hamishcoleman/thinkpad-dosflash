@@ -2,18 +2,51 @@
 # flags
 fs strings
 f str.TDK_library_initialization_failed 278 0x0000df5a 
+f str._ERROR__03d____s___ 19 0x0000df7c 
+f str._s_ 3 0x00003ee0 
+f str.MS_DOS_ 7 0x0003d8f0 
+f str.NovelDOS_ 9 0x0003d8f7 
+f str.DR_DOS_ 7 0x0003d900 
+f str.GenSoft_ 8 0x0003d907 
+f str.PTS_DOS_ 8 0x0003d90f 
+f str.RxDOS_ 6 0x0003d917 
+f str.MSWinDev_ 9 0x0003d91d 
+f str.NWin3Dev_ 9 0x0003d926 
+f str.Toshiba_ 8 0x0003d92f 
+f str.TI_DOS_ 7 0x0003d937 
+f str.OlivtDOS_ 9 0x0003d93e 
+f str.DEC_DOS_ 8 0x0003d947 
+f str.PBellDOS_ 9 0x0003d94f 
+f str.GrBulDOS_ 9 0x0003d958 
+f str.HP_DOS_ 7 0x0003d961 
+f str.ZenitDOS_ 9 0x0003d968 
+f str.AT_T_DOS_ 9 0x0003d971 
+f str.MsoftDOS_ 9 0x0003d97a 
+f str.CompqDOS_ 9 0x0003d983 
+f str.IBMPcDos_ 9 0x0003d98c 
+f str.__Unknown___ 12 0x0003d995 
+f str._Failed_to_detect_Phoenix_BIOS.___ 34 0x0000dd60 
+f str._Please_run_tool_on_Phoenix_BIOS.___ 36 0x0000dd82 
+f str._file_ 6 0x0000ddac 
+f str._Incorrect_package_information_detected.___ 43 0x0000ddb2 
+f str.Press_any_key_to_continue..._ 29 0x00003ee3 
+f str.Phoenix_ 8 0x000132d0 
+f str.nix_ 4 0x000132d4 
+f str._dev__ 6 0x00042da3 
+f str.null_ 5 0x00042da9 
+f str.nul_ 4 0x00042dae 
+f str.tty_ 4 0x00042db2 
+f str.con_ 4 0x00042db6 
+f str.env_ 4 0x00042dba 
+fs symbols
+f data.0x000493e0 1 0x000493e0 
+f data.0x4c634 1 0x0004c634 
+f dpmi_errno 1 0x00056610 
+f jump_table.0x00003a10 168 0x00003a10 
 fs functions
 f entry0 701 0x000018d0 
-fs *
-f str._ERROR__03d____s___ 19 0x0000df7c 
-fs *
-f str._s_ 3 0x00003ee0 
-fs functions
 f fcn.0000df92 54 0x0000df92 
 f fcn.maybe_printf 67 0x00036600 
-fs *
-f esp 1 0xffffffd4 
-fs functions
 f lock_memory 33 0x00001b8d 
 f ___sbrk 550 0x00001bb0 
 f ___register_frame_info 71 0x00034380 
@@ -21,74 +54,10 @@ f ___crt1_startup 184 0x00036118
 f fcn.000360f4 33 0x000360f4 
 f fcn.0003d9a4 261 0x0003d9a4 
 f __dpmi_int 132 0x0003a270 
-fs *
-f str.MS_DOS_ 7 0x0003d8f0 
-fs *
-f str.NovelDOS_ 9 0x0003d8f7 
-fs *
-f str.DR_DOS_ 7 0x0003d900 
-fs *
-f str.GenSoft_ 8 0x0003d907 
-fs *
-f str.PTS_DOS_ 8 0x0003d90f 
-fs *
-f str.RxDOS_ 6 0x0003d917 
-fs *
-f str.MSWinDev_ 9 0x0003d91d 
-fs *
-f str.NWin3Dev_ 9 0x0003d926 
-fs *
-f str.Toshiba_ 8 0x0003d92f 
-fs *
-f str.TI_DOS_ 7 0x0003d937 
-fs *
-f str.OlivtDOS_ 9 0x0003d93e 
-fs *
-f str.DEC_DOS_ 8 0x0003d947 
-fs *
-f str.PBellDOS_ 9 0x0003d94f 
-fs *
-f str.GrBulDOS_ 9 0x0003d958 
-fs *
-f str.HP_DOS_ 7 0x0003d961 
-fs *
-f str.ZenitDOS_ 9 0x0003d968 
-fs *
-f str.AT_T_DOS_ 9 0x0003d971 
-fs *
-f str.MsoftDOS_ 9 0x0003d97a 
-fs *
-f str.CompqDOS_ 9 0x0003d983 
-fs *
-f str.IBMPcDos_ 9 0x0003d98c 
-fs *
-f str.__Unknown___ 12 0x0003d995 
-fs *
-f str._Failed_to_detect_Phoenix_BIOS.___ 34 0x0000dd60 
-fs *
-f str._Please_run_tool_on_Phoenix_BIOS.___ 36 0x0000dd82 
-fs *
-f str._file_ 6 0x0000ddac 
-fs *
-f str._Incorrect_package_information_detected.___ 43 0x0000ddb2 
-fs functions
 f fcn.0000dddd 64 0x0000dddd 
-fs *
-f data.0x000493e0 1 0x000493e0 
-fs functions
 f fcn.print_and_pause 326 0x00003f00 
-fs *
-f str.Press_any_key_to_continue..._ 29 0x00003ee3 
-fs *
-f data.0x4c634 1 0x0004c634 
-fs functions
 f detect_phoenix 274 0x000132d8 
 f fcn.0000de1d 297 0x0000de1d 
-fs *
-f str.Phoenix_ 8 0x000132d0 
-fs *
-f str.nix_ 4 0x000132d4 
-fs functions
 f fcn.000361d0 568 0x000361d0 
 f fcn.0003f310 5 0x0003f310 
 f copy_from_physical_mem 160 0x0000f170 
@@ -96,9 +65,6 @@ f dpmi_physical_address_map 66 0x00039f00
 f dpmi_allocate_ldt_desc 34 0x00039f50 
 f dpmi_free_physical_map 43 0x00039f80 
 f dpmi_set_segment_base_address 43 0x00039fb0 
-fs *
-f dpmi_errno 1 0x00056610 
-fs functions
 f dpmi_set_segment_limit 43 0x00039fe0 
 f dpmi_free_ldt_descriptor 35 0x0003a010 
 f fcn.00036c50 54 0x00036c50 
@@ -140,9 +106,6 @@ f loc.000138da 10 0x000138da
 f fcn.00005e00 275 0x00005e00 
 f fcn.000039f0 31 0x000039f0 
 f loc.00003d07 2 0x00003d07 
-fs *
-f jump_table.0x00003a10 168 0x00003a10 
-fs functions
 f loc.00003d05 2 0x00003d05 
 f fcn.00003a9c 617 0x00003a9c 
 f fcn.00003ab8 404 0x00003ab8 
@@ -216,19 +179,6 @@ f fcn.00042d00 138 0x00042d00
 f fcn.0003df98 398 0x0003df98 
 f fcn.00042d94 15 0x00042d94 
 f fcn.00042dc0 803 0x00042dc0 
-fs *
-f str._dev__ 6 0x00042da3 
-fs *
-f str.null_ 5 0x00042da9 
-fs *
-f str.nul_ 4 0x00042dae 
-fs *
-f str.tty_ 4 0x00042db2 
-fs *
-f str.con_ 4 0x00042db6 
-fs *
-f str.env_ 4 0x00042dba 
-fs functions
 f fcn.00046430 37 0x00046430 
 f fcn.0003a1c0 99 0x0003a1c0 
 f fcn.0003ddf0 419 0x0003ddf0 
@@ -267,6 +217,7 @@ f fcn.0001352b 59 0x0001352b
 f fcn.0000d9b0 62 0x0000d9b0 
 fs *
 f jump_table.0x0000d9f0 1 0x0000d9f0 
+f jump_table.0x000042c4 1 0x000042c4 
 fs functions
 f fcn.0000da04 143 0x0000da04 
 f fcn.0000da80 7 0x0000da80 
@@ -275,60 +226,37 @@ f fcn.000130b0 135 0x000130b0
 f fcn.0000da87 7 0x0000da87 
 f fcn.0000da8e 5 0x0000da8e 
 f fcn.000042a0 33 0x000042a0 
-fs *
-f jump_table.0x000042c4 1 0x000042c4 
 fs functions
 f fcn.00004350 32 0x00004350 
 f loc.000044b7 2 0x000044b7 
 f fcn.00013570 75 0x00013570 
-fs *
-f ebp 1 0xffffffe4 
-fs *
-f eflags 1 0x00000084 
-fs *
+fs strings
+f option_char1 1 0x00049510 
+f option_char2 1 0x00049511 
 f str.BIOS_doesn_t_support_SMM_TDK_Service._Some_functions_might_not_work__ 69 0x00001e05 
-fs *
 f str.BIOS_doesn_t_support_SMI._Some_functions_might_not_work__ 57 0x00001e4a 
-fs *
 f str.Failed_to_verify_PFAT_BIOS.__ 29 0x00001e83 
-fs *
 f str.Read_BIOS_image_from_memory.__ 30 0x00001ea0 
-fs *
 f str.Read_BIOS_image_from_file.__ 28 0x00001ebe 
-fs *
 f str.FlashCommand_ 13 0x00003d30 
-fs *
 f str.Initialize_Flash_module.__ 26 0x00001ee7 
-fs *
 f str.MFG_mode.__ 11 0x00001f01 
-fs *
 f str.Going_to_update_with_PUP__this_might_take_a_while__please_wait.__ 65 0x00001f0c 
-fs *
 f str.Read_current_BIOS.__ 20 0x00001f7d 
-fs *
 f str.Skipping_all_SLP_subregions__ 29 0x00001f91 
-fs *
 f str.Prepare_patched_NvStorage.__ 28 0x00001fae 
-fs *
 f str.Prepare_NvStorage_of_current_BIOS_for_patch.__ 46 0x00001fca 
-fs *
 f str.Backup_current_BIOS___s_.__ 27 0x00001ff8 
-fs *
 f str._NO_FILENAME__ 14 0x00002013 
-fs *
 f str.Error:_EVSA_binary_file_is_required_in_patch_operation___ 57 0x00002044 
-fs *
 f str.Error:_Failed_to_load_file___s_._Status____X__ 46 0x0000207d 
-fs *
 f str.Error:_Failed_to_search_sub_region__s._Status____X__ 52 0x000020ab 
-fs *
 f str.Error:_Failed_to_overwrite_sub_region_data._Status____X__ 57 0x000020df 
-fs *
 f str.Oem_check___ 12 0x00002118 
-fs *
 f str._The_PUP_is_flashed_through_PFAT_successfully.__ 48 0x00001f4d 
-fs *
 f str._Failed_to_read__s_for_BCP_merge___ 35 0x00002021 
+f str.SCT_Flash_Utility_for_Lenovo__for_Shell_V1.0.1.3_Copyright__c__2011_2012_Phoenix_Technologies_Ltd._Copyright__c__2011_2012_Lenovo_Group_Limited.___ 147 0x00003737 
+f str.Flash_Boot_Block_in_POST._ 26 0x000037cb 
 fs functions
 f fcn.00002124 4695 0x00002124 
 f fcn.00003920 140 0x00003920 
@@ -342,11 +270,6 @@ f fcn.00003510 192 0x00003510
 f fcn.000034b0 10168 0x000034b0 
 f fcn.00005c80 141 0x00005c80 
 f fcn.00004900 114 0x00004900 
-fs *
-f str.SCT_Flash_Utility_for_Lenovo__for_Shell_V1.0.1.3_Copyright__c__2011_2012_Phoenix_Technologies_Ltd._Copyright__c__2011_2012_Lenovo_Group_Limited.___ 147 0x00003737 
-fs *
-f str.Flash_Boot_Block_in_POST._ 26 0x000037cb 
-fs functions
 f fcn.0000db40 257 0x0000db40 
 f fcn.000131a0 12 0x000131a0 
 f fcn.00012370 12 0x00012370 
@@ -411,11 +334,6 @@ f fcn.00007ee0 22 0x00007ee0
 f fcn.00006914 182 0x00006914 
 f fcn.00036dd0 118 0x00036dd0 
 f maybe.cmdline.0x0000f140 40 0x0000f140 
-fs *
-f option_char1 1 0x00049510 
-fs *
-f option_char2 1 0x00049511 
-fs functions
 f fcn.0000846f 93 0x0000846f 
 f fcn.0000814a 484 0x0000814a 
 f fcn.000105f2 72 0x000105f2 
@@ -443,19 +361,25 @@ f fcn.0000dc5a 77 0x0000dc5a
 f fcn.000131b0 86 0x000131b0 
 f fcn.00036c20 40 0x00036c20 
 f fcn.00036c90 314 0x00036c90 
-fs *
+fs strings
 f str.Parameter_error___ 18 0x0000ee5a 
-fs *
 f str._s_:_is_not_a_valid_command___ 30 0x0000ee6c 
-fs *
 f str.Internal_error:_Invalid_syntax_format___ 40 0x0000ee32 
+f str.__s__s__ 8 0x00013b79 
+f str.Syntax:__ 9 0x00013b70 
+f str.PUPDUMMYSIGN.BIN_ 17 0x00007003 
+f str.PUPCERT.BIN_ 12 0x00006ff7 
+f str.PUPDUMMYSCRP.BIN_ 17 0x00006fe6 
+f str.PUPDUMMYHEAD.BIN_ 17 0x00006fd5 
+f str.PUPHEAD.BIN_ 12 0x000063b9 
+f str.CloverTrail_ 12 0x000085a1 
+f str.PhoenixFD_ 10 0x00008593 
+f str.Pup_ 4 0x0000859d 
+f str.Fitc_ 5 0x0000858e 
+f str.Capsule_ 8 0x00008586 
+f str.Naked_ 6 0x00008580 
 fs functions
 f fcn.00013b81 107 0x00013b81 
-fs *
-f str.__s__s__ 8 0x00013b79 
-fs *
-f str.Syntax:__ 9 0x00013b70 
-fs functions
 f fcn.000069d7 152 0x000069d7 
 f fcn.000044c0 91 0x000044c0 
 f fcn.000087e0 109 0x000087e0 
@@ -464,36 +388,11 @@ f fcn.00008a44 88 0x00008a44
 f fcn.0000c847 195 0x0000c847 
 f fcn.00006bd4 51 0x00006bd4 
 f fcn.00007014 522 0x00007014 
-fs *
-f str.PUPDUMMYSIGN.BIN_ 17 0x00007003 
-fs *
-f str.PUPCERT.BIN_ 12 0x00006ff7 
-fs *
-f str.PUPDUMMYSCRP.BIN_ 17 0x00006fe6 
-fs *
-f str.PUPDUMMYHEAD.BIN_ 17 0x00006fd5 
-fs functions
 f fcn.000063c5 90 0x000063c5 
-fs *
-f str.PUPHEAD.BIN_ 12 0x000063b9 
-fs functions
 f fcn.0000f688 40 0x0000f688 
 f fcn.000040c0 424 0x000040c0 
 f fcn.00006374 23 0x00006374 
 f fcn.000085ad 223 0x000085ad 
-fs *
-f str.CloverTrail_ 12 0x000085a1 
-fs *
-f str.PhoenixFD_ 10 0x00008593 
-fs *
-f str.Pup_ 4 0x0000859d 
-fs *
-f str.Fitc_ 5 0x0000858e 
-fs *
-f str.Capsule_ 8 0x00008586 
-fs *
-f str.Naked_ 6 0x00008580 
-fs functions
 f fcn.00004270 35 0x00004270 
 f fcn.000045b4 604 0x000045b4 
 f fcn.00009d40 10 0x00009d40 
@@ -543,9 +442,8 @@ f fcn.000125ed 54 0x000125ed
 f fcn.0000a4c5 362 0x0000a4c5 
 f fcn.00004acb 251 0x00004acb 
 f fcn.0000b535 956 0x0000b535 
-fs *
+fs strings
 f str._INFO:_The_BIOS_ROM_is_from__ROM.BIN.__ 39 0x0000b50e 
-fs *
 f str._ROM.BIN_ 9 0x0000b505 
 fs functions
 f fcn.0000b3ab 102 0x0000b3ab 
@@ -629,40 +527,19 @@ f fcn.00011323 45 0x00011323
 f fcn.000113c7 84 0x000113c7 
 fs *
 f DIG_HERE 1 0x00002d14 
-fs *
+fs strings
 f str.Total_blocks_of_the_image____d.__ 33 0x00026242 
-fs *
 f str.____________________________________________________ 52 0x00026263 
-fs functions
-f print_flash_barchart 70 0x00026297 
-fs *
 f str.._ 2 0x000262dd 
-fs *
 f str._Image_flashing_done.___ 24 0x000262df 
 fs functions
+f print_flash_barchart 70 0x00026297 
 f print_barchart_dots 122 0x000262f7 
 f fcn.0002c4a0 277 0x0002c4a0 
 f fcn.0002ffc0 155 0x0002ffc0 
 f fcn.00030060 16 0x00030060 
 f fcn.00041340 65 0x00041340 
 f fcn.00035f68 283 0x00035f68 
-fs *
-f oeax 1 0x00000000 
-fs *
-f eax 1 0x00000000 
-fs *
-f ebx 1 0x0000fffe 
-fs *
-f ecx 1 0xffffff72 
-fs *
-f edx 1 0x00000000 
-fs *
-f esi 1 0x0000008c 
-fs *
-f edi 1 0x0000008c 
-fs *
-f eip 1 0xffffffff 
-fs functions
 f exception_0x0 72 0x000359e0 
 f fcn.00035a28 264 0x00035a28 
 f exception_0xf 4 0x00035a1c 
@@ -670,59 +547,35 @@ f irq_0x75 21 0x00035c56
 f fcn.00035d80 60 0x00035d80 
 f irq_0x9 98 0x00035c70 
 f real_mode_callback.0x00035d50 44 0x00035d50 
-fs *
+fs symbols
 f memory_handle 1 0x00053218 
-fs *
 f sbrk16_api_ofs 1 0x00048e80 
-fs *
 f sbrk16_api_seg 1 0x00048e84 
-fs *
 f zero 1 0x00048e86 
-fs *
 f ___djgpp_ds_alias 1 0x00035c54 
-fs *
 f sel_buf 1 0x0004c600 
-fs *
 f ___djgpp_stack_top 1 0x00052e0c 
-fs *
 f ___djgpp_stack_limit 1 0x00048fe8 
-fs *
 f ___djgpp_selector_limit 1 0x00048fe4 
-fs *
 f ___djgpp_base_address 1 0x00053214 
-fs *
 f __stubinfo 1 0x00053a1c 
-fs *
 f __stklen 1 0x00053210 
-fs *
 f __crt0_startup_flags_1 1 0x00048ff1 
-fs *
 f sbrk16_first_byte 1 0x00048e14 
-fs *
 f ___djgpp_memory_handle_list_8 1 0x00053220 
-fs *
 f ___djgpp_memory_handle_pointer 1 0x00048e10 
-fs *
 f ___djgpp_base_address_2 1 0x00053216 
-fs *
 f __what_size_dpmi_thinks_we_are 1 0x0004c60c 
-fs *
 f ___djgpp_memory_handle_size 1 0x00052e10 
-fs *
 f _frame_struct 1 0x00048e8a 
-fs *
 f _CRT0_EH_FRAME_BEGIN_ 1 0x0004c498 
 fs *
 f exit 1 0x00001ad4 
-fs *
 f ___exit 1 0x00001ad0 
-fs *
+fs symbols
 f __go32_info_block_26 1 0x00056602 
-fs *
 f sbrk16_first_byte_6 1 0x00048e1a 
-fs *
 f exit16_first_byte 1 0x00048eba 
-fs *
 f __bss_count 1 0x0004a9f0 
 # eval
 "e anal.a2f = false"
