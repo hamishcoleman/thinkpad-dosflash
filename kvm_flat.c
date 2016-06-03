@@ -112,7 +112,8 @@ struct __attribute__ ((__packed__)) djgcc_stubinfo {
 };
 
 struct __attribute__ ((__packed__)) region_psp {
-    char psp[256];
+    char psp[128];
+    char cmdline[128];
     struct djgcc_stubinfo stubinfo; /* offset 0 in go32 */
     char padding[172];
     char buffer[16384];             /* offset 0x100 in go32 */
