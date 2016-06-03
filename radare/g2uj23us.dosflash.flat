@@ -44,37 +44,37 @@ f data.0x4c634 1 0x0004c634
 f dpmi_errno 1 0x00056610 
 f jump_table.0x00003a10 168 0x00003a10 
 fs functions
-f entry0 701 0x000018d0 
+f entry0 516 0x000018d0 
 f fcn.0000df92 54 0x0000df92 
 f fcn.maybe_printf 67 0x00036600 
 f lock_memory 33 0x00001b8d 
 f ___sbrk 550 0x00001bb0 
 f ___register_frame_info 71 0x00034380 
 f ___crt1_startup 184 0x00036118 
-f fcn.000360f4 33 0x000360f4 
-f fcn.0003d9a4 261 0x0003d9a4 
+f setup_os_version 33 0x000360f4 
+f _get_dos_version 261 0x0003d9a4 
 f __dpmi_int 132 0x0003a270 
 f fcn.0000dddd 64 0x0000dddd 
 f fcn.print_and_pause 326 0x00003f00 
 f detect_phoenix 274 0x000132d8 
 f fcn.0000de1d 297 0x0000de1d 
-f fcn.000361d0 568 0x000361d0 
-f fcn.0003f310 5 0x0003f310 
+f malloc 568 0x000361d0 
+f wrapper.___sbrk 5 0x0003f310 
 f copy_from_physical_mem 160 0x0000f170 
 f dpmi_physical_address_map 66 0x00039f00 
-f dpmi_allocate_ldt_desc 34 0x00039f50 
+f __dpmi_allocate_ldt_descriptors 34 0x00039f50 
 f dpmi_free_physical_map 43 0x00039f80 
 f dpmi_set_segment_base_address 43 0x00039fb0 
-f dpmi_set_segment_limit 43 0x00039fe0 
+f __dpmi_set_segment_limit 43 0x00039fe0 
 f dpmi_free_ldt_descriptor 35 0x0003a010 
-f fcn.00036c50 54 0x00036c50 
-f fcn.00036408 355 0x00036408 
-f fcn.0000e40f 1288 0x0000e40f 
+f maybe.strncmp 54 0x00036c50 
+f maybe.free 355 0x00036408 
+f maybe.detect_RSD_PTR 1288 0x0000e40f 
 f fcn.000138f0 10 0x000138f0 
 f fcn.00006c7c 295 0x00006c7c 
 f fcn.00006a70 212 0x00006a70 
 f fcn.00006c07 117 0x00006c07 
-f fcn.00036bf0 37 0x00036bf0 
+f maybe.strcpy 37 0x00036bf0 
 f fcn.0000ed50 25 0x0000ed50 
 f fcn.0001371d 66 0x0001371d 
 f fcn.00013670 45 0x00013670 
@@ -82,7 +82,7 @@ f fcn.00013900 116 0x00013900
 f fcn.00013980 7 0x00013980 
 f fcn.000039d0 29 0x000039d0 
 f loc.00005df0 13 0x00005df0 
-f fcn.000084e0 22 0x000084e0 
+f maybe.memset 22 0x000084e0 
 f fcn.0000e140 287 0x0000e140 
 f fcn.00011ff0 140 0x00011ff0 
 f fcn.00005a70 34 0x00005a70 
@@ -172,20 +172,21 @@ f fcn.000463c0 61 0x000463c0
 f fcn.00040f50 143 0x00040f50 
 f fcn.00045fa0 41 0x00045fa0 
 f fcn.00045e00 62 0x00045e00 
-f fcn.00042030 35 0x00042030 
 f fcn.00040dd0 370 0x00040dd0 
 f fcn.000466c0 45 0x000466c0 
 f fcn.00042d00 138 0x00042d00 
-f fcn.0003df98 398 0x0003df98 
-f fcn.00042d94 15 0x00042d94 
+f __FSEXT_call_open_handlers_wrapper 398 0x0003df98 
+f maybe._put_path 15 0x00042d94 
 f fcn.00042dc0 803 0x00042dc0 
 f fcn.00046430 37 0x00046430 
 f fcn.0003a1c0 99 0x0003a1c0 
 f fcn.0003ddf0 419 0x0003ddf0 
 f fcn.000466f0 330 0x000466f0 
 f fcn.00042cc0 62 0x00042cc0 
-f fcn.00046080 456 0x00046080 
-f fcn.00040ff0 187 0x00040ff0 
+f _open 456 0x00046080 
+fs *
+f maybe.__file_handle_set 187 0x00040ff0 
+fs functions
 f fcn.00045780 143 0x00045780 
 f fcn.00045f70 46 0x00045f70 
 f fcn.00045efc 113 0x00045efc 
@@ -198,7 +199,7 @@ f fcn.00046340 119 0x00046340
 f fcn.00046840 290 0x00046840 
 f fcn.0003d630 238 0x0003d630 
 f fcn.00041420 36 0x00041420 
-f wrapper_copy.0x0003d890 41 0x0003d890 
+f movedata 41 0x0003d890 
 f fcn.0003a370 240 0x0003a370 
 f fcn.0003a460 87 0x0003a460 
 f fcn.00036690 237 0x00036690 
@@ -217,6 +218,7 @@ f fcn.0001352b 59 0x0001352b
 f fcn.0000d9b0 62 0x0000d9b0 
 fs *
 f jump_table.0x0000d9f0 1 0x0000d9f0 
+fs *
 f jump_table.0x000042c4 1 0x000042c4 
 fs functions
 f fcn.0000da04 143 0x0000da04 
@@ -226,7 +228,6 @@ f fcn.000130b0 135 0x000130b0
 f fcn.0000da87 7 0x0000da87 
 f fcn.0000da8e 5 0x0000da8e 
 f fcn.000042a0 33 0x000042a0 
-fs functions
 f fcn.00004350 32 0x00004350 
 f loc.000044b7 2 0x000044b7 
 f fcn.00013570 75 0x00013570 
@@ -278,7 +279,7 @@ f fcn.00005d80 48 0x00005d80
 f fcn.0000e070 26 0x0000e070 
 f fcn.0002b02e 382 0x0002b02e 
 f fcn.0002ee70 144 0x0002ee70 
-f fcn.00011ef0 22 0x00011ef0 
+f memcpy.to_ES 22 0x00011ef0 
 f fcn.00005ae0 40 0x00005ae0 
 f fcn.00005bc0 45 0x00005bc0 
 f fcn.00009d4a 5 0x00009d4a 
@@ -328,9 +329,9 @@ f fcn.00008787 75 0x00008787
 f fcn.00012f30 229 0x00012f30 
 f fcn.0000674c 450 0x0000674c 
 f fcn.0000ed70 171 0x0000ed70 
-f fcn.00012110 12 0x00012110 
-f fcn.0000ee20 12 0x0000ee20 
-f fcn.00007ee0 22 0x00007ee0 
+f wrapper.malloc.0x00012110 12 0x00012110 
+f wrapper.free.0x0000ee20 12 0x0000ee20 
+f maybe.strlen 22 0x00007ee0 
 f fcn.00006914 182 0x00006914 
 f fcn.00036dd0 118 0x00036dd0 
 f maybe.cmdline.0x0000f140 40 0x0000f140 
@@ -539,7 +540,6 @@ f fcn.0002c4a0 277 0x0002c4a0
 f fcn.0002ffc0 155 0x0002ffc0 
 f fcn.00030060 16 0x00030060 
 f fcn.00041340 65 0x00041340 
-f fcn.00035f68 283 0x00035f68 
 f exception_0x0 72 0x000359e0 
 f fcn.00035a28 264 0x00035a28 
 f exception_0xf 4 0x00035a1c 
@@ -570,13 +570,248 @@ f ___djgpp_memory_handle_size 1 0x00052e10
 f _frame_struct 1 0x00048e8a 
 f _CRT0_EH_FRAME_BEGIN_ 1 0x0004c498 
 fs *
-f exit 1 0x00001ad4 
-f ___exit 1 0x00001ad0 
+f exit 185 0x00001ad4 
+fs *
+f ___exit 189 0x00001ad0 
 fs symbols
-f __go32_info_block_26 1 0x00056602 
 f sbrk16_first_byte_6 1 0x00048e1a 
 f exit16_first_byte 1 0x00048eba 
 f __bss_count 1 0x0004a9f0 
+fs *
+f __crt0_argv 1 0x000565e0 
+fs *
+f _osmajor 1 0x0005661c 
+fs *
+f _osminor 1 0x00056620 
+fs functions
+f setup_core_selector 105 0x00035dfc 
+fs *
+f str.Cannot_allocate_selector_for_conventional_memory__exiting___ 60 0x00035dc0 
+fs *
+f _dos_ds 1 0x00056602 
+fs functions
+f setup_screens 110 0x00035e68 
+fs *
+f str._S3__ 5 0x0000e400 
+fs *
+f str._S4__ 5 0x0000e405 
+fs *
+f str._S5__ 5 0x0000e40a 
+fs *
+f str.default.rsp_ 12 0x00006740 
+fs functions
+f setup_go32_info_block 141 0x00035ed8 
+f __dpmi_get_version 55 0x0003d820 
+f __dpmi_get_segment_base_address 44 0x0003d860 
+fs *
+f _go32_info_block 1 0x000565e8 
+fs *
+f _go32_info_block.size_of_this_structure_in_bytes 1 0x000565e8 
+fs *
+f __tb 1 0x000565f4 
+fs *
+f __tb_size 1 0x000565f8 
+fs *
+f _go32_info_block.pid 1 0x000565fc 
+fs *
+f _go32_info_block.master_interrupt_controller_base 1 0x00056600 
+fs *
+f _go32_info_block.slave_interrupt_controller_base 1 0x00056601 
+fs *
+f _go32_info_block.linear_address_of_stub_info_structure 1 0x00056604 
+fs *
+f _go32_info_block.run_mode 1 0x0005660c 
+fs *
+f _go32_info_block.run_mode_info 1 0x0005660e 
+fs functions
+f __djgpp_exception_setup 346 0x0003d320 
+f __djgpp_exception_toggle 377 0x0003d11c 
+f __dpmi_get_protected_mode_interrupt_vector 44 0x000412e0 
+f __dpmi_set_protected_mode_interrupt_vector 44 0x00041310 
+f __dpmi_lock_linear_region 55 0x000413c0 
+f __setup_file_rec_list 75 0x0003dda0 
+f maybe.abort 80 0x0003c510 
+fs *
+f __environ_changed 1 0x0004b3b0 
+fs *
+f __initial_file_rec.next 1 0x00052708 
+fs *
+f __initial_file_rec.count 1 0x0005270c 
+fs *
+f __initial_file_rec.files_0 1 0x00052710 
+fs *
+f __initial_file_rec.files_1 1 0x00052714 
+fs *
+f __initial_file_rec.files_2 1 0x00052718 
+fs *
+f __initial_file_rec.files_3 1 0x0005271c 
+fs *
+f __initial_file_rec.files_4 1 0x00052720 
+fs *
+f stdin 1 0x0004bb40 
+fs *
+f stdout 1 0x0004aa10 
+fs *
+f stderr 1 0x0004b7e0 
+fs *
+f eip 1 0x0004bb62 
+fs *
+f stdprn 1 0x0004bb60 
+fs *
+f stdaux 1 0x0004bb80 
+fs functions
+f setup_pname 110 0x00036084 
+fs *
+f __dos_argv0 1 0x000565e4 
+fs functions
+f maybe.calloc 45 0x0003d8c0 
+f __crt0_load_environment_file 1352 0x0003e144 
+fs *
+f prog_name 1 0x00050a84 
+fs *
+f setup_environment 283 0x00035f68 
+fs *
+f __crt0_setup_arguments 1332 0x0003ed0c 
+fs *
+f maybe.__doserr_to_errno 35 0x00042030 
+fs symbols
+f dpmi_busy 1 0x00050b1c 
+f ___dpmi_int_flags 1 0x00056618 
+f ___dpmi_int_sp 1 0x00056614 
+f ___dpmi_int_ss 1 0x00056616 
+f errno 1 0x00056624 
+f str._Status____d.__ 15 0x0002a934 
+f str._ERROR__03d____s__ 18 0x0002a922 
+fs functions
+f fcn.0002a970 58 0x0002a970 
+f fcn.0002ef00 12 0x0002ef00 
+f loc.00032c60 23 0x00032c60 
+f loc.0002aef8 8 0x0002aef8 
+f fcn.00013f00 39 0x00013f00 
+f fcn.0003c3b0 89 0x0003c3b0 
+f fcn.0002aebc 68 0x0002aebc 
+f fcn.00019a83 186 0x00019a83 
+f fcn.0002ae81 127 0x0002ae81 
+fs symbols
+f jump_table.0x0002a9ac 1364 0x0002a9ac 
+fs functions
+f fcn.0002ae3c 196 0x0002ae3c 
+f fcn.0002ac4c 10 0x0002ac4c 
+f fcn.0002ac42 10 0x0002ac42 
+f fcn.0002ac88 10 0x0002ac88 
+f fcn.0002ac56 10 0x0002ac56 
+f fcn.0002ac38 10 0x0002ac38 
+f fcn.0002ae35 5 0x0002ae35 
+f fcn.0002ae12 5 0x0002ae12 
+f fcn.0002adbe 7 0x0002adbe 
+f fcn.0002ada0 10 0x0002ada0 
+f fcn.0002ac9c 10 0x0002ac9c 
+f fcn.0002ac7e 10 0x0002ac7e 
+f fcn.0002acec 10 0x0002acec 
+f fcn.0002ae0b 5 0x0002ae0b 
+f fcn.0002adaa 10 0x0002adaa 
+f fcn.0002adb4 10 0x0002adb4 
+f fcn.0002acc4 10 0x0002acc4 
+f fcn.0002acb0 10 0x0002acb0 
+f fcn.0002aca6 10 0x0002aca6 
+f fcn.0002ad82 10 0x0002ad82 
+f fcn.0002ad8c 10 0x0002ad8c 
+f fcn.0002ad96 10 0x0002ad96 
+f fcn.0002ac60 10 0x0002ac60 
+f fcn.0002ac6a 10 0x0002ac6a 
+f fcn.0002ac74 10 0x0002ac74 
+f fcn.0002ad6e 10 0x0002ad6e 
+f fcn.0002ad78 10 0x0002ad78 
+f fcn.0002ace2 10 0x0002ace2 
+f fcn.0002acf6 10 0x0002acf6 
+f fcn.0002acba 10 0x0002acba 
+f fcn.0002acce 10 0x0002acce 
+f fcn.0002ad5a 10 0x0002ad5a 
+f fcn.0002ac92 10 0x0002ac92 
+f fcn.0002acd8 10 0x0002acd8 
+f fcn.0002ad0a 10 0x0002ad0a 
+f fcn.0002ad14 10 0x0002ad14 
+f fcn.0002ad1e 10 0x0002ad1e 
+f fcn.0002ad28 10 0x0002ad28 
+f fcn.0002ad32 10 0x0002ad32 
+f fcn.0002ad3c 10 0x0002ad3c 
+f fcn.0002ad00 10 0x0002ad00 
+f fcn.0002ad46 10 0x0002ad46 
+f fcn.0002ad50 10 0x0002ad50 
+f fcn.0002ad64 10 0x0002ad64 
+f fcn.0002adcc 7 0x0002adcc 
+f fcn.0002add3 7 0x0002add3 
+f fcn.0002adda 26 0x0002adda 
+f fcn.0002ade1 287 0x0002ade1 
+f fcn.0002ade8 280 0x0002ade8 
+f fcn.0002adfd 5 0x0002adfd 
+f fcn.0002ae04 5 0x0002ae04 
+f fcn.0002ae19 5 0x0002ae19 
+f fcn.0002ae20 5 0x0002ae20 
+f fcn.0002ae27 5 0x0002ae27 
+f fcn.0002ae2e 5 0x0002ae2e 
+f fcn.0002adc5 7 0x0002adc5 
+f fcn.0002adf4 9 0x0002adf4 
+fs symbols
+f str.System_will_shutdown_or_reboot_in_5_seconds__ 45 0x0002a943 
+f str._Status____u.__ 15 0x0002a913 
+f str._ERROR__03u____s__ 18 0x0002a8ff 
+f str.Undefined_failure_ 18 0x0002a8ed 
+f str.The_region_was_not_found._ 26 0x0002a8d3 
+f str.Failed_to_enable_disable_flash_write._ 38 0x0002a8ad 
+f str.Failed_to_do_flashing_through_PFAT_ 35 0x0002a88a 
+f str.Failed_to_resume_system_button._ 32 0x0002a86a 
+f str.Failed_to_block_system_button._ 31 0x0002a84b 
+f str.Access_was_denied._ 19 0x0002a838 
+f str.Signed_capsule_only_allow_equal_and_newer_version._ 51 0x0002a805 
+f str.Cannot_rollback_to_BIOS_without_AT_module_if_AT_enrolled._ 58 0x0002a7cb 
+f str.Failed_to_commit_all_changes_into_BIOS_image_ 45 0x0002a79e 
+f str.OEM_check_failed_from_BIOS_service_ 35 0x0002a77b 
+f str.SecureFlash_verification_fail_ 30 0x0002a75d 
+f str.Only_secured_capsule_is_allowed_on_a_SecureFlash_system_ 56 0x0002a725 
+f str.Failed_on_processing_DMI_string_s__ 35 0x0002a702 
+f str.Failed_on_patch_boot_block_ 27 0x0002a6e7 
+f str.Failed_to_verify_admin_s_password_ 34 0x0002a6c5 
+f str.BIOS_was_locked_by_secure_flash_option_or_password._ 52 0x0002a691 
+f str.Correct_password_is_required_ 29 0x0002a674 
+f str.Password_failed_too_many_times_ 31 0x0002a655 
+f str.Bitlocker_is_enabled_ 21 0x0002a640 
+f str.Failed_on_variable_handling_ 28 0x0002a624 
+f str.Failed_on_executing_WRITE_command_ 34 0x0002a602 
+f str.Failed_to_initialize_SMI_ 25 0x0002a5e9 
+f str.Failed_on_executing_SPU_command_ 32 0x0002a5c9 
+f str.Failed_on_executing_SLP_command_ 32 0x0002a5a9 
+f str.Fail_to_reserve_sub_region_ 27 0x0002a58e 
+f str.Failed_to_read_BIOS_from_ROM_ 29 0x0002a571 
+f str.Failed_on_checking_rollback_setting_ 36 0x0002a54d 
+f str.Failed_to_handle_raw_module_ 28 0x0002a531 
+f str.Invalid_parameter_for_power_status_check_ 41 0x0002a508 
+f str.Failed_the_power_status_check_because_of_not_enough_battery_life_ 65 0x0002a4c7 
+f str.Failed_the_power_status_check_because_AC_power_is_off_ 54 0x0002a491 
+f str.Failed_to_get_power_status_ 27 0x0002a476 
+f str.Failed_at_power_status_check_ 29 0x0002a459 
+f str.Failed_to_exit_flash_with_power_action_ 39 0x0002a432 
+f str.Commands_policy_verification_failed_ 36 0x0002a40e 
+f str.Failed_on_module_operation_ 27 0x0002a3f3 
+f str.Failed_to_update_microcode_ 27 0x0002a3d8 
+f str.Failed_on_logo_operation_ 25 0x0002a3bf 
+f str.Failed_on_IPF_command_ 22 0x0002a3a9 
+f str.Failed_to_read_BIOS_from_memory_ 32 0x0002a389 
+f str.Failed_to_perform_flash_initialization_ 39 0x0002a362 
+f str.Unable_to_determine_flash_mode_ 31 0x0002a343 
+f str.Failed_to_finalize_flash_ 25 0x0002a32a 
+f str.Failed_to_get_prog_starting_address_ 36 0x0002a306 
+f str.BIOS_part_numbers_do_not_match_ 31 0x0002a2e7 
+f str.BIOS_layout_does_not_match_ 27 0x0002a2cc 
+f str.Invalid_BIOS_image_ 19 0x0002a2b9 
+f str.Failed_to_commit_BCP_ 21 0x0002a27e 
+f str.BIOS_image_is_equal_or_older_than_ROM_ 38 0x0002a293 
+f str.Failed_to_merge_BCPs_ 21 0x0002a269 
+f str.Failed_to_create_BCP_ 21 0x0002a254 
+f str.Failed_to_perform_flash_ 24 0x0002a23c 
+f str.Failed_to_load_BIOS_image_file_ 31 0x0002a21d 
+f str.Failed_to_backup_BIOS_ROM_ 26 0x0002a203 
+f str.Command_line_error_ 19 0x0002a1f0 
 # eval
 "e anal.a2f = false"
 "e anal.afterjmp = true"
@@ -761,8 +996,8 @@ f __bss_count 1 0x0004a9f0
 "e dbg.trace.tag = 0"
 "e dbg.unlibs = "
 "e diff.bare = false"
-"e diff.from = 0"
-"e diff.to = 0"
+"e diff.from = "
+"e diff.to = "
 "e dir.magic = /home/hamish/bin/prefix/radare2//lib/radare2/0.10.3-git/magic"
 "e dir.plugins = /home/hamish/bin/prefix/radare2//lib/radare2/0.10.3-git/"
 "e dir.projects = ~/.config/radare2/projects"
@@ -802,7 +1037,7 @@ f __bss_count 1 0x0004a9f0
 "e graph.title = "
 "e graph.to = 0xffffffffffffffff"
 "e graph.web = false"
-"e hex.cols = 16"
+"e hex.cols = 12"
 "e hex.depth = 5"
 "e hex.flagsz = 0"
 "e hex.onechar = false"
@@ -2503,9 +2738,9 @@ Cd 4 @ 0x00053a1c
 CCu base64:c3M= @ 0x0003a2c9
 CCu base64:c3A= @ 0x0003a2c3
 CCu base64:ZmxhZ3M= @ 0x0003a2bd
-CCu base64:c3M= @ 0x0003a2b7
-CCu base64:c3A= @ 0x0003a2ad
-CCu base64:ZmxhZ3M= @ 0x0003a2a3
+CCu base64:ci54LnNz @ 0x0003a2b7
+CCu base64:ci54LnNw @ 0x0003a2ad
+CCu base64:ci54LmZsYWdz @ 0x0003a2a3
 CCu base64:Y2FsbCBzdHJ1Y3R1cmU= @ 0x0003a28b
 CCu base64:d29yZHMgdG8gY29weQ== @ 0x0003a286
 CCu base64:aW50IG51bWJlcg== @ 0x0003a283
@@ -2553,8 +2788,277 @@ CCu base64:U1RVQklORk9fQ1NfU0VMRUNUT1I= @ 0x00001b20
 CCu base64:U1RVQklORk9fRFNfU0VMRUNUT1I= @ 0x00001b31
 CCu base64:ZXhpdDE2X2xhc3RfYnl0ZSAtIGV4aXQxNl9maXJzdF9ieXRl @ 0x00001b3b
 Cd 4 @ 0x0004a9f0
-f entry0 701 0x000018d0
-af+ 0x000018d0 701 entry0 f n
+Cd 4 @ 0x000565e0
+Cd 2 @ 0x0005661c
+Cd 2 @ 0x00056620
+Cs 60 @ 0x00035dc0 # Cannot_allocate_selector_for_conventional_memory__exiting_r_n
+CCu base64:c2l6ZQ== @ 0x00013325
+CCu base64:b2Zmc2V0 @ 0x0001332a
+CCu base64:c2l6ZQ== @ 0x00013302
+CCu base64:ZXJyb3IgY29kZQ== @ 0x00013312
+Cs 5 @ 0x0000e400 # _S3_
+Cs 5 @ 0x0000e405 # _S4_
+Cs 5 @ 0x0000e40a # _S5_
+Cs 12 @ 0x00006740 # default.rsp
+CCu base64:c2l6ZW9mKF9fR28zMl9JbmZvX0Jsb2NrKQ== @ 0x00035ee8
+Cd 4 @ 0x000565e8
+CCu base64:ZHNfc2VnbWVudA== @ 0x00035ef8
+Cd 4 @ 0x000565f4
+CCu base64:bWlua2VlcA== @ 0x00035f04
+Cd 4 @ 0x000565f8
+CCu base64:cHNwX3NlbGVjdG9y @ 0x00035f0d
+Cd 4 @ 0x000565fc
+Cd 1 @ 0x00056600
+Cd 1 @ 0x00056601
+Cd 4 @ 0x00056604
+CCu base64:cHNwX3NlbGVjdG9y @ 0x00035f37
+Cd 2 @ 0x0005660c
+CCu base64:X0dPMzJfUlVOX01PREVfRFBNSQ== @ 0x00035f41
+Cd 2 @ 0x0005660e
+Cd 4 @ 0x0004b3b0
+Cd 4 @ 0x00052708
+Cd 4 @ 0x0005270c
+Cd 4 @ 0x00052710
+Cd 4 @ 0x00052714
+Cd 4 @ 0x00052718
+Cd 4 @ 0x0005271c
+Cd 4 @ 0x00052720
+Cd 4 @ 0x000565e4
+Cd 4 @ 0x00050a84
+Cd 1 @ 0x00050b1c
+Cd 2 @ 0x00056618
+Cd 2 @ 0x00056614
+Cd 2 @ 0x00056616
+Cd 4 @ 0x00056624
+CCu base64:RUlOVkFM @ 0x000460a5
+Cs 15 @ 0x0002a934 # Status____d._n_
+Cs 18 @ 0x0002a922 # _nERROR__03d____s__
+Cd 4 @ 0x0002a9ac
+Cd 4 @ 0x0002a9b0
+Cd 4 @ 0x0002a9b4
+Cd 4 @ 0x0002a9b8
+Cd 4 @ 0x0002a9bc
+Cd 4 @ 0x0002a9c0
+Cd 4 @ 0x0002a9c4
+Cd 4 @ 0x0002a9c8
+Cd 4 @ 0x0002a9cc
+Cd 4 @ 0x0002a9d0
+Cd 4 @ 0x0002a9d4
+Cd 4 @ 0x0002a9d8
+Cd 4 @ 0x0002a9dc
+Cd 4 @ 0x0002a9e0
+Cd 4 @ 0x0002a9e4
+Cd 4 @ 0x0002a9e8
+Cd 4 @ 0x0002a9ec
+Cd 4 @ 0x0002a9f0
+Cd 4 @ 0x0002a9f4
+Cd 4 @ 0x0002a9f8
+Cd 4 @ 0x0002a9fc
+Cd 4 @ 0x0002aa00
+Cd 4 @ 0x0002aa04
+Cd 4 @ 0x0002aa08
+Cd 4 @ 0x0002aa0c
+Cd 4 @ 0x0002aa10
+Cd 4 @ 0x0002aa14
+Cd 4 @ 0x0002aa18
+Cd 4 @ 0x0002aa1c
+Cd 4 @ 0x0002aa20
+Cd 4 @ 0x0002aa24
+Cd 4 @ 0x0002aa28
+Cd 4 @ 0x0002aa2c
+Cd 4 @ 0x0002aa30
+Cd 4 @ 0x0002aa34
+Cd 4 @ 0x0002aa38
+Cd 4 @ 0x0002aa3c
+Cd 4 @ 0x0002aa40
+Cd 4 @ 0x0002aa44
+Cd 4 @ 0x0002aa48
+Cd 4 @ 0x0002aa4c
+Cd 4 @ 0x0002aa50
+Cd 4 @ 0x0002aa54
+Cd 4 @ 0x0002aa58
+Cd 4 @ 0x0002aa5c
+Cd 4 @ 0x0002aa60
+Cd 4 @ 0x0002aa64
+Cd 4 @ 0x0002aa68
+Cd 4 @ 0x0002aa6c
+Cd 4 @ 0x0002aa70
+Cd 4 @ 0x0002aa74
+Cd 4 @ 0x0002aa78
+Cd 4 @ 0x0002aa7c
+Cd 4 @ 0x0002aa80
+Cd 4 @ 0x0002aa84
+Cd 4 @ 0x0002aa88
+Cd 4 @ 0x0002aa8c
+Cd 4 @ 0x0002aa90
+Cd 4 @ 0x0002aa94
+Cd 4 @ 0x0002aa98
+Cd 4 @ 0x0002aa9c
+Cd 4 @ 0x0002aaa0
+Cd 4 @ 0x0002aaa4
+Cd 4 @ 0x0002aaa8
+Cd 4 @ 0x0002aaac
+Cd 4 @ 0x0002aab0
+Cd 4 @ 0x0002aab4
+Cd 4 @ 0x0002aab8
+Cd 4 @ 0x0002aabc
+Cd 4 @ 0x0002aac0
+Cd 4 @ 0x0002aac4
+Cd 4 @ 0x0002aac8
+Cd 4 @ 0x0002aacc
+Cd 4 @ 0x0002aad0
+Cd 4 @ 0x0002aad4
+Cd 4 @ 0x0002aad8
+Cd 4 @ 0x0002aadc
+Cd 4 @ 0x0002aae0
+Cd 4 @ 0x0002aae4
+Cd 4 @ 0x0002aae8
+Cd 4 @ 0x0002aaec
+Cd 4 @ 0x0002aaf0
+Cd 4 @ 0x0002aaf4
+Cd 4 @ 0x0002aaf8
+Cd 4 @ 0x0002aafc
+Cd 4 @ 0x0002ab00
+Cd 4 @ 0x0002ab04
+Cd 4 @ 0x0002ab08
+Cd 4 @ 0x0002ab0c
+Cd 4 @ 0x0002ab10
+Cd 4 @ 0x0002ab14
+Cd 4 @ 0x0002ab18
+Cd 4 @ 0x0002ab1c
+Cd 4 @ 0x0002ab20
+Cd 4 @ 0x0002ab24
+Cd 4 @ 0x0002ab28
+Cd 4 @ 0x0002ab2c
+Cd 4 @ 0x0002ab30
+Cd 4 @ 0x0002ab34
+Cd 4 @ 0x0002ab38
+Cd 4 @ 0x0002ab3c
+Cd 4 @ 0x0002ab40
+Cd 4 @ 0x0002ab44
+Cd 4 @ 0x0002ab46
+Cd 4 @ 0x0002ab48
+Cd 4 @ 0x0002ab4c
+Cd 4 @ 0x0002ab50
+Cd 4 @ 0x0002ab54
+Cd 4 @ 0x0002ab58
+Cd 4 @ 0x0002ab5c
+Cd 4 @ 0x0002ab60
+Cd 4 @ 0x0002ab64
+Cd 4 @ 0x0002ab68
+Cd 4 @ 0x0002ab6c
+Cd 4 @ 0x0002ab70
+Cd 4 @ 0x0002ab74
+Cd 4 @ 0x0002ab78
+Cd 4 @ 0x0002ab7c
+Cd 4 @ 0x0002ab80
+Cd 4 @ 0x0002ab84
+Cd 4 @ 0x0002ab88
+Cd 4 @ 0x0002ab8c
+Cd 4 @ 0x0002ab90
+Cd 4 @ 0x0002ab94
+Cd 4 @ 0x0002ab98
+Cd 4 @ 0x0002ab9c
+Cd 4 @ 0x0002aba0
+Cd 4 @ 0x0002aba4
+Cd 4 @ 0x0002aba8
+Cd 4 @ 0x0002abac
+Cd 4 @ 0x0002abb0
+Cd 4 @ 0x0002abb4
+Cd 4 @ 0x0002abb8
+Cd 4 @ 0x0002abbc
+Cd 4 @ 0x0002abc0
+Cd 4 @ 0x0002abc4
+Cd 4 @ 0x0002abc8
+Cd 4 @ 0x0002abcc
+Cd 4 @ 0x0002abd0
+Cd 4 @ 0x0002abd4
+Cd 4 @ 0x0002abd8
+Cd 4 @ 0x0002abdc
+Cd 4 @ 0x0002abe0
+Cd 4 @ 0x0002abe4
+Cd 4 @ 0x0002abe8
+Cd 4 @ 0x0002abec
+Cd 4 @ 0x0002abf0
+Cd 4 @ 0x0002abf4
+Cd 4 @ 0x0002abf8
+Cd 4 @ 0x0002abfc
+Cd 4 @ 0x0002ac00
+Cd 4 @ 0x0002ac04
+Cd 4 @ 0x0002ac08
+Cd 4 @ 0x0002ac0c
+Cd 4 @ 0x0002ac10
+Cd 4 @ 0x0002ac14
+Cd 4 @ 0x0002ac18
+Cd 4 @ 0x0002ac1c
+Cd 4 @ 0x0002ac20
+Cd 4 @ 0x0002ac24
+Cd 4 @ 0x0002ac28
+Cd 4 @ 0x0002ac2c
+Cd 4 @ 0x0002ac30
+Cd 4 @ 0x0002ac34
+Cd 290 @ 0x0002adca
+Cs 45 @ 0x0002a943 # System_will_shutdown_or_reboot_in_5_seconds__
+Cs 15 @ 0x0002a913 # Status____u._n_
+Cs 18 @ 0x0002a8ff # _nERROR__03u____s__
+Cs 18 @ 0x0002a8ed # Undefined_failure_
+Cs 26 @ 0x0002a8d3 # The_region_was_not_found._
+Cs 38 @ 0x0002a8ad # Failed_to_enable_disable_flash_write._
+Cs 35 @ 0x0002a88a # Failed_to_do_flashing_through_PFAT_
+Cs 32 @ 0x0002a86a # Failed_to_resume_system_button._
+Cs 31 @ 0x0002a84b # Failed_to_block_system_button._
+Cs 19 @ 0x0002a838 # Access_was_denied._
+Cs 51 @ 0x0002a805 # Signed_capsule_only_allow_equal_and_newer_version._
+Cs 58 @ 0x0002a7cb # Cannot_rollback_to_BIOS_without_AT_module_if_AT_enrolled._
+Cs 45 @ 0x0002a79e # Failed_to_commit_all_changes_into_BIOS_image_
+Cs 35 @ 0x0002a77b # OEM_check_failed_from_BIOS_service_
+Cs 30 @ 0x0002a75d # SecureFlash_verification_fail_
+Cs 56 @ 0x0002a725 # Only_secured_capsule_is_allowed_on_a_SecureFlash_system_
+Cs 35 @ 0x0002a702 # Failed_on_processing_DMI_string_s__
+Cs 27 @ 0x0002a6e7 # Failed_on_patch_boot_block_
+Cs 34 @ 0x0002a6c5 # Failed_to_verify_admin_s_password_
+Cs 52 @ 0x0002a691 # BIOS_was_locked_by_secure_flash_option_or_password._
+Cs 29 @ 0x0002a674 # Correct_password_is_required_
+Cs 31 @ 0x0002a655 # Password_failed_too_many_times_
+Cs 21 @ 0x0002a640 # Bitlocker_is_enabled_
+Cs 28 @ 0x0002a624 # Failed_on_variable_handling_
+Cs 34 @ 0x0002a602 # Failed_on_executing_WRITE_command_
+Cs 25 @ 0x0002a5e9 # Failed_to_initialize_SMI_
+Cs 32 @ 0x0002a5c9 # Failed_on_executing_SPU_command_
+Cs 32 @ 0x0002a5a9 # Failed_on_executing_SLP_command_
+Cs 27 @ 0x0002a58e # Fail_to_reserve_sub_region_
+Cs 29 @ 0x0002a571 # Failed_to_read_BIOS_from_ROM_
+Cs 36 @ 0x0002a54d # Failed_on_checking_rollback_setting_
+Cs 28 @ 0x0002a531 # Failed_to_handle_raw_module_
+Cs 41 @ 0x0002a508 # Invalid_parameter_for_power_status_check_
+Cs 65 @ 0x0002a4c7 # Failed_the_power_status_check_because_of_not_enough_battery_life_
+Cs 54 @ 0x0002a491 # Failed_the_power_status_check_because_AC_power_is_off_
+Cs 27 @ 0x0002a476 # Failed_to_get_power_status_
+Cs 29 @ 0x0002a459 # Failed_at_power_status_check_
+Cs 39 @ 0x0002a432 # Failed_to_exit_flash_with_power_action_
+Cs 36 @ 0x0002a40e # Commands_policy_verification_failed_
+Cs 27 @ 0x0002a3f3 # Failed_on_module_operation_
+Cs 27 @ 0x0002a3d8 # Failed_to_update_microcode_
+Cs 25 @ 0x0002a3bf # Failed_on_logo_operation_
+Cs 22 @ 0x0002a3a9 # Failed_on_IPF_command_
+Cs 32 @ 0x0002a389 # Failed_to_read_BIOS_from_memory_
+Cs 39 @ 0x0002a362 # Failed_to_perform_flash_initialization_
+Cs 31 @ 0x0002a343 # Unable_to_determine_flash_mode_
+Cs 25 @ 0x0002a32a # Failed_to_finalize_flash_
+Cs 36 @ 0x0002a306 # Failed_to_get_prog_starting_address_
+Cs 31 @ 0x0002a2e7 # BIOS_part_numbers_do_not_match_
+Cs 27 @ 0x0002a2cc # BIOS_layout_does_not_match_
+Cs 19 @ 0x0002a2b9 # Invalid_BIOS_image_
+Cs 21 @ 0x0002a27e # Failed_to_commit_BCP_
+Cs 38 @ 0x0002a293 # BIOS_image_is_equal_or_older_than_ROM_
+Cs 21 @ 0x0002a269 # Failed_to_merge_BCPs_
+Cs 21 @ 0x0002a254 # Failed_to_create_BCP_
+Cs 24 @ 0x0002a23c # Failed_to_perform_flash_
+Cs 31 @ 0x0002a21d # Failed_to_load_BIOS_image_file_
+Cs 26 @ 0x0002a203 # Failed_to_backup_BIOS_ROM_
+Cs 19 @ 0x0002a1f0 # Command_line_error_
+f entry0 516 0x000018d0
+af+ 0x000018d0 516 entry0 f n
 afC cdecl @ 0x000018d0
 afb+ 0x000018d0 0x000018d0 11 0x00001900 0x000018db n n
 afb+ 0x000018d0 0x00001900 11 0x0000190f 0x0000190b n n
@@ -2563,16 +3067,10 @@ afb+ 0x000018d0 0x0000194d 9 0x00001968 0x00001956 n n
 afb+ 0x000018d0 0x00001968 9 0x000019eb 0x00001971 n n
 afb+ 0x000018d0 0x000019eb 13 0x000019f8 0xffffffffffffffff b n
 afb+ 0x000018d0 0x00001a03 89 0x00001ac8 0x00001a5c n n
-afb+ 0x000018d0 0x00001ac8 4 0x00001ad4 0xffffffffffffffff n n
-afb+ 0x000018d0 0x00001ad4 44 0x00001b1a 0x00001b00 n n
-afb+ 0x000018d0 0x00001b1a 59 0x00001b64 0xffffffffffffffff n n
-afb+ 0x000018d0 0x00001b64 8 0x00001b55 0x00001b6c n n
-afb+ 0x000018d0 0x00001b55 15 0x00001b64 0xffffffffffffffff n n
-afb+ 0x000018d0 0x00001b6c 33 0xffffffffffffffff 0xffffffffffffffff n n
-afb+ 0x000018d0 0x00001b00 26 0x00001b1a 0xffffffffffffffff n n
+afb+ 0x000018d0 0x00001ac8 4 0xffffffffffffffff 0xffffffffffffffff n n
 afb+ 0x000018d0 0x00001a5c 43 0x00001a8e 0x00001a87 n n
 afb+ 0x000018d0 0x00001a8e 11 0x00001ac8 0x00001a99 n n
-afb+ 0x000018d0 0x00001a99 47 0x00001ad4 0xffffffffffffffff n n
+afb+ 0x000018d0 0x00001a99 47 0xffffffffffffffff 0xffffffffffffffff n n
 afb+ 0x000018d0 0x00001a87 7 0x00001a8e 0xffffffffffffffff n n
 afb+ 0x000018d0 0x000019fc 7 0x000019f8 0xffffffffffffffff n n
 afb+ 0x000018d0 0x000019f8 4 0x00001a03 0x000019fc n n
@@ -2584,6 +3082,24 @@ afb+ 0x000018d0 0x0000193d 16 0x00001968 0xffffffffffffffff n n
 afb+ 0x000018d0 0x0000190b 4 0x0000190f 0xffffffffffffffff n n
 afb+ 0x000018d0 0x000018db 12 0x00001900 0x000018e7 n n
 afb+ 0x000018d0 0x000018e7 25 0x00001900 0xffffffffffffffff n n
+f ___exit 189 0x00001ad0
+af+ 0x00001ad0 189 ___exit f n
+afC cdecl @ 0x00001ad0
+afb+ 0x00001ad0 0x00001ad0 48 0x00001b1a 0x00001b00 n n
+afb+ 0x00001ad0 0x00001b1a 59 0x00001b64 0xffffffffffffffff n n
+afb+ 0x00001ad0 0x00001b64 8 0x00001b55 0x00001b6c n n
+afb+ 0x00001ad0 0x00001b55 15 0x00001b64 0xffffffffffffffff n n
+afb+ 0x00001ad0 0x00001b6c 33 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00001ad0 0x00001b00 26 0x00001b1a 0xffffffffffffffff n n
+f exit 185 0x00001ad4
+af+ 0x00001ad4 185 exit f n
+afC cdecl @ 0x00001ad4
+afb+ 0x00001ad4 0x00001ad4 44 0x00001b1a 0x00001b00 n n
+afb+ 0x00001ad4 0x00001b1a 59 0x00001b64 0xffffffffffffffff n n
+afb+ 0x00001ad4 0x00001b64 8 0x00001b55 0x00001b6c n n
+afb+ 0x00001ad4 0x00001b55 15 0x00001b64 0xffffffffffffffff n n
+afb+ 0x00001ad4 0x00001b6c 33 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00001ad4 0x00001b00 26 0x00001b1a 0xffffffffffffffff n n
 f lock_memory 33 0x00001b8d
 af+ 0x00001b8d 33 lock_memory f n
 afC cdecl @ 0x00001b8d
@@ -4145,8 +4661,8 @@ afv 80 local_50h int @ 0x7014
 afv 84 local_54h int @ 0x7014
 afv 88 local_58h int @ 0x7014
 afv 92 local_5ch int @ 0x7014
-f fcn.00007ee0 22 0x00007ee0
-af+ 0x00007ee0 22 fcn.00007ee0 f n
+f maybe.strlen 22 0x00007ee0
+af+ 0x00007ee0 22 maybe.strlen f n
 afC cdecl @ 0x00007ee0
 afb+ 0x00007ee0 0x00007ee0 22 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x7ee0
@@ -4282,8 +4798,8 @@ f fcn.000084cc 18 0x000084cc
 af+ 0x000084cc 18 fcn.000084cc f n
 afC cdecl @ 0x000084cc
 afb+ 0x000084cc 0x000084cc 18 0xffffffffffffffff 0xffffffffffffffff n n
-f fcn.000084e0 22 0x000084e0
-af+ 0x000084e0 22 fcn.000084e0 f n
+f maybe.memset 22 0x000084e0
+af+ 0x000084e0 22 maybe.memset f n
 afC cdecl @ 0x000084e0
 afb+ 0x000084e0 0x000084e0 22 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x84e0
@@ -5422,16 +5938,6 @@ afa 16 arg_10h int @ 0xbe2d
 afa 20 arg_14h int @ 0xbe2d
 afv 12 local_ch int @ 0xbe2d
 afv 16 local_10h int @ 0xbe2d
-f fcn.0000bfea 188171 0x0000bfea
-af+ 0x0000bfea 188171 fcn.0000bfea f n
-afC cdecl @ 0x0000bfea
-afb+ 0x0000bfea 0x0000bfea 16 0x0000bffe 0x0000bffa n n
-afb+ 0x0000bfea 0x0000bffe 5 0xffffffffffffffff 0xffffffffffffffff n n
-afb+ 0x0000bfea 0x0000bffa 4 0x0000c003 0x0000bffe n n
-afb+ 0x0000bfea 0x0000c003 12 0x00039ef0 0xffffffffffffffff n n
-afb+ 0x0000bfea 0x00039ef0 5 0x00041fd0 0xffffffffffffffff n n
-afa 8 arg_8h int @ 0xbfea
-afa 12 arg_ch int @ 0xbfea
 f fcn.0000c00f 261 0x0000c00f
 af+ 0x0000c00f 261 fcn.0000c00f f n
 afC cdecl @ 0x0000c00f
@@ -5876,8 +6382,8 @@ f loc.0000e3df 10 0x0000e3df
 af+ 0x0000e3df 10 loc.0000e3df l n
 afC cdecl @ 0x0000e3df
 afb+ 0x0000e3df 0x0000e3df 10 0xffffffffffffffff 0xffffffffffffffff n n
-f fcn.0000e40f 1288 0x0000e40f
-af+ 0x0000e40f 1288 fcn.0000e40f f n
+f maybe.detect_RSD_PTR 1288 0x0000e40f
+af+ 0x0000e40f 1288 maybe.detect_RSD_PTR f n
 afC cdecl @ 0x0000e40f
 afb+ 0x0000e40f 0x0000e40f 22 0x0000e8ce 0x0000e425 n n
 afb+ 0x0000e40f 0x0000e8ce 9 0x0000e8e1 0x0000e8d7 n n
@@ -6086,8 +6592,8 @@ afa 12 arg_ch int @ 0xed70
 afa 16 arg_10h int @ 0xed70
 afv 12 local_ch int @ 0xed70
 afv 28 local_1ch int @ 0xed70
-f fcn.0000ee20 12 0x0000ee20
-af+ 0x0000ee20 12 fcn.0000ee20 f n
+f wrapper.free.0x0000ee20 12 0x0000ee20
+af+ 0x0000ee20 12 wrapper.free.0x0000ee20 f n
 afC cdecl @ 0x0000ee20
 afb+ 0x0000ee20 0x0000ee20 12 0x00036408 0xffffffffffffffff n n
 f fcn.0000ee8a 685 0x0000ee8a
@@ -6571,8 +7077,8 @@ afv 12 local_ch int @ 0x11b86
 afv 28 local_1ch int @ 0x11b86
 afv 32 local_20h int @ 0x11b86
 afv 33 local_21h int @ 0x11b86
-f fcn.00011ef0 22 0x00011ef0
-af+ 0x00011ef0 22 fcn.00011ef0 f n
+f memcpy.to_ES 22 0x00011ef0
+af+ 0x00011ef0 22 memcpy.to_ES f n
 afC cdecl @ 0x00011ef0
 afb+ 0x00011ef0 0x00011ef0 22 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x11ef0
@@ -6655,8 +7161,8 @@ afb+ 0x000120e0 0x000120f3 4 0x000120fe 0x000120f7 n n
 afb+ 0x000120e0 0x000120fe 12 0x0001210a 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x120e0
 afa 12 arg_ch int @ 0x120e0
-f fcn.00012110 12 0x00012110
-af+ 0x00012110 12 fcn.00012110 f n
+f wrapper.malloc.0x00012110 12 0x00012110
+af+ 0x00012110 12 wrapper.malloc.0x00012110 f n
 afC cdecl @ 0x00012110
 afb+ 0x00012110 0x00012110 12 0x000361d0 0xffffffffffffffff n n
 f fcn.00012120 580 0x00012120
@@ -7106,8 +7612,8 @@ afa 2 arg_2h int @ 0x132d8
 afa 8 arg_8h int @ 0x132d8
 afv 12 local_ch int @ 0x132d8
 afv 25 local_19h int @ 0x132d8
-afv 85 local_55h int @ 0x132d8
-afv 89 local_59h int @ 0x132d8
+afv 85 match_l int @ 0x132d8
+afv 89 match_h int @ 0x132d8
 afv 108 local_6ch int @ 0x132d8
 afv 112 local_70h int @ 0x132d8
 f fcn.000133f0 12 0x000133f0
@@ -7299,6 +7805,13 @@ afb+ 0x00013b81 0x00013be7 5 0xffffffffffffffff 0xffffffffffffffff n n
 afb+ 0x00013b81 0x00013bae 52 0x00013be7 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x13b81
 afv 4 local_4h int @ 0x13b81
+f fcn.00013f00 39 0x00013f00
+af+ 0x00013f00 39 fcn.00013f00 f n
+afC cdecl @ 0x00013f00
+afb+ 0x00013f00 0x00013f00 20 0x00013f25 0x00013f14 n n
+afb+ 0x00013f00 0x00013f14 17 0x00013f25 0xffffffffffffffff n n
+afb+ 0x00013f00 0x00013f25 2 0xffffffffffffffff 0xffffffffffffffff n n
+afa 12 arg_ch int @ 0x13f00
 f fcn.00014069 99 0x00014069
 af+ 0x00014069 99 fcn.00014069 f n
 afC cdecl @ 0x00014069
@@ -7778,6 +8291,27 @@ f fcn.00017862 90 0x00017862
 af+ 0x00017862 90 fcn.00017862 f n
 afC cdecl @ 0x00017862
 afb+ 0x00017862 0x00017862 90 0xffffffffffffffff 0xffffffffffffffff n n
+f fcn.00019a83 186 0x00019a83
+af+ 0x00019a83 186 fcn.00019a83 f n
+afC cdecl @ 0x00019a83
+afb+ 0x00019a83 0x00019a83 32 0x00019b36 0x00019aa3 n n
+afb+ 0x00019a83 0x00019b36 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00019a83 0x00019aa3 18 0x00019b36 0x00019ab5 n n
+afb+ 0x00019a83 0x00019ab5 19 0x00019ad5 0x00019ac8 n n
+afb+ 0x00019a83 0x00019ad5 9 0x00019b31 0x00019ade n n
+afb+ 0x00019a83 0x00019b31 5 0x00019b36 0xffffffffffffffff n n
+afb+ 0x00019a83 0x00019ade 11 0x00019af4 0x00019ae9 n n
+afb+ 0x00019a83 0x00019af4 5 0x00019b2d 0x00019af9 n n
+afb+ 0x00019a83 0x00019b2d 4 0x00019b36 0x00019b31 n n
+afb+ 0x00019a83 0x00019af9 47 0x00019b28 0xffffffffffffffff b n
+afb+ 0x00019a83 0x00019ae9 11 0x00019b28 0xffffffffffffffff n n
+afb+ 0x00019a83 0x00019b28 5 0x00019b36 0xffffffffffffffff n n
+afb+ 0x00019a83 0x00019ac8 8 0x00019ad5 0x00019ad0 n n
+afb+ 0x00019a83 0x00019ad0 5 0x00019ade 0x00019ad5 n n
+afa 8 arg_8h int @ 0x19a83
+afa 12 arg_ch int @ 0x19a83
+afv 8 local_8h int @ 0x19a83
+afv 12 local_ch int @ 0x19a83
 f fcn.00019c70 121 0x00019c70
 af+ 0x00019c70 121 fcn.00019c70 f n
 afC cdecl @ 0x00019c70
@@ -8167,33 +8701,117 @@ afb+ 0x000262f7 0x00026305 9 0x0002631f 0xffffffffffffffff n n
 afb+ 0x000262f7 0x0002631f 12 0x0002630e 0x0002632b n n
 afb+ 0x000262f7 0x0002630e 17 0x0002631f 0xffffffffffffffff n n
 afv 8 local_8h int @ 0x262f7
-f fcn.0002af00 237 0x0002af00
-af+ 0x0002af00 237 fcn.0002af00 f n
-afC cdecl @ 0x0002af00
-afb+ 0x0002af00 0x0002af00 39 0x0002afe0 0x0002af27 n n
-afb+ 0x0002af00 0x0002afe0 5 0x0002afe5 0xffffffffffffffff b n
-afb+ 0x0002af00 0x0002af27 13 0x0002afc1 0xffffffffffffffff n n
-afb+ 0x0002af00 0x0002afc1 9 0x0002af34 0x0002afca n n
-afb+ 0x0002af00 0x0002af34 28 0x0002afca 0x0002af50 n n
-afb+ 0x0002af00 0x0002afca 22 0x0002afe5 0x0002afe0 n n
-afb+ 0x0002af00 0x0002afe5 8 0xffffffffffffffff 0xffffffffffffffff n n
-afb+ 0x0002af00 0x0002af50 8 0x0002afe0 0x0002af58 n n
-afb+ 0x0002af00 0x0002af58 7 0x0002afc0 0x0002af5f n n
-afb+ 0x0002af00 0x0002afc0 1 0x0002afc1 0xffffffffffffffff n n
-afb+ 0x0002af00 0x0002af5f 7 0x0002afc0 0x0002af66 n n
-afb+ 0x0002af00 0x0002af66 28 0x0002af86 0x0002af82 n n
-afb+ 0x0002af00 0x0002af86 7 0x0002afe0 0x0002af8d n n
-afb+ 0x0002af00 0x0002af8d 7 0x0002afe0 0x0002af94 n n
-afb+ 0x0002af00 0x0002af94 22 0x0002afe0 0x0002afaa n n
-afb+ 0x0002af00 0x0002afaa 22 0x0002afe0 0x0002afc0 n n
-afb+ 0x0002af00 0x0002af82 4 0x0002afe0 0x0002af86 n n
-afv 0 local_0h int @ 0x2af00
-afv 12 local_ch int @ 0x2af00
-afv 26 local_1ah int @ 0x2af00
-afv 28 local_1ch int @ 0x2af00
-afv 32 local_20h int @ 0x2af00
-afv 36 local_24h int @ 0x2af00
-afv 40 local_28h int @ 0x2af00
+f fcn.0002a970 58 0x0002a970
+af+ 0x0002a970 58 fcn.0002a970 f n
+afC cdecl @ 0x0002a970
+afb+ 0x0002a970 0x0002a970 25 0xffffffffffffffff 0x0002a989 n n
+afb+ 0x0002a970 0x0002a989 26 0xffffffffffffffff 0x0002a9a3 n n
+afb+ 0x0002a970 0x0002a9a3 7 0xffffffffffffffff 0xffffffffffffffff n n
+afa 1 arg_1h int @ 0x2a970
+afa 8 arg_8h int @ 0x2a970
+afv 12 local_ch int @ 0x2a970
+afv 32 local_20h int @ 0x2a970
+f jump_table.0x0002a9ac 1364 0x0002a9ac
+af+ 0x0002a9ac 1364 jump_table.0x0002a9ac f n
+afC cdecl @ 0x0002a9ac
+afb+ 0x0002a9ac 0x0002a9ac 322 0x0002aaee 0xffffffffffffffff b n
+afb+ 0x0002a9ac 0x0002aaee 84 0x0002aaee 0x0002ab42 n n
+afb+ 0x0002a9ac 0x0002ab42 20 0x0002ab56 0xffffffffffffffff b n
+afb+ 0x0002a9ac 0x0002ab56 9 0x0002ab5f 0xffffffffffffffff b n
+afb+ 0x0002a9ac 0x0002abaa 8 0x0002ab5f 0x0002abb2 n n
+afb+ 0x0002a9ac 0x0002ab5f 3 0x0002ab62 0xffffffffffffffff b n
+afb+ 0x0002a9ac 0x0002abb2 4 0x0002ab62 0x0002abb6 n n
+afb+ 0x0002a9ac 0x0002ab62 72 0x0002ab56 0x0002abaa n n
+afb+ 0x0002a9ac 0x0002abb6 9 0x0002abbf 0xffffffffffffffff b n
+afb+ 0x0002a9ac 0x0002abbf 83 0x0002abbf 0x0002ac12 n n
+afb+ 0x0002a9ac 0x0002ac12 38 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ac38 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ac42 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ac4c 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ac56 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ac60 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ac6a 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ac74 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ac7e 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ac88 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ac92 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ac9c 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002aca6 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002acb0 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002acba 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002acc4 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002acce 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002acd8 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ace2 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002acec 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002acf6 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad00 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad0a 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad14 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad1e 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad28 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad32 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad3c 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad46 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad50 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad5a 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad64 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad6e 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad78 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad82 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad8c 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ad96 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ada0 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002adaa 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002adb4 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002adbe 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002adc5 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002adcc 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002add3 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002adda 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ade1 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ade8 12 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002adf4 2 0xffffffffffffffff 0x0002adf6 n n
+afb+ 0x0002a9ac 0x0002adf6 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002adfd 5 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae02 2 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae04 5 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae09 2 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae0b 5 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae10 2 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae12 5 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae17 2 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae19 5 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae1e 2 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae20 5 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae25 2 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae27 5 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae2c 2 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae2e 5 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae33 2 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae35 5 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae3a 2 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae3c 27 0x0002ae89 0x0002ae57 n n
+afb+ 0x0002a9ac 0x0002ae89 9 0x0002aec4 0x0002ae92 n n
+afb+ 0x0002a9ac 0x0002aec4 9 0x0002aef6 0x0002aecd n n
+afb+ 0x0002a9ac 0x0002aef6 2 0x0002aef8 0xffffffffffffffff b n
+afb+ 0x0002a9ac 0x0002aecd 9 0x0002aef6 0x0002aed6 n n
+afb+ 0x0002a9ac 0x0002aed6 32 0x0002aef8 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002aef8 8 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae92 20 0x0002aeaa 0x0002aea6 n n
+afb+ 0x0002a9ac 0x0002aeaa 10 0x0002aebc 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002aebc 8 0x0002aec4 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002aea6 4 0x0002aeb4 0x0002aeaa n n
+afb+ 0x0002a9ac 0x0002aeb4 8 0x0002aebc 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae57 20 0x0002ae6f 0x0002ae6b n n
+afb+ 0x0002a9ac 0x0002ae6f 10 0x0002ae81 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae81 8 0x0002ae89 0xffffffffffffffff n n
+afb+ 0x0002a9ac 0x0002ae6b 4 0x0002ae79 0x0002ae6f n n
+afb+ 0x0002a9ac 0x0002ae79 8 0x0002ae81 0xffffffffffffffff n n
+afa 1 arg_1h int @ 0x2a9ac
+afv 12 local_ch int @ 0x2a9ac
+afv 32 local_20h int @ 0x2a9ac
+afv 1382678526 local_5269fffeh int @ 0x2a9ac
 f fcn.0002b02e 382 0x0002b02e
 af+ 0x0002b02e 382 fcn.0002b02e f n
 afC cdecl @ 0x0002b02e
@@ -8282,6 +8900,10 @@ afa 16 arg_10h int @ 0x2ee70
 afv 0 local_0h int @ 0x2ee70
 afv 12 local_ch int @ 0x2ee70
 afv 28 local_1ch int @ 0x2ee70
+f fcn.0002ef00 12 0x0002ef00
+af+ 0x0002ef00 12 fcn.0002ef00 f n
+afC cdecl @ 0x0002ef00
+afb+ 0x0002ef00 0x0002ef00 12 0xffffffffffffffff 0xffffffffffffffff n n
 f fcn.0002eff0 38 0x0002eff0
 af+ 0x0002eff0 38 fcn.0002eff0 f n
 afC cdecl @ 0x0002eff0
@@ -8326,6 +8948,10 @@ afC cdecl @ 0x00030060
 afb+ 0x00030060 0x00030060 16 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x30060
 afa 12 arg_ch int @ 0x30060
+f loc.00032c60 23 0x00032c60
+af+ 0x00032c60 23 loc.00032c60 l n
+afC cdecl @ 0x00032c60
+afb+ 0x00032c60 0x00032c60 23 0xffffffffffffffff 0xffffffffffffffff n n
 f ___register_frame_info 71 0x00034380
 af+ 0x00034380 71 ___register_frame_info f n
 afC cdecl @ 0x00034380
@@ -8456,8 +9082,36 @@ afC cdecl @ 0x00035d80
 afb+ 0x00035d80 0x00035d80 10 0x00035dbb 0x00035d8a n n
 afb+ 0x00035d80 0x00035d8a 49 0x00035dbb 0xffffffffffffffff n n
 afb+ 0x00035d80 0x00035dbb 1 0xffffffffffffffff 0xffffffffffffffff n n
-f fcn.00035f68 283 0x00035f68
-af+ 0x00035f68 283 fcn.00035f68 f n
+f setup_core_selector 105 0x00035dfc
+af+ 0x00035dfc 105 setup_core_selector f n
+afC cdecl @ 0x00035dfc
+afb+ 0x00035dfc 0x00035dfc 23 0x00035e46 0x00035e13 n n
+afb+ 0x00035dfc 0x00035e46 31 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00035dfc 0x00035e13 14 0x00035e3e 0x00035e21 n n
+afb+ 0x00035dfc 0x00035e3e 8 0x00035e46 0xffffffffffffffff n n
+afb+ 0x00035dfc 0x00035e21 3 0x00035e24 0xffffffffffffffff b n
+afb+ 0x00035dfc 0x00035e24 26 0x00035e24 0x00035e3e n n
+afv 23 local_17h int @ 0x35dfc
+afv 32 local_20h int @ 0x35dfc
+afv 52 local_34h int @ 0x35dfc
+afv 60 local_3ch int @ 0x35dfc
+f setup_screens 110 0x00035e68
+af+ 0x00035e68 110 setup_screens f n
+afC cdecl @ 0x00035e68
+afb+ 0x00035e68 0x00035e68 28 0x00035e9a 0x00035e84 n n
+afb+ 0x00035e68 0x00035e9a 15 0x00035ec0 0x00035ea9 n n
+afb+ 0x00035e68 0x00035ec0 20 0x00035ed4 0xffffffffffffffff b n
+afb+ 0x00035e68 0x00035ea9 22 0x00035ed4 0xffffffffffffffff n n
+afb+ 0x00035e68 0x00035ed4 2 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00035e68 0x00035e84 22 0x00035ed4 0xffffffffffffffff n n
+f setup_go32_info_block 141 0x00035ed8
+af+ 0x00035ed8 141 setup_go32_info_block f n
+afC cdecl @ 0x00035ed8
+afb+ 0x00035ed8 0x00035ed8 141 0xffffffffffffffff 0xffffffffffffffff n n
+afv 8 local_8h int @ 0x35ed8
+afv 12 local_ch int @ 0x35ed8
+f setup_environment 283 0x00035f68
+af+ 0x00035f68 283 setup_environment f n
 afC cdecl @ 0x00035f68
 afb+ 0x00035f68 0x00035f68 90 0x00035fc2 0xffffffffffffffff b n
 afb+ 0x00035f68 0x00035fce 6 0x00035fc2 0x00035fd4 n n
@@ -8477,8 +9131,23 @@ afv 2 src_seg int @ 0x35f68
 afv 8 dst_offset int @ 0x35f68
 afv 12 local_ch int @ 0x35f68
 afv 24 local_18h int @ 0x35f68
-f fcn.000360f4 33 0x000360f4
-af+ 0x000360f4 33 fcn.000360f4 f n
+f setup_pname 110 0x00036084
+af+ 0x00036084 110 setup_pname f n
+afC cdecl @ 0x00036084
+afb+ 0x00036084 0x00036084 21 0x000360b4 0x00036099 n n
+afb+ 0x00036084 0x000360b4 12 0x000360c3 0x000360c0 n n
+afb+ 0x00036084 0x000360c3 47 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00036084 0x000360c0 3 0x000360c3 0xffffffffffffffff n n
+afb+ 0x00036084 0x00036099 1 0x0003609a 0xffffffffffffffff b n
+afb+ 0x00036084 0x000360ab 3 0x000360ae 0xffffffffffffffff b n
+afb+ 0x00036084 0x0003609a 7 0x000360ab 0x000360a1 n n
+afb+ 0x00036084 0x000360a1 5 0x000360ab 0x000360a6 n n
+afb+ 0x00036084 0x000360a6 5 0x000360ae 0x000360ab n n
+afb+ 0x00036084 0x000360ae 6 0x0003609a 0x000360b4 n n
+afv 4 local_4h int @ 0x36084
+afv 12 local_ch int @ 0x36084
+f setup_os_version 33 0x000360f4
+af+ 0x000360f4 33 setup_os_version f n
 afC cdecl @ 0x000360f4
 afb+ 0x000360f4 0x000360f4 33 0xffffffffffffffff 0xffffffffffffffff n n
 f ___crt1_startup 184 0x00036118
@@ -8493,8 +9162,8 @@ afa 8 arg_8h int @ 0x36118
 afa 19 arg_13h int @ 0x36118
 afv 4 local_4h int @ 0x36118
 afv 16 local_10h int @ 0x36118
-f fcn.000361d0 568 0x000361d0
-af+ 0x000361d0 568 fcn.000361d0 f n
+f malloc 568 0x000361d0
+af+ 0x000361d0 568 malloc f n
 afC cdecl @ 0x000361d0
 afb+ 0x000361d0 0x000361d0 15 0x000361e6 0x000361df n n
 afb+ 0x000361d0 0x000361e6 20 0x00036252 0x000361fa n n
@@ -8539,8 +9208,8 @@ afa 8 arg_8h int @ 0x361d0
 afa 19 arg_13h int @ 0x361d0
 afv 4 local_4h int @ 0x361d0
 afv 16 local_10h int @ 0x361d0
-f fcn.00036408 355 0x00036408
-af+ 0x00036408 355 fcn.00036408 f n
+f maybe.free 355 0x00036408
+af+ 0x00036408 355 maybe.free f n
 afC cdecl @ 0x00036408
 afb+ 0x00036408 0x00036408 17 0x00036563 0x00036419 n n
 afb+ 0x00036408 0x00036563 8 0xffffffffffffffff 0xffffffffffffffff n n
@@ -8767,8 +9436,8 @@ afb+ 0x00036b10 0x00036b56 11 0x00036b61 0xffffffffffffffff n n
 afb+ 0x00036b10 0x00036b4b 5 0x00036b50 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x36b10
 afv 8 local_8h int @ 0x36b10
-f fcn.00036bf0 37 0x00036bf0
-af+ 0x00036bf0 37 fcn.00036bf0 f n
+f maybe.strcpy 37 0x00036bf0
+af+ 0x00036bf0 37 maybe.strcpy f n
 afC cdecl @ 0x00036bf0
 afb+ 0x00036bf0 0x00036bf0 20 0x00036c0e 0x00036c04 n n
 afb+ 0x00036bf0 0x00036c0e 7 0xffffffffffffffff 0xffffffffffffffff n n
@@ -8788,8 +9457,8 @@ afb+ 0x00036c20 0x00036c30 4 0x00036c46 0xffffffffffffffff n n
 afb+ 0x00036c20 0x00036c46 2 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x36c20
 afa 12 arg_ch int @ 0x36c20
-f fcn.00036c50 54 0x00036c50
-af+ 0x00036c50 54 fcn.00036c50 f n
+f maybe.strncmp 54 0x00036c50
+af+ 0x00036c50 54 maybe.strncmp f n
 afC cdecl @ 0x00036c50
 afb+ 0x00036c50 0x00036c50 12 0x00036c7d 0x00036c5c n n
 afb+ 0x00036c50 0x00036c7d 2 0x00036c7f 0xffffffffffffffff b n
@@ -8969,8 +9638,8 @@ afb+ 0x00039f00 0x00039f2e 13 0x00039f3b 0xffffffffffffffff b n
 afb+ 0x00039f00 0x00039f21 13 0x00039f3b 0xffffffffffffffff n n
 afb+ 0x00039f00 0x00039f3b 7 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x39f00
-f dpmi_allocate_ldt_desc 34 0x00039f50
-af+ 0x00039f50 34 dpmi_allocate_ldt_desc f n
+f __dpmi_allocate_ldt_descriptors 34 0x00039f50
+af+ 0x00039f50 34 __dpmi_allocate_ldt_descriptors f n
 afC cdecl @ 0x00039f50
 afb+ 0x00039f50 0x00039f50 14 0x00039f6b 0x00039f5e n n
 afb+ 0x00039f50 0x00039f6b 3 0x00039f6e 0xffffffffffffffff b n
@@ -8995,8 +9664,8 @@ afb+ 0x00039fb0 0x00039fd6 5 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x39fb0
 afa 12 arg_ch int @ 0x39fb0
 afa 14 arg_eh int @ 0x39fb0
-f dpmi_set_segment_limit 43 0x00039fe0
-af+ 0x00039fe0 43 dpmi_set_segment_limit f n
+f __dpmi_set_segment_limit 43 0x00039fe0
+af+ 0x00039fe0 43 __dpmi_set_segment_limit f n
 afC cdecl @ 0x00039fe0
 afb+ 0x00039fe0 0x00039fe0 23 0x0003a004 0x00039ff7 n n
 afb+ 0x00039fe0 0x0003a004 2 0x0003a006 0xffffffffffffffff b n
@@ -9097,8 +9766,8 @@ afb+ 0x0003a270 0x0003a2d7 13 0x0003a2e6 0xffffffffffffffff n n
 afb+ 0x0003a270 0x0003a2e6 14 0xffffffffffffffff 0xffffffffffffffff n n
 afb+ 0x0003a270 0x0003a29d 32 0x0003a2cf 0xffffffffffffffff n n
 afb+ 0x0003a270 0x0003a2cf 8 0x0003a2e4 0x0003a2d7 n n
-afa 8 arg_8h int @ 0x3a270
-afa 12 arg_ch int @ 0x3a270
+afa 8 _vector int @ 0x3a270
+afa 12 _regs int @ 0x3a270
 f fcn.0003a330 55 0x0003a330
 af+ 0x0003a330 55 fcn.0003a330 f n
 afC cdecl @ 0x0003a330
@@ -9157,6 +9826,67 @@ afb+ 0x0003a460 0x0003a477 6 0x0003a4a0 0xffffffffffffffff n n
 afb+ 0x0003a460 0x0003a46e 2 0x0003a470 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x3a460
 afv 4 local_4h int @ 0x3a460
+f fcn.0003c3b0 89 0x0003c3b0
+af+ 0x0003c3b0 89 fcn.0003c3b0 f n
+afC cdecl @ 0x0003c3b0
+afb+ 0x0003c3b0 0x0003c3b0 62 0x0003c3ee 0xffffffffffffffff b n
+afb+ 0x0003c3b0 0x0003c400 9 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003c3b0 0x0003c3f9 7 0x0003c3ee 0xffffffffffffffff n n
+afb+ 0x0003c3b0 0x0003c3ee 11 0x0003c400 0x0003c3f9 n n
+afa 8 arg_8h int @ 0x3c3b0
+afv 4 local_4h int @ 0x3c3b0
+afv 12 local_ch int @ 0x3c3b0
+f maybe.abort 80 0x0003c510
+af+ 0x0003c510 80 maybe.abort f n
+afC cdecl @ 0x0003c510
+afb+ 0x0003c510 0x0003c510 58 0x0003c54e 0x0003c54a n n
+afb+ 0x0003c510 0x0003c54e 7 0x0003c55c 0x0003c555 n n
+afb+ 0x0003c510 0x0003c55c 2 0x0003c55e 0xffffffffffffffff b n
+afb+ 0x0003c510 0x0003c555 1 0x0003c556 0xffffffffffffffff b n
+afb+ 0x0003c510 0x0003c556 6 0x0003c556 0x0003c55c n n
+afb+ 0x0003c510 0x0003c54a 4 0x0003c55e 0xffffffffffffffff n n
+afb+ 0x0003c510 0x0003c55e 2 0xffffffffffffffff 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x3c510
+f __djgpp_exception_toggle 377 0x0003d11c
+af+ 0x0003d11c 377 __djgpp_exception_toggle f n
+afC cdecl @ 0x0003d11c
+afb+ 0x0003d11c 0x0003d11c 10 0x0003d126 0xffffffffffffffff b n
+afb+ 0x0003d11c 0x0003d141 17 0x0003d152 0xffffffffffffffff b n
+afb+ 0x0003d11c 0x0003d126 18 0x0003d141 0x0003d138 n n
+afb+ 0x0003d11c 0x0003d16c 91 0x0003d1ee 0x0003d1c7 n n
+afb+ 0x0003d11c 0x0003d1ee 62 0x0003d22c 0xffffffffffffffff b n
+afb+ 0x0003d11c 0x0003d290 5 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003d11c 0x0003d237 10 0x0003d290 0x0003d241 n n
+afb+ 0x0003d11c 0x0003d241 9 0x0003d26c 0x0003d24a n n
+afb+ 0x0003d11c 0x0003d26c 36 0x0003d290 0xffffffffffffffff n n
+afb+ 0x0003d11c 0x0003d24a 8 0x0003d26c 0x0003d252 n n
+afb+ 0x0003d11c 0x0003d252 26 0x0003d290 0xffffffffffffffff n n
+afb+ 0x0003d11c 0x0003d1c7 38 0x0003d22c 0xffffffffffffffff n n
+afb+ 0x0003d11c 0x0003d22c 11 0x0003d290 0x0003d237 n n
+afb+ 0x0003d11c 0x0003d138 9 0x0003d152 0x0003d141 n n
+afb+ 0x0003d11c 0x0003d152 26 0x0003d126 0x0003d16c n n
+afv 4 local_4h int @ 0x3d11c
+afv 8 local_8h int @ 0x3d11c
+afv 12 local_ch int @ 0x3d11c
+f __djgpp_exception_setup 346 0x0003d320
+af+ 0x0003d320 346 __djgpp_exception_setup f n
+afC cdecl @ 0x0003d320
+afb+ 0x0003d320 0x0003d320 18 0x0003d344 0x0003d332 n n
+afb+ 0x0003d320 0x0003d344 15 0x0003d353 0xffffffffffffffff b n
+afb+ 0x0003d320 0x0003d362 15 0x0003d362 0x0003d371 n n
+afb+ 0x0003d320 0x0003d371 81 0x0003d3c2 0xffffffffffffffff b n
+afb+ 0x0003d320 0x0003d3c2 23 0x0003d3c2 0x0003d3d9 n n
+afb+ 0x0003d320 0x0003d3d9 41 0x0003d40e 0x0003d402 n n
+afb+ 0x0003d320 0x0003d40e 38 0x0003d434 0xffffffffffffffff b n
+afb+ 0x0003d320 0x0003d402 12 0x0003d434 0xffffffffffffffff n n
+afb+ 0x0003d320 0x0003d434 70 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003d320 0x0003d332 17 0x0003d353 0xffffffffffffffff n n
+afb+ 0x0003d320 0x0003d353 15 0x0003d362 0xffffffffffffffff b n
+afv 4 local_4h int @ 0x3d320
+afv 8 local_8h int @ 0x3d320
+afv 12 local_ch int @ 0x3d320
+afv 16 local_10h int @ 0x3d320
+afv 20 local_14h int @ 0x3d320
 f fcn.0003d47c 43 0x0003d47c
 af+ 0x0003d47c 43 fcn.0003d47c f n
 afC cdecl @ 0x0003d47c
@@ -9198,8 +9928,25 @@ afv 52 local_34h int @ 0x3d630
 afv 56 local_38h int @ 0x3d630
 afv 60 local_3ch int @ 0x3d630
 afv 72 local_48h int @ 0x3d630
-f wrapper_copy.0x0003d890 41 0x0003d890
-af+ 0x0003d890 41 wrapper_copy.0x0003d890 f n
+f __dpmi_get_version 55 0x0003d820
+af+ 0x0003d820 55 __dpmi_get_version f n
+afC cdecl @ 0x0003d820
+afb+ 0x0003d820 0x0003d820 13 0x0003d83a 0x0003d82d n n
+afb+ 0x0003d820 0x0003d83a 23 0x0003d851 0xffffffffffffffff b n
+afb+ 0x0003d820 0x0003d82d 13 0x0003d851 0xffffffffffffffff n n
+afb+ 0x0003d820 0x0003d851 6 0xffffffffffffffff 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x3d820
+f __dpmi_get_segment_base_address 44 0x0003d860
+af+ 0x0003d860 44 __dpmi_get_segment_base_address f n
+afC cdecl @ 0x0003d860
+afb+ 0x0003d860 0x0003d860 15 0x0003d87c 0x0003d86f n n
+afb+ 0x0003d860 0x0003d87c 11 0x0003d887 0xffffffffffffffff b n
+afb+ 0x0003d860 0x0003d86f 13 0x0003d887 0xffffffffffffffff n n
+afb+ 0x0003d860 0x0003d887 5 0xffffffffffffffff 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x3d860
+afa 12 arg_ch int @ 0x3d860
+f movedata 41 0x0003d890
+af+ 0x0003d890 41 movedata f n
 afC cdecl @ 0x0003d890
 afb+ 0x0003d890 0x0003d890 41 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 src_seg int @ 0x3d890
@@ -9207,8 +9954,16 @@ afa 12 src_offset int @ 0x3d890
 afa 16 dst_seg int @ 0x3d890
 afa 20 dst_offset int @ 0x3d890
 afa 24 count int @ 0x3d890
-f fcn.0003d9a4 261 0x0003d9a4
-af+ 0x0003d9a4 261 fcn.0003d9a4 f n
+f maybe.calloc 45 0x0003d8c0
+af+ 0x0003d8c0 45 maybe.calloc f n
+afC cdecl @ 0x0003d8c0
+afb+ 0x0003d8c0 0x0003d8c0 27 0x0003d8e4 0x0003d8db n n
+afb+ 0x0003d8c0 0x0003d8db 9 0x0003d8e4 0xffffffffffffffff n n
+afb+ 0x0003d8c0 0x0003d8e4 9 0xffffffffffffffff 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x3d8c0
+afv 8 local_8h int @ 0x3d8c0
+f _get_dos_version 261 0x0003d9a4
+af+ 0x0003d9a4 261 _get_dos_version f n
 afC cdecl @ 0x0003d9a4
 afb+ 0x0003d9a4 0x0003d9a4 29 0x0003d9cf 0x0003d9c1 n n
 afb+ 0x0003d9a4 0x0003d9cf 11 0x0003d9e2 0x0003d9da n n
@@ -9243,6 +9998,10 @@ afv 35 local_23h int @ 0x3d9a4
 afv 36 local_24h int @ 0x3d9a4
 afv 52 local_34h int @ 0x3d9a4
 afv 60 local_3ch int @ 0x3d9a4
+f __setup_file_rec_list 75 0x0003dda0
+af+ 0x0003dda0 75 __setup_file_rec_list f n
+afC cdecl @ 0x0003dda0
+afb+ 0x0003dda0 0x0003dda0 75 0xffffffffffffffff 0xffffffffffffffff n n
 f fcn.0003ddf0 419 0x0003ddf0
 af+ 0x0003ddf0 419 fcn.0003ddf0 f n
 afC cdecl @ 0x0003ddf0
@@ -9299,8 +10058,8 @@ afv 52 local_34h int @ 0x3ddf0
 afv 56 local_38h int @ 0x3ddf0
 afv 60 local_3ch int @ 0x3ddf0
 afv 72 local_48h int @ 0x3ddf0
-f fcn.0003df98 398 0x0003df98
-af+ 0x0003df98 398 fcn.0003df98 f n
+f __FSEXT_call_open_handlers_wrapper 398 0x0003df98
+af+ 0x0003df98 398 __FSEXT_call_open_handlers_wrapper f n
 afC cdecl @ 0x0003df98
 afb+ 0x0003df98 0x0003df98 35 0x0003dfc2 0x0003dfbb n n
 afb+ 0x0003df98 0x0003dfc2 13 0x0003dfeb 0x0003dfcf n n
@@ -9334,8 +10093,189 @@ afa 8 arg_8h int @ 0x3df98
 afv 4 local_4h int @ 0x3df98
 afv 5 local_5h int @ 0x3df98
 afv 20 local_14h int @ 0x3df98
-f fcn.0003f310 5 0x0003f310
-af+ 0x0003f310 5 fcn.0003f310 f n
+f __crt0_load_environment_file 1352 0x0003e144
+af+ 0x0003e144 1352 __crt0_load_environment_file f n
+afC cdecl @ 0x0003e144
+afb+ 0x0003e144 0x0003e144 33 0x0003e681 0x0003e165 n n
+afb+ 0x0003e144 0x0003e681 11 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e165 21 0x0003e681 0x0003e17a n n
+afb+ 0x0003e144 0x0003e17a 52 0x0003e681 0x0003e1ae n n
+afb+ 0x0003e144 0x0003e1ae 56 0x0003e1ec 0x0003e1e6 n n
+afb+ 0x0003e144 0x0003e1ec 21 0x0003e201 0xffffffffffffffff b n
+afb+ 0x0003e144 0x0003e242 17 0x0003e279 0x0003e253 n n
+afb+ 0x0003e144 0x0003e279 13 0x0003e286 0xffffffffffffffff b n
+afb+ 0x0003e144 0x0003e2a2 10 0x0003e2c0 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e2c0 8 0x0003e676 0x0003e2c8 n n
+afb+ 0x0003e144 0x0003e676 11 0x0003e681 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e2c8 4 0x0003e2ac 0x0003e2cc n n
+afb+ 0x0003e144 0x0003e2ac 11 0x0003e2cc 0x0003e2b7 n n
+afb+ 0x0003e144 0x0003e2cc 15 0x0003e676 0x0003e2db n n
+afb+ 0x0003e144 0x0003e2db 16 0x0003e286 0x0003e2eb n n
+afb+ 0x0003e144 0x0003e286 11 0x0003e2a2 0x0003e291 n n
+afb+ 0x0003e144 0x0003e2eb 5 0x0003e286 0x0003e2f0 n n
+afb+ 0x0003e144 0x0003e2f0 5 0x0003e334 0x0003e2f5 n n
+afb+ 0x0003e144 0x0003e334 13 0x0003e286 0x0003e341 n n
+afb+ 0x0003e144 0x0003e341 28 0x0003e37a 0x0003e35d n n
+afb+ 0x0003e144 0x0003e37a 10 0x0003e286 0x0003e384 n n
+afb+ 0x0003e144 0x0003e384 8 0x0003e286 0x0003e38c n n
+afb+ 0x0003e144 0x0003e38c 11 0x0003e3b2 0x0003e397 n n
+afb+ 0x0003e144 0x0003e3b2 7 0x0003e652 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e652 4 0x0003e656 0xffffffffffffffff b n
+afb+ 0x0003e144 0x0003e3ba 10 0x0003e652 0x0003e3c4 n n
+afb+ 0x0003e144 0x0003e3c4 6 0x0003e3d6 0x0003e3ca n n
+afb+ 0x0003e144 0x0003e3d6 46 0x0003e404 0xffffffffffffffff b n
+afb+ 0x0003e144 0x0003e53a 15 0x0003e561 0x0003e549 n n
+afb+ 0x0003e144 0x0003e561 55 0x0003e61a 0x0003e598 n n
+afb+ 0x0003e144 0x0003e61a 9 0x0003e629 0x0003e623 n n
+afb+ 0x0003e144 0x0003e629 9 0x0003e63f 0x0003e632 n n
+afb+ 0x0003e144 0x0003e63f 9 0x0003e65f 0x0003e648 n n
+afb+ 0x0003e144 0x0003e65f 22 0x0003e286 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e648 9 0x0003e656 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e656 9 0x0003e3ba 0x0003e65f n n
+afb+ 0x0003e144 0x0003e632 9 0x0003e63f 0x0003e63b n n
+afb+ 0x0003e144 0x0003e63b 4 0x0003e63f 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e623 6 0x0003e629 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e598 5 0x0003e61a 0x0003e59d n n
+afb+ 0x0003e144 0x0003e59d 1 0x0003e59e 0xffffffffffffffff b n
+afb+ 0x0003e144 0x0003e5c8 9 0x0003e5da 0x0003e5d1 n n
+afb+ 0x0003e144 0x0003e5da 9 0x0003e5ec 0x0003e5e3 n n
+afb+ 0x0003e144 0x0003e5ec 9 0x0003e5fc 0x0003e5f5 n n
+afb+ 0x0003e144 0x0003e5fc 9 0x0003e60c 0x0003e605 n n
+afb+ 0x0003e144 0x0003e60c 14 0x0003e59e 0x0003e61a n n
+afb+ 0x0003e144 0x0003e59e 36 0x0003e5c8 0x0003e5c2 n n
+afb+ 0x0003e144 0x0003e605 5 0x0003e60c 0x0003e60a n n
+afb+ 0x0003e144 0x0003e60a 2 0x0003e60c 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e5f5 5 0x0003e5fc 0x0003e5fa n n
+afb+ 0x0003e144 0x0003e5fa 2 0x0003e5fc 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e5e3 9 0x0003e5ec 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e5d1 9 0x0003e5da 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e5c2 6 0x0003e5c8 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e549 1 0x0003e54a 0xffffffffffffffff b n
+afb+ 0x0003e144 0x0003e555 12 0x0003e54a 0x0003e561 n n
+afb+ 0x0003e144 0x0003e54a 11 0x0003e561 0x0003e555 n n
+afb+ 0x0003e144 0x0003e41e 17 0x0003e534 0x0003e42f n n
+afb+ 0x0003e144 0x0003e534 6 0x0003e404 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e404 26 0x0003e53a 0x0003e41e n n
+afb+ 0x0003e144 0x0003e42f 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e3ca 11 0x0003e656 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e397 27 0x0003e286 0x0003e3b2 n n
+afb+ 0x0003e144 0x0003e35d 9 0x0003e286 0x0003e366 n n
+afb+ 0x0003e144 0x0003e366 6 0x0003e37a 0x0003e36c n n
+afb+ 0x0003e144 0x0003e36c 10 0x0003e37a 0x0003e376 n n
+afb+ 0x0003e144 0x0003e376 4 0x0003e366 0x0003e37a n n
+afb+ 0x0003e144 0x0003e2f5 9 0x0003e30d 0x0003e2fe n n
+afb+ 0x0003e144 0x0003e30d 39 0x0003e286 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e2fe 6 0x0003e308 0x0003e304 n n
+afb+ 0x0003e144 0x0003e308 5 0x0003e2fe 0x0003e30d n n
+afb+ 0x0003e144 0x0003e304 4 0x0003e30d 0x0003e308 n n
+afb+ 0x0003e144 0x0003e2b7 9 0x0003e2c0 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e291 1 0x0003e292 0xffffffffffffffff b n
+afb+ 0x0003e144 0x0003e29c 6 0x0003e292 0x0003e2a2 n n
+afb+ 0x0003e144 0x0003e292 6 0x0003e29c 0x0003e298 n n
+afb+ 0x0003e144 0x0003e298 4 0x0003e2a2 0x0003e29c n n
+afb+ 0x0003e144 0x0003e253 5 0x0003e258 0xffffffffffffffff b n
+afb+ 0x0003e144 0x0003e263 22 0x0003e258 0x0003e279 n n
+afb+ 0x0003e144 0x0003e258 11 0x0003e279 0x0003e263 n n
+afb+ 0x0003e144 0x0003e21e 21 0x0003e23c 0x0003e233 n n
+afb+ 0x0003e144 0x0003e23c 6 0x0003e21e 0x0003e242 n n
+afb+ 0x0003e144 0x0003e233 9 0x0003e23c 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e1e6 6 0x0003e201 0xffffffffffffffff n n
+afb+ 0x0003e144 0x0003e201 29 0x0003e242 0x0003e21e n n
+afa 8 arg_8h int @ 0x3e144
+afv 0 local_0h int @ 0x3e144
+afv 511 local_1ffh int @ 0x3e144
+afv 512 local_200h int @ 0x3e144
+afv 516 local_204h int @ 0x3e144
+afv 520 local_208h int @ 0x3e144
+afv 524 local_20ch int @ 0x3e144
+afv 528 local_210h int @ 0x3e144
+afv 532 local_214h int @ 0x3e144
+afv 536 local_218h int @ 0x3e144
+afv 537 local_219h int @ 0x3e144
+afv 544 local_220h int @ 0x3e144
+afv 548 local_224h int @ 0x3e144
+afv 552 local_228h int @ 0x3e144
+afv 556 local_22ch int @ 0x3e144
+afv 560 local_230h int @ 0x3e144
+afv 564 local_234h int @ 0x3e144
+afv 568 local_238h int @ 0x3e144
+afv 572 local_23ch int @ 0x3e144
+afv 584 local_248h int @ 0x3e144
+f __crt0_setup_arguments 1332 0x0003ed0c
+af+ 0x0003ed0c 1332 __crt0_setup_arguments f n
+afC cdecl @ 0x0003ed0c
+afb+ 0x0003ed0c 0x0003ed0c 43 0x0003ed4c 0x0003ed37 n n
+afb+ 0x0003ed0c 0x0003ed4c 13 0x0003ed76 0x0003ed59 n n
+afb+ 0x0003ed0c 0x0003ed76 14 0x0003ed87 0x0003ed84 n n
+afb+ 0x0003ed0c 0x0003ed87 63 0x0003edda 0x0003edc6 n n
+afb+ 0x0003ed0c 0x0003edda 34 0x0003edfc 0xffffffffffffffff b n
+afb+ 0x0003ed0c 0x0003ee4f 12 0x0003ee00 0x0003ee5b n n
+afb+ 0x0003ed0c 0x0003ee00 12 0x0003ee67 0x0003ee0c n n
+afb+ 0x0003ed0c 0x0003ee67 9 0x0003eec8 0x0003ee70 n n
+afb+ 0x0003ed0c 0x0003eec8 107 0x0003efa4 0x0003ef33 n n
+afb+ 0x0003ed0c 0x0003efa4 15 0x0003f1a5 0x0003efb3 n n
+afb+ 0x0003ed0c 0x0003f1a5 9 0x0003f1bc 0x0003f1ae n n
+afb+ 0x0003ed0c 0x0003f1bc 9 0x0003f1d3 0x0003f1c5 n n
+afb+ 0x0003ed0c 0x0003f1d3 55 0x0003f212 0x0003f20a n n
+afb+ 0x0003ed0c 0x0003f212 46 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003ed0c 0x0003f20a 8 0x0003f212 0xffffffffffffffff n n
+afb+ 0x0003ed0c 0x0003f1c5 14 0x0003f1d3 0xffffffffffffffff n n
+afb+ 0x0003ed0c 0x0003f1ae 14 0x0003f1bc 0xffffffffffffffff n n
+afb+ 0x0003ed0c 0x0003efb3 30 0x0003f1a5 0x0003efd1 n n
+afb+ 0x0003ed0c 0x0003efd1 200 0x0003f19b 0x0003f099 n n
+afb+ 0x0003ed0c 0x0003f19b 10 0x0003f1a5 0xffffffffffffffff n n
+afb+ 0x0003ed0c 0x0003f099 19 0x0003f0ac 0xffffffffffffffff b n
+afb+ 0x0003ed0c 0x0003f18e 13 0x0003f0ac 0x0003f19b n n
+afb+ 0x0003ed0c 0x0003f0ac 139 0x0003f18e 0x0003f137 n n
+afb+ 0x0003ed0c 0x0003f137 14 0x0003f18e 0x0003f145 n n
+afb+ 0x0003ed0c 0x0003f145 73 0x0003f18e 0xffffffffffffffff n n
+afb+ 0x0003ed0c 0x0003ef33 113 0x0003efa4 0xffffffffffffffff n n
+afb+ 0x0003ed0c 0x0003ee70 45 0x0003eec8 0x0003ee9d n n
+afb+ 0x0003ed0c 0x0003ee9d 8 0x0003eeaa 0x0003eea5 n n
+afb+ 0x0003ed0c 0x0003eeaa 8 0x0003eeb7 0x0003eeb2 n n
+afb+ 0x0003ed0c 0x0003eeb7 8 0x0003eec4 0x0003eebf n n
+afb+ 0x0003ed0c 0x0003eec4 4 0x0003eec8 0xffffffffffffffff n n
+afb+ 0x0003ed0c 0x0003eebf 5 0x0003eec8 0x0003eec4 n n
+afb+ 0x0003ed0c 0x0003eeb2 5 0x0003eec8 0x0003eeb7 n n
+afb+ 0x0003ed0c 0x0003eea5 5 0x0003eec8 0x0003eeaa n n
+afb+ 0x0003ed0c 0x0003ee0c 9 0x0003ee25 0x0003ee15 n n
+afb+ 0x0003ed0c 0x0003ee25 9 0x0003ee4e 0x0003ee2e n n
+afb+ 0x0003ed0c 0x0003ee4e 1 0x0003ee4f 0xffffffffffffffff n n
+afb+ 0x0003ed0c 0x0003ee5b 12 0x0003ee0c 0x0003ee67 n n
+afb+ 0x0003ed0c 0x0003ee2e 23 0x0003ee4e 0x0003ee45 n n
+afb+ 0x0003ed0c 0x0003ee45 9 0x0003ee4e 0xffffffffffffffff n n
+afb+ 0x0003ed0c 0x0003ee15 12 0x0003ee25 0x0003ee21 n n
+afb+ 0x0003ed0c 0x0003ee21 4 0x0003ee25 0xffffffffffffffff n n
+afb+ 0x0003ed0c 0x0003edc6 19 0x0003edfc 0xffffffffffffffff n n
+afb+ 0x0003ed0c 0x0003edfc 4 0x0003ee4f 0xffffffffffffffff n n
+afb+ 0x0003ed0c 0x0003ed84 3 0x0003ed87 0xffffffffffffffff n n
+afb+ 0x0003ed0c 0x0003ed59 1 0x0003ed5a 0xffffffffffffffff b n
+afb+ 0x0003ed0c 0x0003ed6d 3 0x0003ed70 0xffffffffffffffff b n
+afb+ 0x0003ed0c 0x0003ed5a 9 0x0003ed6d 0x0003ed63 n n
+afb+ 0x0003ed0c 0x0003ed63 5 0x0003ed6d 0x0003ed68 n n
+afb+ 0x0003ed0c 0x0003ed68 5 0x0003ed70 0x0003ed6d n n
+afb+ 0x0003ed0c 0x0003ed70 6 0x0003ed5a 0x0003ed76 n n
+afb+ 0x0003ed0c 0x0003ed37 12 0x0003ed4c 0x0003ed43 n n
+afb+ 0x0003ed0c 0x0003ed43 9 0x0003ed4c 0xffffffffffffffff n n
+afv 0 local_0h int @ 0x3ed0c
+afv 127 local_7fh int @ 0x3ed0c
+afv 128 local_80h int @ 0x3ed0c
+afv 180 local_b4h int @ 0x3ed0c
+afv 184 local_b8h int @ 0x3ed0c
+afv 188 local_bch int @ 0x3ed0c
+afv 192 local_c0h int @ 0x3ed0c
+afv 196 local_c4h int @ 0x3ed0c
+afv 200 local_c8h int @ 0x3ed0c
+afv 204 local_cch int @ 0x3ed0c
+afv 208 local_d0h int @ 0x3ed0c
+afv 212 local_d4h int @ 0x3ed0c
+afv 216 local_d8h int @ 0x3ed0c
+afv 220 local_dch int @ 0x3ed0c
+afv 224 local_e0h int @ 0x3ed0c
+afv 268 local_10ch int @ 0x3ed0c
+afv 280 local_118h int @ 0x3ed0c
+f wrapper.___sbrk 5 0x0003f310
+af+ 0x0003f310 5 wrapper.___sbrk f n
 afC cdecl @ 0x0003f310
 afb+ 0x0003f310 0x0003f310 5 0x00001bb0 0xffffffffffffffff n n
 f fcn.0003f320 26 0x0003f320
@@ -9441,8 +10381,8 @@ afb+ 0x00040dd0 0x00040e33 7 0x00040e3a 0xffffffffffffffff n n
 afb+ 0x00040dd0 0x00040df6 15 0x00040e1a 0x00040e05 n n
 afb+ 0x00040dd0 0x00040e05 10 0x00040e0f 0xffffffffffffffff n n
 afa 1 arg_1h int @ 0x40dd0
-afa 8 arg_8h int @ 0x40dd0
-afa 12 arg_ch int @ 0x40dd0
+afa 8 filename int @ 0x40dd0
+afa 12 oflag int @ 0x40dd0
 afa 16 arg_10h int @ 0x40dd0
 afv 0 local_0h int @ 0x40dd0
 afv 4 local_4h int @ 0x40dd0
@@ -9474,8 +10414,8 @@ f fcn.00040fe0 5 0x00040fe0
 af+ 0x00040fe0 5 fcn.00040fe0 f n
 afC cdecl @ 0x00040fe0
 afb+ 0x00040fe0 0x00040fe0 5 0x00041560 0xffffffffffffffff n n
-f fcn.00040ff0 187 0x00040ff0
-af+ 0x00040ff0 187 fcn.00040ff0 f n
+f maybe.__file_handle_set 187 0x00040ff0
+af+ 0x00040ff0 187 maybe.__file_handle_set f n
 afC cdecl @ 0x00040ff0
 afb+ 0x00040ff0 0x00040ff0 22 0x0004101f 0x00041006 n n
 afb+ 0x00040ff0 0x0004101f 6 0x000410a3 0x00041025 n n
@@ -9537,6 +10477,24 @@ f fcn.00041210 13 0x00041210
 af+ 0x00041210 13 fcn.00041210 f n
 afC cdecl @ 0x00041210
 afb+ 0x00041210 0x00041210 13 0xffffffffffffffff 0xffffffffffffffff n n
+f __dpmi_get_protected_mode_interrupt_vector 44 0x000412e0
+af+ 0x000412e0 44 __dpmi_get_protected_mode_interrupt_vector f n
+afC cdecl @ 0x000412e0
+afb+ 0x000412e0 0x000412e0 15 0x000412fc 0x000412ef n n
+afb+ 0x000412e0 0x000412fc 11 0x00041307 0xffffffffffffffff b n
+afb+ 0x000412e0 0x000412ef 13 0x00041307 0xffffffffffffffff n n
+afb+ 0x000412e0 0x00041307 5 0xffffffffffffffff 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x412e0
+afa 12 arg_ch int @ 0x412e0
+f __dpmi_set_protected_mode_interrupt_vector 44 0x00041310
+af+ 0x00041310 44 __dpmi_set_protected_mode_interrupt_vector f n
+afC cdecl @ 0x00041310
+afb+ 0x00041310 0x00041310 24 0x00041335 0x00041328 n n
+afb+ 0x00041310 0x00041335 2 0x00041337 0xffffffffffffffff b n
+afb+ 0x00041310 0x00041328 13 0x00041337 0xffffffffffffffff n n
+afb+ 0x00041310 0x00041337 5 0xffffffffffffffff 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x41310
+afa 12 arg_ch int @ 0x41310
 f fcn.00041340 65 0x00041340
 af+ 0x00041340 65 fcn.00041340 f n
 afC cdecl @ 0x00041340
@@ -9547,6 +10505,14 @@ afb+ 0x00041340 0x0004137b 6 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x41340
 afa 12 arg_ch int @ 0x41340
 afa 16 arg_10h int @ 0x41340
+f __dpmi_lock_linear_region 55 0x000413c0
+af+ 0x000413c0 55 __dpmi_lock_linear_region f n
+afC cdecl @ 0x000413c0
+afb+ 0x000413c0 0x000413c0 33 0x000413ee 0x000413e1 n n
+afb+ 0x000413c0 0x000413ee 2 0x000413f0 0xffffffffffffffff b n
+afb+ 0x000413c0 0x000413e1 13 0x000413f0 0xffffffffffffffff n n
+afb+ 0x000413c0 0x000413f0 7 0xffffffffffffffff 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x413c0
 f fcn.00041420 36 0x00041420
 af+ 0x00041420 36 fcn.00041420 f n
 afC cdecl @ 0x00041420
@@ -9579,8 +10545,8 @@ afb+ 0x00041fd0 0x0004201b 7 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x41fd0
 afa 12 arg_ch int @ 0x41fd0
 afv 8 local_8h int @ 0x41fd0
-f fcn.00042030 35 0x00042030
-af+ 0x00042030 35 fcn.00042030 f n
+f maybe.__doserr_to_errno 35 0x00042030
+af+ 0x00042030 35 maybe.__doserr_to_errno f n
 afC cdecl @ 0x00042030
 afb+ 0x00042030 0x00042030 18 0x0004204a 0x00042042 n n
 afb+ 0x00042030 0x0004204a 7 0x00042051 0xffffffffffffffff b n
@@ -9620,8 +10586,8 @@ afv 28 local_1ch int @ 0x42d00
 afv 32 local_20h int @ 0x42d00
 afv 36 local_24h int @ 0x42d00
 afv 52 local_34h int @ 0x42d00
-f fcn.00042d94 15 0x00042d94
-af+ 0x00042d94 15 fcn.00042d94 f n
+f maybe._put_path 15 0x00042d94
+af+ 0x00042d94 15 maybe._put_path f n
 afC cdecl @ 0x00042d94
 afb+ 0x00042d94 0x00042d94 15 0xffffffffffffffff 0xffffffffffffffff n n
 f fcn.00042dc0 803 0x00042dc0
@@ -9822,8 +10788,8 @@ afb+ 0x00045fa0 0x00045fb0 8 0x00045fbc 0x00045fb8 n n
 afb+ 0x00045fa0 0x00045fbc 8 0x00045fc4 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x45fa0
 afv 4 local_4h int @ 0x45fa0
-f fcn.00046080 456 0x00046080
-af+ 0x00046080 456 fcn.00046080 f n
+f _open 456 0x00046080
+af+ 0x00046080 456 _open f n
 afC cdecl @ 0x00046080
 afb+ 0x00046080 0x00046080 37 0x000460ba 0x000460a5 n n
 afb+ 0x00046080 0x000460ba 24 0x000460da 0x000460d2 n n
@@ -9845,21 +10811,21 @@ afb+ 0x00046080 0x00046200 26 0x00046230 0x0004621a n n
 afb+ 0x00046080 0x000460d2 8 0x00046240 0xffffffffffffffff n n
 afb+ 0x00046080 0x000460a5 20 0x00046240 0xffffffffffffffff n n
 afa 1 arg_1h int @ 0x46080
-afa 8 arg_8h int @ 0x46080
-afa 12 arg_ch int @ 0x46080
+afa 8 filename int @ 0x46080
+afa 12 oflag int @ 0x46080
 afv 0 local_0h int @ 0x46080
-afv 16 local_10h int @ 0x46080
+afv 16 r_x_ds int @ 0x46080
 afv 18 local_12h int @ 0x46080
 afv 20 local_14h int @ 0x46080
 afv 23 local_17h int @ 0x46080
-afv 24 local_18h int @ 0x46080
-afv 28 local_1ch int @ 0x46080
+afv 24 r_x_ax int @ 0x46080
+afv 28 r_x_cx int @ 0x46080
 afv 32 local_20h int @ 0x46080
-afv 36 local_24h int @ 0x46080
+afv 36 r_x_bx int @ 0x46080
 afv 48 local_30h int @ 0x46080
-afv 52 local_34h int @ 0x46080
+afv 52 struct_regs int @ 0x46080
 afv 56 local_38h int @ 0x46080
-afv 60 local_3ch int @ 0x46080
+afv 60 use_lfn int @ 0x46080
 afv 72 local_48h int @ 0x46080
 f fcn.00046250 226 0x00046250
 af+ 0x00046250 226 fcn.00046250 f n
@@ -10044,4 +11010,4 @@ afv 64 local_40h int @ 0x46840
 # types
 # macros
 # seek
-s 0x00036118
+s 0x0002a1ea
