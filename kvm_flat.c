@@ -210,6 +210,40 @@ void gdt_setbase(struct gdt_entry *gdt, __u32 base) {
     gdt->base_h = (base & 0xff000000) >> 24;
 }
 
+__u32 gdt_getbase(struct gdt_entry *gdt) {
+    return gdt->base_l | (gdt->base_m <<16) | (gdt->base_h <<24);
+}
+
+void dump_backtrace(struct emu *emu, struct kvm_regs *called_regs) {
+    struct kvm_regs regs;
+    regs.rsp = called_regs->rsp;
+    regs.rbp = called_regs->rbp;
+
+    printf("Backtrace:\n");
+
+    __u32 *stack = mem_getstack(emu,&regs);
+    if (!stack) {
+        return;
+    }
+
+    printf("\t0x%08llx\n",called_regs->rip);
+    printf("\t0x%08x\n",*stack);
+
+    int maxdepth = 5;
+    int depth = 0;
+
+    while (depth<maxdepth) {
+        regs.rsp = regs.rbp;
+        stack = mem_getstack(emu,&regs);
+        if (!stack) {
+            return;
+        }
+        regs.rbp = stack[0];
+        printf("\t0x%08x\n",stack[1]);
+        depth++;
+    }
+}
+
 void dump_kvm_run(struct kvm_run *run) {
     const char * kvm_exit_str[] = {
         "KVM_EXIT_UNKNOWN", "KVM_EXIT_EXCEPTION", "KVM_EXIT_IO",
@@ -567,7 +601,7 @@ int kvm_init(struct emu *emu) {
     return 0;
 }
 
-int load_image(struct emu *emu, char *filename, unsigned long entry) {
+int load_image(struct emu *emu, char *filename, unsigned long entry, char *cmdline) {
     int ret;
 
     const uint8_t code[] = {
@@ -639,10 +673,14 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
      */
     memset(psp,0xf5,REGION_PSP_SIZE);
 
+    struct region_psp *region_psp = psp;
+
     /* FIXME - define the PSP structure */
     *(__u16*)((__u8*)psp+0x2c) = SEG_PSP; /* environment segment */
 
-    struct region_psp *region_psp = psp;
+    if (cmdline) {
+        strncpy(region_psp->cmdline,cmdline,sizeof(region_psp->cmdline));
+    }
 
     memcpy(&region_psp->stubinfo.magic,"go32stub, v 2.HC",16);
     region_psp->stubinfo.size = sizeof(struct djgcc_stubinfo);
@@ -654,10 +692,10 @@ int load_image(struct emu *emu, char *filename, unsigned long entry) {
     region_psp->stubinfo.ds_segment = 0x10; /* gets shl 4 and xref 0x0003de8d */
     region_psp->stubinfo.psp_selector = SEG_PSP;
     region_psp->stubinfo.cs_selector = SEG_TEXT;
-    region_psp->stubinfo.env_size = 10;
-    memcpy(&region_psp->stubinfo.basename,"emu1",8);
-    memcpy(&region_psp->stubinfo.argv0,"emu2",16);
-    memcpy(&region_psp->stubinfo.dpmi_server,"emu3",16);
+    region_psp->stubinfo.env_size = 300;
+    memset(&region_psp->stubinfo.basename,0,8);
+    memset(&region_psp->stubinfo.argv0,0,16);
+    memset(&region_psp->stubinfo.dpmi_server,0,16);
 
     /* Details from djgcc djlsr205.zip/src/stub/stub.asm
      *
@@ -798,8 +836,33 @@ int irq_dos_write(void *data, struct emu *emu, struct kvm_regs *regs) {
         printf(" - invalid handle\n");
         exit(1);
     }
+    printf("\n");
 
     regs->rax = count; /* just claim to have written everything */
+    return WANT_SET_REGS;
+}
+
+int irq_dos_lseek(void *data, struct emu *emu, struct kvm_regs *regs) {
+    int handle = regs->rbx & 0xffff;
+    __s32 offset = (regs->rcx & 0xffff) <<16 | (regs->rdx & 0xffff);
+    int whence = regs->rax & 0xff;
+
+    /* convert dos whence to unix whence (null transform, but I'm paranoid) */
+    switch(whence) {
+    case 0: whence = SEEK_SET; break;
+    case 1: whence = SEEK_CUR; break;
+    case 2: whence = SEEK_END; break;
+    }
+
+    int new_pos = 0; /* Fake it */
+    regs->rdx = new_pos >> 16;
+    regs->rax = new_pos & 0xffff;
+
+    printf("lseek(%i,%i,%s) = %i - Faked\n",
+        handle,offset,
+        (whence==SEEK_SET)?"SEEK_SET":(whence==SEEK_CUR)?"SEEK_CUR":(whence==SEEK_END)?"SEEK_END":"UNK",
+        new_pos
+    );
     return WANT_SET_REGS;
 }
 
@@ -821,6 +884,25 @@ int irq_dos_lfn_volinfo(void *data, struct emu *emu, struct kvm_regs *regs) {
     return WANT_SET_REGS;
 }
 
+int irq_dos_lfn_open(void *data, struct emu *emu, struct kvm_regs *regs) {
+    int dos_bufaddr = (regs->r9 << 4) | (regs->rdx & 0xffff);
+    uint8_t *buf =  mem_guest2host(emu, dos_bufaddr);
+    printf("path='%s' = 3\n",buf);
+    regs->rax = 3;
+
+    struct kvm_regs real_regs;
+    int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &real_regs);
+    if (ret == -1)
+        err(1, "KVM_GET_REGS");
+    dump_kvm_regs(&real_regs);
+    __u32 *stack = mem_getstack(emu, &real_regs);
+    printf("Stack:");
+    dump_dwords(stack,16);
+    dump_backtrace(emu,&real_regs);
+
+    return WANT_SET_REGS;
+}
+
 /* allocate ldt desriptors */
 int irq_dpmi_0000(void *data, struct emu *emu, struct kvm_regs *regs) {
     /* for the moment, try just giving it a GDT entry... */
@@ -838,8 +920,14 @@ int irq_dpmi_0000(void *data, struct emu *emu, struct kvm_regs *regs) {
 
 /* get segment base address */
 int irq_dpmi_0006(void *data, struct emu *emu, struct kvm_regs *regs) {
-    regs->rcx = regs->rdx = 0;
-    printf("Fake answer=0\n");
+    struct gdt_entry *gdt = (struct gdt_entry *)emu->mem[MEM_REGION_GDT].userspace_addr;
+    int selector = (regs->rbx & 0xffff);
+    int entry = selector>>3;
+    __u32 base = gdt_getbase(&gdt[entry]);
+    printf("getbase(0x%x)=0x%08x\n",selector,base);
+
+    regs->rcx = base >> 16;
+    regs->rdx = base & 0xffff;
     return WANT_SET_REGS;
 }
 
@@ -1118,7 +1206,7 @@ int irq_dpmi_0800(void *data, struct emu *emu, struct kvm_regs *regs) {
 }
 
 int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
-    printf("- General Protection");
+    printf(" - General Protection");
     __u32 *stack = mem_guest2host(emu, regs->rsp);
     if (stack) {
         __u32 errcode = stack[0];
@@ -1128,9 +1216,13 @@ int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
             (errcode&0x2)?"IDT": (errcode&0x4)?"LDT":"GDT",
             errcode>>3
         );
+    }
+    dump_kvm_regs(regs);
+    if (stack) {
         printf("Stack:");
         dump_dwords(stack,16);
     }
+    dump_backtrace(emu,regs);
     dump_kvm_sregs(emu);
 
 #if 0
@@ -1174,8 +1266,15 @@ int handle_subcode(struct irq_subhandler_entry *p, int subcode, struct emu *emu,
         }
         p++;
     }
-    printf("undefined subcode\n");
+    printf(" undefined subcode\n");
     exit(1);
+}
+
+int irq_subcode_cl(void *data, struct emu *emu, struct kvm_regs *regs) {
+    struct irq_subhandler_entry *table = data;
+    int subcode = regs->rcx & 0xff;
+    printf("CL%02X",subcode);
+    return handle_subcode(table, subcode, emu, regs);
 }
 
 int irq_subcode_ah(void *data, struct emu *emu, struct kvm_regs *regs) {
@@ -1244,6 +1343,7 @@ struct irq_subhandler_entry irq_dos_ioctl[] = {
 
 struct irq_subhandler_entry irq_dos_lfn[] = {
     { .subcode = 0x43, .name = "LFN - GET/SET FILE ATTR", .handler = irq_ignore },
+    { .subcode = 0x6c, .name = "LFN - OPEN", .handler = irq_dos_lfn_open },
     { .subcode = 0xa0, .name = "LFN - GET VOL INFO", .handler = irq_dos_lfn_volinfo },
     { 0 },
 };
@@ -1253,6 +1353,7 @@ struct irq_subhandler_entry irq_dos_subcode[] = {
     { .subcode = 0x30, .name = "VERSION", .handler = irq_dos_version },
     { .subcode = 0x3e, .name = "CLOSE", .handler = irq_ignore },
     { .subcode = 0x40, .name = "WRITE", .handler = irq_dos_write },
+    { .subcode = 0x42, .name = "LSEEK", .handler = irq_dos_lseek },
     { .subcode = 0x44, .handler = irq_subcode_al, .data = irq_dos_ioctl },
     { .subcode = 0x4c, .name = "EXIT", .handler = irq_dos_exit },
     { .subcode = 0x71, .handler = irq_subcode_al, .data = irq_dos_lfn },
@@ -1268,12 +1369,19 @@ struct irq_subhandler_entry irq_video_subcode[] = {
     { 0 },
 };
 
+struct irq_subhandler_entry irq_disk_subcode[] = {
+    { .subcode = 0x01, .name = "DISK - RESET", .handler = irq_ignore },
+    { .subcode = 0x03, .name = "DISK - WRITE SECTORS", .handler = irq_ignore },
+    { 0 },
+};
+
 /*
  * Top level table of every IRQ possible
  */
 struct irq_handler_entry irq_handlers[256] = {
     [0x0d] = { .name = "GPF",   .handler = irq_gpf },
     [0x10] = { .handler = irq_subcode_ah, .data = irq_video_subcode },
+    [0x13] = { .handler = irq_subcode_ah, .data = irq_disk_subcode },
     [0x21] = { .handler = irq_subcode_ah, .data = irq_dos_subcode },
     [0x31] = { .handler = irq_subcode_ax, .data = irq_dpmi_subcode },
 };
@@ -1360,6 +1468,9 @@ int handle_mmio(struct emu *emu) {
 
         printf("%07llx: MMIO read: 0x%08llx(0x%08x)\n",regs.rip,run->mmio.phys_addr,run->mmio.len);
         dump_kvm_regs(&regs);
+        __u32 *stack = mem_getstack(&emu_global, &regs);
+        printf("Stack:");
+        dump_dwords(stack,16);
     } else {
         printf(".");
     }
@@ -1369,25 +1480,24 @@ int handle_mmio(struct emu *emu) {
 int main(int argc, char **argv)
 {
     int ret;
-    char *filename;
-    unsigned long entry;
     struct emu * emu = &emu_global;
 
     if (argc<3) {
         printf("Need args: filename entry\n");
         return 1;
     }
-    filename=argv[1];
-    entry=strtoul(argv[2],NULL,0);
+    char *filename=argv[1];
+    unsigned long entry=strtoul(argv[2],NULL,0);
+    char *cmdline=argv[3];
 
     kvm_init(emu);
 
-    if (load_image(emu,filename,entry) == -1) {
+    if (load_image(emu,filename,entry,cmdline) == -1) {
         return 1;
     }
 
-    if (argv[3]) {
-        patch_image(emu,argv[3]);
+    if (argc>5) {
+        patch_image(emu,argv[4]);
     }
 
     emu->irq = &irq_handlers[0];
