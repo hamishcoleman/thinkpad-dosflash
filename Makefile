@@ -41,5 +41,5 @@ FAT_OFFSET := 71680
 %.dosflash.flat.orig: %.dosflash.coff.orig
 	./dump_coff.pl $< write_flat $@
 
-%.dosflash.flat.test: %.dosflash.flat.orig %.dosflash.flat.patch kvm_flat
-	./kvm_flat $< 0x18d0 $(basename $<).patch
+%.dosflash.flat.test: %.dosflash.flat.orig kvm_flat
+	./kvm_flat $< 0x18d0
