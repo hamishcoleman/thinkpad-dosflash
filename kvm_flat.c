@@ -610,11 +610,11 @@ int kvm_init(struct emu *emu) {
 
     emu->bss_brk = 0;
 
-    int fd = open("mem", O_RDONLY);
+    int fd = open("bios.img", O_RDONLY);
     if (fd == -1)
-        err(1, "opening mem");
+        err(1, "opening bios file");
 
-    void *bios = mmap(NULL, REGION_BIOS_SIZE, PROT_READ, MAP_SHARED , fd, REGION_BIOS_BASE);
+    void *bios = mmap(NULL, REGION_BIOS_SIZE, PROT_READ, MAP_SHARED , fd, 0);
     if (!bios)
         err(1, "allocating bios area");
 
