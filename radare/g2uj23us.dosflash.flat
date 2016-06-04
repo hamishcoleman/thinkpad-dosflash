@@ -145,9 +145,9 @@ f fcn.00003c8e 70 0x00003c8e
 f fcn.00003c4c 5 0x00003c4c 
 f fcn.00003cfe 7 0x00003cfe 
 f fcn.00005f34 10 0x00005f34 
-f fcn.00005f54 115 0x00005f54 
-f fcn.00036e50 57 0x00036e50 
-f fcn.00036e90 97 0x00036e90 
+f dos_alloc_and_zero_something 115 0x00005f54 
+f __dpmi_allocate_dos_memory 57 0x00036e50 
+f something.ds.segment.magic 97 0x00036e90 
 f fcn.00006117 30 0x00006117 
 f fcn.0000e260 85 0x0000e260 
 f fcn.00005fd0 10 0x00005fd0 
@@ -202,7 +202,7 @@ f fcn.00041420 36 0x00041420
 f movedata 41 0x0003d890 
 f fcn.0003a370 240 0x0003a370 
 f fcn.0003a460 87 0x0003a460 
-f fcn.00036690 237 0x00036690 
+f maybe.fwrite 237 0x00036690 
 f fcn.00040b70 64 0x00040b70 
 f fcn.00036b10 165 0x00036b10 
 f fcn.00041210 13 0x00041210 
@@ -263,7 +263,7 @@ f fcn.00002124 4695 0x00002124
 f fcn.00003920 140 0x00003920 
 f fcn.000037e5 236 0x000037e5 
 f fcn.000035d0 159 0x000035d0 
-f fcn.00003700 55 0x00003700 
+f something_signature_checker 55 0x00003700 
 f fcn.000036b0 77 0x000036b0 
 f fcn.00003670 64 0x00003670 
 f fcn.00004050 110 0x00004050 
@@ -272,11 +272,11 @@ f fcn.000034b0 10168 0x000034b0
 f fcn.00005c80 141 0x00005c80 
 f fcn.00004900 114 0x00004900 
 f fcn.0000db40 257 0x0000db40 
-f fcn.000131a0 12 0x000131a0 
+f wrapper.strcpy.0x000131a0 12 0x000131a0 
 f fcn.00012370 12 0x00012370 
-f fcn.0000dd0b 84 0x0000dd0b 
-f fcn.00005d80 48 0x00005d80 
-f fcn.0000e070 26 0x0000e070 
+f list_add.0x0000dd0b 84 0x0000dd0b 
+f list_manipulate.0x00005d80 82 0x00005d80 
+f list_search.0x0000e070 26 0x0000e070 
 f fcn.0002b02e 382 0x0002b02e 
 f fcn.0002ee70 144 0x0002ee70 
 f memcpy.to_ES 22 0x00011ef0 
@@ -683,7 +683,7 @@ f errno 1 0x00056624
 f str._Status____d.__ 15 0x0002a934 
 f str._ERROR__03d____s__ 18 0x0002a922 
 fs functions
-f fcn.0002a970 58 0x0002a970 
+f massive_error_case_print 58 0x0002a970 
 f fcn.0002ef00 12 0x0002ef00 
 f loc.00032c60 23 0x00032c60 
 f loc.0002aef8 8 0x0002aef8 
@@ -812,6 +812,44 @@ f str.Failed_to_perform_flash_ 24 0x0002a23c
 f str.Failed_to_load_BIOS_image_file_ 31 0x0002a21d 
 f str.Failed_to_backup_BIOS_ROM_ 26 0x0002a203 
 f str.Command_line_error_ 19 0x0002a1f0 
+fs *
+f loc.0x00005dc4 1 0x00005dc4 
+fs functions
+f fcn.00005db0 34 0x00005db0 
+fs *
+f val_4 1 0x00003827 
+fs *
+f val_gt4 1 0x0000380b 
+fs *
+f val_2 1 0x00003843 
+fs *
+f val_3 1 0x00003868 
+fs *
+f val_other 1 0x000038ca 
+fs *
+f val_0x12 1 0x00003872 
+fs *
+f val_0x19 1 0x000038a6 
+fs *
+f val_0xe 1 0x0000388d 
+fs functions
+f ___dpmi_get_segment_limit 18 0x00041400 
+fs *
+f data.0x00053eb0 1 0x00053eb0 
+fs functions
+f wrapper.maybe.load_and_smi.0x0000daa0 147 0x0000daa0 
+f maybe.load_and_smi.0x00013140 81 0x00013140 
+f fcn.0002613b 263 0x0002613b 
+f fcn.0002c450 70 0x0002c450 
+f fcn.00027417 53 0x00027417 
+f fcn.0002b316 75 0x0002b316 
+f fcn.0002f09d 185 0x0002f09d 
+f fcn.000053e0 12 0x000053e0 
+fs *
+f str.Usage:_Flash__COMMAND__ 23 0x00027400 
+fs functions
+f fcn.000275fb 1079 0x000275fb 
+f fcn.00027a40 17 0x00027a40 
 # eval
 "e anal.a2f = false"
 "e anal.afterjmp = true"
@@ -2831,8 +2869,8 @@ Cd 2 @ 0x00056614
 Cd 2 @ 0x00056616
 Cd 4 @ 0x00056624
 CCu base64:RUlOVkFM @ 0x000460a5
-Cs 15 @ 0x0002a934 # Status____d._n_
-Cs 18 @ 0x0002a922 # _nERROR__03d____s__
+Cs 15 @ 0x0002a934 # Status____d._n
+Cs 18 @ 0x0002a922 # _nERROR__03d____s_
 Cd 4 @ 0x0002a9ac
 Cd 4 @ 0x0002a9b0
 Cd 4 @ 0x0002a9b4
@@ -2998,65 +3036,86 @@ Cd 4 @ 0x0002ac2c
 Cd 4 @ 0x0002ac30
 Cd 4 @ 0x0002ac34
 Cd 290 @ 0x0002adca
-Cs 45 @ 0x0002a943 # System_will_shutdown_or_reboot_in_5_seconds__
-Cs 15 @ 0x0002a913 # Status____u._n_
-Cs 18 @ 0x0002a8ff # _nERROR__03u____s__
-Cs 18 @ 0x0002a8ed # Undefined_failure_
-Cs 26 @ 0x0002a8d3 # The_region_was_not_found._
-Cs 38 @ 0x0002a8ad # Failed_to_enable_disable_flash_write._
-Cs 35 @ 0x0002a88a # Failed_to_do_flashing_through_PFAT_
-Cs 32 @ 0x0002a86a # Failed_to_resume_system_button._
-Cs 31 @ 0x0002a84b # Failed_to_block_system_button._
-Cs 19 @ 0x0002a838 # Access_was_denied._
-Cs 51 @ 0x0002a805 # Signed_capsule_only_allow_equal_and_newer_version._
-Cs 58 @ 0x0002a7cb # Cannot_rollback_to_BIOS_without_AT_module_if_AT_enrolled._
-Cs 45 @ 0x0002a79e # Failed_to_commit_all_changes_into_BIOS_image_
-Cs 35 @ 0x0002a77b # OEM_check_failed_from_BIOS_service_
-Cs 30 @ 0x0002a75d # SecureFlash_verification_fail_
-Cs 56 @ 0x0002a725 # Only_secured_capsule_is_allowed_on_a_SecureFlash_system_
-Cs 35 @ 0x0002a702 # Failed_on_processing_DMI_string_s__
-Cs 27 @ 0x0002a6e7 # Failed_on_patch_boot_block_
-Cs 34 @ 0x0002a6c5 # Failed_to_verify_admin_s_password_
-Cs 52 @ 0x0002a691 # BIOS_was_locked_by_secure_flash_option_or_password._
-Cs 29 @ 0x0002a674 # Correct_password_is_required_
-Cs 31 @ 0x0002a655 # Password_failed_too_many_times_
-Cs 21 @ 0x0002a640 # Bitlocker_is_enabled_
-Cs 28 @ 0x0002a624 # Failed_on_variable_handling_
-Cs 34 @ 0x0002a602 # Failed_on_executing_WRITE_command_
-Cs 25 @ 0x0002a5e9 # Failed_to_initialize_SMI_
-Cs 32 @ 0x0002a5c9 # Failed_on_executing_SPU_command_
-Cs 32 @ 0x0002a5a9 # Failed_on_executing_SLP_command_
-Cs 27 @ 0x0002a58e # Fail_to_reserve_sub_region_
-Cs 29 @ 0x0002a571 # Failed_to_read_BIOS_from_ROM_
-Cs 36 @ 0x0002a54d # Failed_on_checking_rollback_setting_
-Cs 28 @ 0x0002a531 # Failed_to_handle_raw_module_
-Cs 41 @ 0x0002a508 # Invalid_parameter_for_power_status_check_
-Cs 65 @ 0x0002a4c7 # Failed_the_power_status_check_because_of_not_enough_battery_life_
-Cs 54 @ 0x0002a491 # Failed_the_power_status_check_because_AC_power_is_off_
-Cs 27 @ 0x0002a476 # Failed_to_get_power_status_
-Cs 29 @ 0x0002a459 # Failed_at_power_status_check_
-Cs 39 @ 0x0002a432 # Failed_to_exit_flash_with_power_action_
-Cs 36 @ 0x0002a40e # Commands_policy_verification_failed_
-Cs 27 @ 0x0002a3f3 # Failed_on_module_operation_
-Cs 27 @ 0x0002a3d8 # Failed_to_update_microcode_
-Cs 25 @ 0x0002a3bf # Failed_on_logo_operation_
-Cs 22 @ 0x0002a3a9 # Failed_on_IPF_command_
-Cs 32 @ 0x0002a389 # Failed_to_read_BIOS_from_memory_
-Cs 39 @ 0x0002a362 # Failed_to_perform_flash_initialization_
-Cs 31 @ 0x0002a343 # Unable_to_determine_flash_mode_
-Cs 25 @ 0x0002a32a # Failed_to_finalize_flash_
-Cs 36 @ 0x0002a306 # Failed_to_get_prog_starting_address_
-Cs 31 @ 0x0002a2e7 # BIOS_part_numbers_do_not_match_
-Cs 27 @ 0x0002a2cc # BIOS_layout_does_not_match_
-Cs 19 @ 0x0002a2b9 # Invalid_BIOS_image_
-Cs 21 @ 0x0002a27e # Failed_to_commit_BCP_
-Cs 38 @ 0x0002a293 # BIOS_image_is_equal_or_older_than_ROM_
-Cs 21 @ 0x0002a269 # Failed_to_merge_BCPs_
-Cs 21 @ 0x0002a254 # Failed_to_create_BCP_
-Cs 24 @ 0x0002a23c # Failed_to_perform_flash_
-Cs 31 @ 0x0002a21d # Failed_to_load_BIOS_image_file_
-Cs 26 @ 0x0002a203 # Failed_to_backup_BIOS_ROM_
-Cs 19 @ 0x0002a1f0 # Command_line_error_
+Cs 45 @ 0x0002a943 # System_will_shutdown_or_reboot_in_5_seconds_
+Cs 15 @ 0x0002a913 # Status____u._n
+Cs 18 @ 0x0002a8ff # _nERROR__03u____s_
+Cs 18 @ 0x0002a8ed # Undefined_failure
+Cs 26 @ 0x0002a8d3 # The_region_was_not_found.
+Cs 38 @ 0x0002a8ad # Failed_to_enable_disable_flash_write.
+Cs 35 @ 0x0002a88a # Failed_to_do_flashing_through_PFAT
+Cs 32 @ 0x0002a86a # Failed_to_resume_system_button.
+Cs 31 @ 0x0002a84b # Failed_to_block_system_button.
+Cs 19 @ 0x0002a838 # Access_was_denied.
+Cs 51 @ 0x0002a805 # Signed_capsule_only_allow_equal_and_newer_version.
+Cs 58 @ 0x0002a7cb # Cannot_rollback_to_BIOS_without_AT_module_if_AT_enrolled.
+Cs 45 @ 0x0002a79e # Failed_to_commit_all_changes_into_BIOS_image
+Cs 35 @ 0x0002a77b # OEM_check_failed_from_BIOS_service
+Cs 30 @ 0x0002a75d # SecureFlash_verification_fail
+Cs 56 @ 0x0002a725 # Only_secured_capsule_is_allowed_on_a_SecureFlash_system
+Cs 35 @ 0x0002a702 # Failed_on_processing_DMI_string_s_
+Cs 27 @ 0x0002a6e7 # Failed_on_patch_boot_block
+Cs 34 @ 0x0002a6c5 # Failed_to_verify_admin_s_password
+Cs 52 @ 0x0002a691 # BIOS_was_locked_by_secure_flash_option_or_password.
+Cs 29 @ 0x0002a674 # Correct_password_is_required
+Cs 31 @ 0x0002a655 # Password_failed_too_many_times
+Cs 21 @ 0x0002a640 # Bitlocker_is_enabled
+Cs 28 @ 0x0002a624 # Failed_on_variable_handling
+Cs 34 @ 0x0002a602 # Failed_on_executing_WRITE_command
+Cs 25 @ 0x0002a5e9 # Failed_to_initialize_SMI
+Cs 32 @ 0x0002a5c9 # Failed_on_executing_SPU_command
+Cs 32 @ 0x0002a5a9 # Failed_on_executing_SLP_command
+Cs 27 @ 0x0002a58e # Fail_to_reserve_sub_region
+Cs 29 @ 0x0002a571 # Failed_to_read_BIOS_from_ROM
+Cs 36 @ 0x0002a54d # Failed_on_checking_rollback_setting
+Cs 28 @ 0x0002a531 # Failed_to_handle_raw_module
+Cs 41 @ 0x0002a508 # Invalid_parameter_for_power_status_check
+Cs 65 @ 0x0002a4c7 # Failed_the_power_status_check_because_of_not_enough_battery_life
+Cs 54 @ 0x0002a491 # Failed_the_power_status_check_because_AC_power_is_off
+Cs 27 @ 0x0002a476 # Failed_to_get_power_status
+Cs 29 @ 0x0002a459 # Failed_at_power_status_check
+Cs 39 @ 0x0002a432 # Failed_to_exit_flash_with_power_action
+Cs 36 @ 0x0002a40e # Commands_policy_verification_failed
+Cs 27 @ 0x0002a3f3 # Failed_on_module_operation
+Cs 27 @ 0x0002a3d8 # Failed_to_update_microcode
+Cs 25 @ 0x0002a3bf # Failed_on_logo_operation
+Cs 22 @ 0x0002a3a9 # Failed_on_IPF_command
+Cs 32 @ 0x0002a389 # Failed_to_read_BIOS_from_memory
+Cs 39 @ 0x0002a362 # Failed_to_perform_flash_initialization
+Cs 31 @ 0x0002a343 # Unable_to_determine_flash_mode
+Cs 25 @ 0x0002a32a # Failed_to_finalize_flash
+Cs 36 @ 0x0002a306 # Failed_to_get_prog_starting_address
+Cs 31 @ 0x0002a2e7 # BIOS_part_numbers_do_not_match
+Cs 27 @ 0x0002a2cc # BIOS_layout_does_not_match
+Cs 19 @ 0x0002a2b9 # Invalid_BIOS_image
+Cs 21 @ 0x0002a27e # Failed_to_commit_BCP
+Cs 38 @ 0x0002a293 # BIOS_image_is_equal_or_older_than_ROM
+Cs 21 @ 0x0002a269 # Failed_to_merge_BCPs
+Cs 21 @ 0x0002a254 # Failed_to_create_BCP
+Cs 24 @ 0x0002a23c # Failed_to_perform_flash
+Cs 31 @ 0x0002a21d # Failed_to_load_BIOS_image_file
+Cs 26 @ 0x0002a203 # Failed_to_backup_BIOS_ROM
+Cs 19 @ 0x0002a1f0 # Command_line_error
+Cd 1 @ 0x0002a96f
+Cd 1 @ 0x0002a96e
+Cd 1 @ 0x0002a96d
+Cd 1 @ 0x0002a96c
+Cd 4 @ 0x00005db0
+Cd 4 @ 0x00005db4
+Cd 4 @ 0x00005db8
+Cd 4 @ 0x00005dbc
+Cd 4 @ 0x00005dc0
+CCu base64:YW4gZXJybm8/ @ 0x000038c3
+CCu base64:YW4gZXJybm8/ @ 0x000038ca
+CCu base64:bm8gZXJyb3I= @ 0x000038bf
+CCu base64:QUxMT0NBVEUgRE9TIE1FTU9SWSBCTE9DSw== @ 0x00036e57
+Cd 4 @ 0x00053eb0
+CCu base64:Ij1MRU4i @ 0x00003711
+CCu base64:Ik9WTz0i @ 0x00003718
+CCu base64:IlNNPyAi @ 0x00003709
+CCu base64:ZXJybm8/ @ 0x00005bf9
+CCu base64:dHJhY2UgdG8gMHgyNjEzYg== @ 0x0000396b
+CCu base64:dHJhY2UgdG8gMHgyNzQxNywgMHgyNzVmYg== @ 0x00003977
+Cs 23 @ 0x00027400 # Usage:_Flash__COMMAND_
 f entry0 516 0x000018d0
 af+ 0x000018d0 516 entry0 f n
 afC cdecl @ 0x000018d0
