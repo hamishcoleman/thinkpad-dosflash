@@ -1,0 +1,34 @@
+
+This project is an attempt to reverse engineer the Lenovo DOSFLASH.EXE
+tool that is used to flash new BIOS and Embedded Controller firmware.
+
+The DOSFLASH tool is a djgcc compiled program with a 32-bit executable
+inside it, so this project extracts the 32bit and examines it.
+
+There is a radare project for the 32-bit flat executable.
+
+There is also a hypervisor to run the flat executable with extensive
+trapping and debug output on what it is doing.
+
+    make kvm_flat
+    ./kvm_flat g2uj23us.dosflash.flat 0x18d0 "/sd /ipf ec /file s01D3000.FL2" 2>&1 |less
+
+The theory is that the DOSFLASH program must interface with the hardware
+to perform the flashing, and that this would show up as a trap in the
+hypervisor - There is no physical hardware access from the hypervisor,
+so any access will trap.
+
+In the end, I get traps from the DOSFLASH opying out the BIOS (and
+presumably looking for some tables), but no other hardware traps,
+finally outputting an error message:
+
+    ERROR 203 - Failed to initialize SMI!
+
+I assume that it has somehow tried to contact the SMM and failed,
+but I expect to get traps for this contact.
+
+
+Current status is that I have spent too long looking at this and need
+to take a break.
+
+
