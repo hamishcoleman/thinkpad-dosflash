@@ -860,6 +860,37 @@ void iret_setflags(struct kvm_regs *regs, unsigned int setflags) {
     }
 }
 
+void dump_fake_segments(struct kvm_regs *call) {
+    debug_printf(1,"cs=0x%04llx ds=0x%04llx es=0x%04llx fs=0x%04llx gs=0x%04llx ss=0x%04llx\n",
+        call->r8, call->r9, call->r10, call->r11, call->r12, call->r13
+    );
+}
+
+int irq_dump_rm(void *data, struct emu *emu, struct kvm_regs *regs) {
+    debug_printf(1,"\n");
+    struct kvm_regs real_regs;
+    int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &real_regs);
+    if (ret == -1)
+        err(1, "KVM_GET_REGS");
+    dump_kvm_regs(&real_regs);
+    __u32 *stack = mem_getstack(emu, &real_regs);
+    debug_printf(1,"Stack:");
+    dump_dwords(stack,16);
+    dump_backtrace(emu,&real_regs);
+    debug_printf(1,"Real mode registers:\n");
+    dump_kvm_regs(regs);
+    dump_fake_segments(regs);
+    return 0;
+}
+
+int irq_disk_status(void *data, struct emu *emu, struct kvm_regs *regs) {
+    debug_printf(1,"drive=0x%02x - Faked",regs->rdx&0xff);
+    irq_dump_rm(data,emu,regs);
+
+    regs->rax &= ~0xffff; /* just indicate a successful completion */
+    return WANT_SET_REGS;
+}
+
 int irq_dos_exit(void *data, struct emu *emu, struct kvm_regs *regs) {
     debug_printf(1," return=0x%02llx\n",regs->rax & 0xff);
     exit(0);
@@ -869,12 +900,6 @@ int irq_dos_version(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rax = 0x0004; /* DOS 4.00 */
     regs->rbx = 0x0; /* DOS OEM is IBM */
     return WANT_NEWLINE|WANT_SET_REGS;
-}
-
-void dump_fake_segments(struct kvm_regs *call) {
-    debug_printf(1,"cs=0x%04llx ds=0x%04llx es=0x%04llx fs=0x%04llx gs=0x%04llx ss=0x%04llx\n",
-        call->r8, call->r9, call->r10, call->r11, call->r12, call->r13
-    );
 }
 
 int irq_dos_write(void *data, struct emu *emu, struct kvm_regs *regs) {
@@ -896,18 +921,7 @@ int irq_dos_write(void *data, struct emu *emu, struct kvm_regs *regs) {
 
     regs->rax = count; /* just claim to have written everything */
 
-    struct kvm_regs real_regs;
-    int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &real_regs);
-    if (ret == -1)
-        err(1, "KVM_GET_REGS");
-    dump_kvm_regs(&real_regs);
-    __u32 *stack = mem_getstack(emu, &real_regs);
-    debug_printf(1,"Stack:");
-    dump_dwords(stack,16);
-    dump_backtrace(emu,&real_regs);
-    debug_printf(1,"Real mode registers:\n");
-    dump_kvm_regs(regs);
-    dump_fake_segments(regs);
+    irq_dump_rm(data,emu,regs);
 
     return WANT_SET_REGS;
 }
@@ -951,6 +965,7 @@ int irq_dos_lfn_volinfo(void *data, struct emu *emu, struct kvm_regs *regs) {
     regs->rcx = 0xff; /* max filename length */
     regs->rdx = 260; /* max path length */
     /* wants ES:DI filled in with filesystem name */
+    regs->rflags &= ~1;
     return WANT_SET_REGS;
 }
 
@@ -993,7 +1008,7 @@ int irq_dos_lfn_open(void *data, struct emu *emu, struct kvm_regs *regs) {
     debug_printf(1," =%i\n",fh);
     regs->rcx = 1;
     regs->rax = fh;
-
+    regs->rflags &= ~1;
     return WANT_SET_REGS;
 }
 
@@ -1455,7 +1470,7 @@ struct irq_subhandler_entry irq_video_subcode[] = {
 };
 
 struct irq_subhandler_entry irq_disk_subcode[] = {
-    { .subcode = 0x01, .name = "DISK - RESET", .handler = irq_ignore },
+    { .subcode = 0x01, .name = "DISK - GET STATUS", .handler = irq_disk_status},
     { .subcode = 0x03, .name = "DISK - WRITE SECTORS", .handler = irq_ignore },
     { 0 },
 };
