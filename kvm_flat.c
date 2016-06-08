@@ -79,7 +79,8 @@ int debug_printf(unsigned char level, const char *fmt, ...)
 #define MEM_REGION_BIOS  4
 #define MEM_REGION_BSS   5
 #define MEM_REGION_PSP   6
-#define MEM_REGION_MAX   7
+#define MEM_REGION_ZERO  7
+#define MEM_REGION_MAX   8
 
 #define REGION_STACK_SIZE 0x1000
 #define REGION_STACK_BASE 0xf0000000
@@ -684,10 +685,15 @@ int load_image(struct emu *emu, char *filename, unsigned long entry, char *cmdli
         }
     }
 
+    emu->mem[MEM_REGION_ZERO].slot = MEM_REGION_ZERO;
+    emu->mem[MEM_REGION_ZERO].guest_phys_addr = 0;
+    emu->mem[MEM_REGION_ZERO].memory_size = 0x1000;
+    emu->mem[MEM_REGION_ZERO].userspace_addr = (uint64_t)text;
+
     emu->mem[MEM_REGION_TEXT].slot = MEM_REGION_TEXT;
-    emu->mem[MEM_REGION_TEXT].guest_phys_addr = 0;
+    emu->mem[MEM_REGION_TEXT].guest_phys_addr = 0x1000;
     emu->mem[MEM_REGION_TEXT].memory_size = text_size;
-    emu->mem[MEM_REGION_TEXT].userspace_addr = (uint64_t)text;
+    emu->mem[MEM_REGION_TEXT].userspace_addr = (uint64_t)(text+0x1000);
 
     ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[MEM_REGION_TEXT]);
     if (ret == -1)
@@ -1522,7 +1528,9 @@ int handle_mmio(struct emu *emu) {
         return 0;
     }
 
-    if (!run->mmio.is_write) {
+    if (run->mmio.is_write) {
+        memcpy(addr, run->mmio.data, run->mmio.len);
+    } else {
         memcpy(run->mmio.data, addr ,run->mmio.len);
     }
 
