@@ -1588,12 +1588,16 @@ int main(int argc, char **argv)
     struct kvm_guest_debug debug;
     debug.control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP;
 
+    int trace = 0;
+
     /* Repeatedly run code and handle VM exits. */
     while (1) {
         struct kvm_run *run = emu->run;
-        ret = ioctl(emu->vcpufd, KVM_SET_GUEST_DEBUG, &debug);
-        if (ret == -1)
-            err(1, "KVM_SET_GUEST_DEBUG");
+        if (trace) {
+            ret = ioctl(emu->vcpufd, KVM_SET_GUEST_DEBUG, &debug);
+            if (ret == -1)
+                err(1, "KVM_SET_GUEST_DEBUG");
+        }
         ret = ioctl(emu->vcpufd, KVM_RUN, NULL);
         if (ret == -1)
             err(1, "KVM_RUN");
