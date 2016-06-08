@@ -948,12 +948,45 @@ int irq_dos_lfn_volinfo(void *data, struct emu *emu, struct kvm_regs *regs) {
     return WANT_SET_REGS;
 }
 
+int irq_dos_lfn_attr(void *data, struct emu *emu, struct kvm_regs *regs) {
+    /* note: r9 is a fake DS here */
+    int dos_bufaddr = (regs->r9 << 4) | (regs->rsi & 0xffff);
+    char *buf =  mem_guest2host(emu, dos_bufaddr);
+    debug_printf(1,"path='%s', action=%i - Fail\n",buf,regs->rbx & 0xff);
+
+    regs->rax = 5; /* access denied */
+    regs->rflags |= 1;
+    return WANT_SET_REGS;
+}
+
 int irq_dos_lfn_open(void *data, struct emu *emu, struct kvm_regs *regs) {
     /* note: r9 is a fake DS here */
     int dos_bufaddr = (regs->r9 << 4) | (regs->rsi & 0xffff);
-    uint8_t *buf =  mem_guest2host(emu, dos_bufaddr);
-    debug_printf(1,"path='%s' = 3 - Faked\n",buf);
-    regs->rax = 3; /* a Fake handle */
+    char *buf =  mem_guest2host(emu, dos_bufaddr);
+    debug_printf(1,"path='%s'",buf);
+
+    if (regs->rdx != 1) {
+        /* 0x02 == truncate, 0x10 == create or fail */
+        debug_printf(1," not open, fail\n");
+        regs->rax = 5; /* access denied */
+        /* FIXME - only works for nested real-mode calls */
+        regs->rflags |= 1;
+        return WANT_SET_REGS;
+    }
+
+    int fh =  open(buf,O_RDONLY);
+
+    if (fh == -1) {
+        debug_printf(1," error opening, fail\n");
+        regs->rax = 5; /* access denied */
+        /* FIXME - only works for nested real-mode calls */
+        regs->rflags |= 1;
+        return WANT_SET_REGS;
+    }
+
+    debug_printf(1," =%i\n",fh);
+    regs->rcx = 1;
+    regs->rax = fh;
 
     return WANT_SET_REGS;
 }
@@ -1388,7 +1421,7 @@ struct irq_subhandler_entry irq_dos_ioctl[] = {
 };
 
 struct irq_subhandler_entry irq_dos_lfn[] = {
-    { .subcode = 0x43, .name = "LFN - GET/SET FILE ATTR", .handler = irq_ignore },
+    { .subcode = 0x43, .name = "LFN - GET/SET FILE ATTR", .handler = irq_dos_lfn_attr },
     { .subcode = 0x6c, .name = "LFN - OPEN", .handler = irq_dos_lfn_open },
     { .subcode = 0xa0, .name = "LFN - GET VOL INFO", .handler = irq_dos_lfn_volinfo },
     { 0 },
