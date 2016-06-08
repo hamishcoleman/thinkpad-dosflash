@@ -1516,12 +1516,14 @@ int handle_mmio(struct emu *emu) {
     int mmio_verbose;
     struct kvm_run *run = emu->run;
     __u32 old_mmio_next = emu->mmio_next;
-    if (run->mmio.phys_addr < REGION_BIOS_BASE || run->mmio.phys_addr > REGION_BIOS_BASE+REGION_BIOS_SIZE) {
+
+    void *addr = mem_guest2host(emu, run->mmio.phys_addr);
+    if (!addr) {
         return 0;
     }
 
     if (!run->mmio.is_write) {
-        memcpy(run->mmio.data, mem_guest2host(emu, run->mmio.phys_addr) ,run->mmio.len);
+        memcpy(run->mmio.data, addr ,run->mmio.len);
     }
 
     emu->mmio_next = run->mmio.phys_addr+run->mmio.len;
@@ -1546,7 +1548,7 @@ int handle_mmio(struct emu *emu) {
         if (ret == -1)
             err(1, "KVM_GET_REGS");
 
-        debug_printf(1,"%07llx: MMIO %s: 0x%08llx(0x%08x)\n",
+        debug_printf(1,"%07llx: MMIO %s: 0x%08llx(0x%x)\n",
             regs.rip,
             run->mmio.is_write?"write":"read",
             run->mmio.phys_addr,run->mmio.len
