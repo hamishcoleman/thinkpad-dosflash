@@ -68,7 +68,7 @@ f dpmi_set_segment_base_address 43 0x00039fb0
 f __dpmi_set_segment_limit 43 0x00039fe0 
 f dpmi_free_ldt_descriptor 35 0x0003a010 
 f maybe.strncmp 54 0x00036c50 
-f maybe.free 355 0x00036408 
+f free 355 0x00036408 
 f maybe.detect_RSD_PTR 1288 0x0000e40f 
 f fcn.000138f0 10 0x000138f0 
 f fcn.00006c7c 295 0x00006c7c 
@@ -163,12 +163,12 @@ f fcn.00005aa0 57 0x00005aa0
 f fcn.000133f0 12 0x000133f0 
 f fcn.00038450 5 0x00038450 
 f fcn.00041fd0 82 0x00041fd0 
-f fcn.00013400 282 0x00013400 
+f maybe.detect_package_information 282 0x00013400 
 f fcn.00010643 184 0x00010643 
 f fcn.000140d2 96 0x000140d2 
 f fcn.000367c0 309 0x000367c0 
 f fcn.00040d34 153 0x00040d34 
-f fcn.000463c0 61 0x000463c0 
+f memset 61 0x000463c0 
 f fcn.00040f50 143 0x00040f50 
 f fcn.00045fa0 41 0x00045fa0 
 f fcn.00045e00 62 0x00045e00 
@@ -179,7 +179,7 @@ f __FSEXT_call_open_handlers_wrapper 398 0x0003df98
 f maybe._put_path 15 0x00042d94 
 f fcn.00042dc0 803 0x00042dc0 
 f fcn.00046430 37 0x00046430 
-f fcn.0003a1c0 99 0x0003a1c0 
+f getenv 99 0x0003a1c0 
 f fcn.0003ddf0 419 0x0003ddf0 
 f fcn.000466f0 330 0x000466f0 
 f fcn.00042cc0 62 0x00042cc0 
@@ -191,13 +191,13 @@ f fcn.00045780 143 0x00045780
 f fcn.00045f70 46 0x00045f70 
 f fcn.00045efc 113 0x00045efc 
 f fcn.0003656c 80 0x0003656c 
-f fcn.0003f320 26 0x0003f320 
+f memcpy 26 0x0003f320 
 f copy.0x00045b90 40 0x00045b90 
 f fcn.000464d0 200 0x000464d0 
 f fcn.0003d47c 43 0x0003d47c 
 f fcn.00046340 119 0x00046340 
 f fcn.00046840 290 0x00046840 
-f fcn.0003d630 238 0x0003d630 
+f _write 238 0x0003d630 
 f fcn.00041420 36 0x00041420 
 f movedata 41 0x0003d890 
 f fcn.0003a370 240 0x0003a370 
@@ -214,7 +214,7 @@ f fcn.00046250 226 0x00046250
 f fcn.00041450 36 0x00041450 
 f fcn.00046670 28 0x00046670 
 f fcn.000137b0 71 0x000137b0 
-f fcn.0001352b 59 0x0001352b 
+f getenv_PACKORGDIR 59 0x0001352b 
 f fcn.0000d9b0 62 0x0000d9b0 
 fs *
 f jump_table.0x0000d9f0 1 0x0000d9f0 
@@ -230,7 +230,7 @@ f fcn.0000da8e 5 0x0000da8e
 f fcn.000042a0 33 0x000042a0 
 f fcn.00004350 32 0x00004350 
 f loc.000044b7 2 0x000044b7 
-f fcn.00013570 75 0x00013570 
+f bios_disk_getstatus 75 0x00013570 
 fs strings
 f option_char1 1 0x00049510 
 f option_char2 1 0x00049511 
@@ -341,7 +341,7 @@ f fcn.000105f2 72 0x000105f2
 f fcn.00014069 99 0x00014069 
 f fcn.0003a330 55 0x0003a330 
 f fcn.0003f368 3261 0x0003f368 
-f fcn.00036780 56 0x00036780 
+f strncpy 56 0x00036780 
 f fcn.000383f0 85 0x000383f0 
 f fcn.00007fc0 374 0x00007fc0 
 f fcn.00008500 125 0x00008500 
@@ -351,7 +351,7 @@ f fcn.0000be2d 73 0x0000be2d
 f fcn.00012d20 267 0x00012d20 
 f fcn.0000641f 287 0x0000641f 
 f fcn.0000bb10 12 0x0000bb10 
-f fcn.000383d0 32 0x000383d0 
+f strchr 32 0x000383d0 
 f fcn.00007f8b 53 0x00007f8b 
 f fcn.00007f20 103 0x00007f20 
 f fcn.0000841f 80 0x0000841f 
@@ -360,7 +360,7 @@ f fcn.00013b60 13 0x00013b60
 f fcn.000084cc 18 0x000084cc 
 f fcn.0000dc5a 77 0x0000dc5a 
 f fcn.000131b0 86 0x000131b0 
-f fcn.00036c20 40 0x00036c20 
+f strcmp 40 0x00036c20 
 f fcn.00036c90 314 0x00036c90 
 fs strings
 f str.Parameter_error___ 18 0x0000ee5a 
@@ -530,7 +530,9 @@ fs *
 f DIG_HERE 1 0x00002d14 
 fs strings
 f str.Total_blocks_of_the_image____d.__ 33 0x00026242 
-f str.____________________________________________________ 52 0x00026263 
+fs *
+f str.____________________________________________________ 4 0x0003e81d 
+fs strings
 f str.._ 2 0x000262dd 
 f str._Image_flashing_done.___ 24 0x000262df 
 fs functions
@@ -850,6 +852,67 @@ f str.Usage:_Flash__COMMAND__ 23 0x00027400
 fs functions
 f fcn.000275fb 1079 0x000275fb 
 f fcn.00027a40 17 0x00027a40 
+f fcn.00003700 55 0x00003700 
+f fcn.00005d80 48 0x00005d80 
+f fcn.00005f54 115 0x00005f54 
+f fcn.0000dd0b 84 0x0000dd0b 
+f fcn.0000e070 26 0x0000e070 
+f fcn.000131a0 12 0x000131a0 
+f fcn.0002a970 58 0x0002a970 
+f fcn.00036690 237 0x00036690 
+f fcn.00036e50 57 0x00036e50 
+f fcn.00036e90 97 0x00036e90 
+fs *
+f str.ERROR__03d____s___ 18 0x0000df7d 
+fs *
+f data.0x0004e040 1 0x0004e040 
+fs *
+f data.0x0004e03c 1 0x0004e03c 
+fs *
+f str.PACKORGDIR_ 11 0x00013520 
+fs *
+f str.__proxy_ 8 0x0004a9f4 
+fs functions
+f parse_bytes 191 0x0003e91c 
+f new_arg 30 0x0003e728 
+f c1xmalloc 42 0x0003e6b0 
+f _exit 64 0x0003d4e8 
+fs *
+f str.No_memory_to_gather_arguments___ 32 0x0003e690 
+fs functions
+f __maybe_fix_w2k_ntvdm_bug 63 0x0003d4a8 
+fs *
+f _8087 1 0x00054694 
+fs functions
+f _clear87 11 0x00045df0 
+fs *
+f kbd_ori.offset32 1 0x000526b4 
+fs *
+f __djgpp_old_kbd.offset32 1 0x00035c00 
+fs *
+f kbd_ori.selector 1 0x000526b8 
+fs *
+f __djgpp_old_kbd.selector 1 0x00035c04 
+fs functions
+f parse_arg 243 0x0003e828 
+f strncmp 60 0x0003a230 
+f new_arglist 53 0x0003e7ac 
+f strncat 59 0x00046490 
+f delete_arglist 54 0x0003e7e4 
+f delete_arg 99 0x0003e748 
+fs *
+f str.___ 3 0x0003e81a 
+fs *
+f str...._ 4 0x0003e821 
+fs functions
+f atohex 47 0x0003e6f8 
+f maybe.far_strlen 28 0x0003e6dc 
+f expand_response_files 305 0x0003eb8c 
+f expand_wildcards 75 0x0003ecc0 
+f count_args 86 0x0003ea9c 
+f fill_args 152 0x0003eaf4 
+fs *
+f max_disk 1 0x0004cb24 
 # eval
 "e anal.a2f = false"
 "e anal.afterjmp = true"
@@ -3116,6 +3179,23 @@ CCu base64:ZXJybm8/ @ 0x00005bf9
 CCu base64:dHJhY2UgdG8gMHgyNjEzYg== @ 0x0000396b
 CCu base64:dHJhY2UgdG8gMHgyNzQxNywgMHgyNzVmYg== @ 0x00003977
 Cs 23 @ 0x00027400 # Usage:_Flash__COMMAND_
+Cs 18 @ 0x0000df7d # ERROR__03d____s__n
+CCu base64:IktDQVAkIg== @ 0x00013455
+Cd 4 @ 0x0004e040
+Cd 4 @ 0x0004e03c
+Cs 11 @ 0x00013520 # PACKORGDIR
+Cs 8 @ 0x0004a9f4 # _proxy
+Cs 32 @ 0x0003e690 # No_memory_to_gather_arguments_r_n
+CCu base64:U1RERVJSX0ZJTEVOTw== @ 0x0003e6c9
+Cd 4 @ 0x00054694
+Cd 4 @ 0x000526b4
+Cd 4 @ 0x00035c00
+Cd 4 @ 0x000526b8
+Cd 4 @ 0x00035c04
+Cs 3 @ 0x0003e81a # ___
+Cs 4 @ 0x0003e81d # ___
+Cs 4 @ 0x0003e821 # ...
+Cd 2 @ 0x0004cb24
 f entry0 516 0x000018d0
 af+ 0x000018d0 516 entry0 f n
 afC cdecl @ 0x000018d0
@@ -6223,6 +6303,17 @@ f loc.0000da93 10 0x0000da93
 af+ 0x0000da93 10 loc.0000da93 l n
 afC cdecl @ 0x0000da93
 afb+ 0x0000da93 0x0000da93 10 0xffffffffffffffff 0xffffffffffffffff n n
+f wrapper.maybe.load_and_smi.0x0000daa0 147 0x0000daa0
+af+ 0x0000daa0 147 wrapper.maybe.load_and_smi.0x0000daa0 f n
+afC cdecl @ 0x0000daa0
+afb+ 0x0000daa0 0x0000daa0 19 0x0000db2e 0x0000dab3 n n
+afb+ 0x0000daa0 0x0000dab3 26 0x0000db2e 0x0000dacd n n
+afb+ 0x0000daa0 0x0000dacd 97 0x0000db2e 0xffffffffffffffff n n
+afb+ 0x0000daa0 0x0000db2e 5 0xffffffffffffffff 0xffffffffffffffff n n
+afa 3 arg_3h int @ 0xdaa0
+afa 8 arg_8h int @ 0xdaa0
+afv 4 local_4h int @ 0xdaa0
+afv 9 local_9h int @ 0xdaa0
 f fcn.0000db40 257 0x0000db40
 af+ 0x0000db40 257 fcn.0000db40 f n
 afC cdecl @ 0x0000db40
@@ -6312,7 +6403,7 @@ afa 8 arg_8h int @ 0xde1d
 afv 0 local_0h int @ 0xde1d
 afv 12 local_ch int @ 0xde1d
 afv 25 detected_phoenix int @ 0xde1d
-afv 28 local_1ch int @ 0xde1d
+afv 28 max_disk word @ 0xde1d
 afv 48 local_30h int @ 0xde1d
 f fcn.0000df92 54 0x0000df92
 af+ 0x0000df92 54 fcn.0000df92 f n
@@ -7626,6 +7717,10 @@ afb+ 0x000130b0 0x000130e7 9 0x0001310f 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x130b0
 afv 4 local_4h int @ 0x130b0
 afv 12 local_ch int @ 0x130b0
+f maybe.load_and_smi.0x00013140 81 0x00013140
+af+ 0x00013140 81 maybe.load_and_smi.0x00013140 f n
+afC cdecl @ 0x00013140
+afb+ 0x00013140 0x00013140 81 0xffffffffffffffff 0xffffffffffffffff n n
 f fcn.000131a0 12 0x000131a0
 af+ 0x000131a0 12 fcn.000131a0 f n
 afC cdecl @ 0x000131a0
@@ -7682,8 +7777,8 @@ afb+ 0x000133f0 0x000133f0 12 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x133f0
 afa 12 arg_ch int @ 0x133f0
 afv 8 local_8h int @ 0x133f0
-f fcn.00013400 282 0x00013400
-af+ 0x00013400 282 fcn.00013400 f n
+f maybe.detect_package_information 282 0x00013400
+af+ 0x00013400 282 maybe.detect_package_information f n
 afC cdecl @ 0x00013400
 afb+ 0x00013400 0x00013400 52 0x00013509 0x00013434 n n
 afb+ 0x00013400 0x00013509 10 0xffffffffffffffff 0xffffffffffffffff n n
@@ -7710,15 +7805,15 @@ afv 29 local_1dh int @ 0x13400
 afv 284 local_11ch int @ 0x13400
 afv 300 local_12ch int @ 0x13400
 afv 304 local_130h int @ 0x13400
-f fcn.0001352b 59 0x0001352b
-af+ 0x0001352b 59 fcn.0001352b f n
+f getenv_PACKORGDIR 59 0x0001352b
+af+ 0x0001352b 59 getenv_PACKORGDIR f n
 afC cdecl @ 0x0001352b
 afb+ 0x0001352b 0x0001352b 23 0x0001355b 0x00013542 n n
 afb+ 0x0001352b 0x0001355b 7 0x00013562 0xffffffffffffffff b n
 afb+ 0x0001352b 0x00013542 25 0x00013562 0xffffffffffffffff n n
 afb+ 0x0001352b 0x00013562 4 0xffffffffffffffff 0xffffffffffffffff n n
-f fcn.00013570 75 0x00013570
-af+ 0x00013570 75 fcn.00013570 f n
+f bios_disk_getstatus 75 0x00013570
+af+ 0x00013570 75 bios_disk_getstatus f n
 afC cdecl @ 0x00013570
 afb+ 0x00013570 0x00013570 23 0x000135b3 0x00013587 n n
 afb+ 0x00013570 0x000135b3 8 0xffffffffffffffff 0xffffffffffffffff n n
@@ -7727,11 +7822,12 @@ afb+ 0x00013570 0x000135ae 5 0x000135b3 0xffffffffffffffff n n
 afb+ 0x00013570 0x000135a7 7 0x0001358a 0x000135ae n n
 afb+ 0x00013570 0x0001358a 29 0x000135ae 0x000135a7 n n
 afa 1 arg_1h int @ 0x13570
-afa 8 arg_8h int @ 0x13570
+afa 8 max_hdd word* @ 0x13570
 afv 12 local_ch int @ 0x13570
-afv 47 local_2fh int @ 0x13570
-afv 56 local_38h int @ 0x13570
-afv 76 local_4ch int @ 0x13570
+afv 44 regs_flags word @ 0x13570
+afv 47 regs_ah char @ 0x13570
+afv 56 regs_dl char @ 0x13570
+afv 76 regs int @ 0x13570
 f fcn.00013670 45 0x00013670
 af+ 0x00013670 45 fcn.00013670 f n
 afC cdecl @ 0x00013670
@@ -9267,8 +9363,8 @@ afa 8 arg_8h int @ 0x361d0
 afa 19 arg_13h int @ 0x361d0
 afv 4 local_4h int @ 0x361d0
 afv 16 local_10h int @ 0x361d0
-f maybe.free 355 0x00036408
-af+ 0x00036408 355 maybe.free f n
+f free 355 0x00036408
+af+ 0x00036408 355 free f n
 afC cdecl @ 0x00036408
 afb+ 0x00036408 0x00036408 17 0x00036563 0x00036419 n n
 afb+ 0x00036408 0x00036563 8 0xffffffffffffffff 0xffffffffffffffff n n
@@ -9359,8 +9455,8 @@ afb+ 0x00036690 0x000366bf 10 0x00036775 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x36690
 afv 4 local_4h int @ 0x36690
 afv 16 local_10h int @ 0x36690
-f fcn.00036780 56 0x00036780
-af+ 0x00036780 56 fcn.00036780 f n
+f strncpy 56 0x00036780
+af+ 0x00036780 56 strncpy f n
 afC cdecl @ 0x00036780
 afb+ 0x00036780 0x00036780 15 0x000367af 0x0003678f n n
 afb+ 0x00036780 0x000367af 9 0xffffffffffffffff 0xffffffffffffffff n n
@@ -9504,8 +9600,8 @@ afb+ 0x00036bf0 0x00036c04 10 0x00036c04 0x00036c0e n n
 afa 8 arg_8h int @ 0x36bf0
 afa 12 arg_ch int @ 0x36bf0
 afv 4 local_4h int @ 0x36bf0
-f fcn.00036c20 40 0x00036c20
-af+ 0x00036c20 40 fcn.00036c20 f n
+f strcmp 40 0x00036c20
+af+ 0x00036c20 40 strcmp f n
 afC cdecl @ 0x00036c20
 afb+ 0x00036c20 0x00036c20 11 0x00036c36 0xffffffffffffffff n n
 afb+ 0x00036c20 0x00036c36 6 0x00036c2c 0x00036c3c n n
@@ -9628,8 +9724,8 @@ afb+ 0x00036e90 0x00036eac 16 0x00036ee8 0x00036ebc n n
 afb+ 0x00036e90 0x00036ebc 43 0x00036eea 0xffffffffffffffff n n
 afb+ 0x00036e90 0x00036eea 7 0xffffffffffffffff 0xffffffffffffffff n n
 afv 8 local_8h int @ 0x36e90
-f fcn.000383d0 32 0x000383d0
-af+ 0x000383d0 32 fcn.000383d0 f n
+f strchr 32 0x000383d0
+af+ 0x000383d0 32 strchr f n
 afC cdecl @ 0x000383d0
 afb+ 0x000383d0 0x000383d0 14 0x000383e8 0x000383de n n
 afb+ 0x000383d0 0x000383e8 4 0x000383ee 0x000383ec n n
@@ -9793,8 +9889,8 @@ afa 16 arg_10h int @ 0x3a040
 afa 20 arg_14h int @ 0x3a040
 afv 0 local_0h int @ 0x3a040
 afv 12 local_ch int @ 0x3a040
-f fcn.0003a1c0 99 0x0003a1c0
-af+ 0x0003a1c0 99 fcn.0003a1c0 f n
+f getenv 99 0x0003a1c0
+af+ 0x0003a1c0 99 getenv f n
 afC cdecl @ 0x0003a1c0
 afb+ 0x0003a1c0 0x0003a1c0 18 0x0003a1d8 0x0003a1d2 n n
 afb+ 0x0003a1c0 0x0003a1d8 7 0x0003a219 0x0003a1df n n
@@ -9812,9 +9908,24 @@ afb+ 0x0003a1c0 0x0003a201 4 0x0003a1ee 0x0003a205 n n
 afb+ 0x0003a1c0 0x0003a1ee 5 0x0003a205 0x0003a1f3 n n
 afb+ 0x0003a1c0 0x0003a1f3 2 0x0003a1f5 0xffffffffffffffff n n
 afb+ 0x0003a1c0 0x0003a1d2 2 0x0003a21b 0xffffffffffffffff n n
-afa 8 arg_8h int @ 0x3a1c0
+afa 8 name char* @ 0x3a1c0
 afv 4 local_4h int @ 0x3a1c0
 afv 16 local_10h int @ 0x3a1c0
+f strncmp 60 0x0003a230
+af+ 0x0003a230 60 strncmp f n
+afC cdecl @ 0x0003a230
+afb+ 0x0003a230 0x0003a230 18 0x0003a252 0x0003a242 n n
+afb+ 0x0003a230 0x0003a252 9 0x0003a244 0x0003a25b n n
+afb+ 0x0003a230 0x0003a244 13 0x0003a265 0xffffffffffffffff n n
+afb+ 0x0003a230 0x0003a265 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003a230 0x0003a25b 5 0x0003a263 0x0003a260 n n
+afb+ 0x0003a230 0x0003a263 2 0x0003a265 0xffffffffffffffff n n
+afb+ 0x0003a230 0x0003a260 3 0x0003a252 0x0003a263 n n
+afb+ 0x0003a230 0x0003a242 2 0x0003a263 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x3a230
+afa 12 arg_ch int @ 0x3a230
+afa 16 arg_10h int @ 0x3a230
+afv 8 local_8h int @ 0x3a230
 f __dpmi_int 132 0x0003a270
 af+ 0x0003a270 132 __dpmi_int f n
 afC cdecl @ 0x0003a270
@@ -9955,8 +10066,28 @@ afb+ 0x0003d47c 0x0003d492 2 0x0003d49e 0x0003d494 n n
 afb+ 0x0003d47c 0x0003d49e 7 0x0003d4a5 0xffffffffffffffff n n
 afb+ 0x0003d47c 0x0003d494 9 0x0003d4a5 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x3d47c
-f fcn.0003d630 238 0x0003d630
-af+ 0x0003d630 238 fcn.0003d630 f n
+f __maybe_fix_w2k_ntvdm_bug 63 0x0003d4a8
+af+ 0x0003d4a8 63 __maybe_fix_w2k_ntvdm_bug f n
+afC cdecl @ 0x0003d4a8
+afb+ 0x0003d4a8 0x0003d4a8 14 0x0003d4e2 0x0003d4b6 n n
+afb+ 0x0003d4a8 0x0003d4e2 5 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003d4a8 0x0003d4b6 13 0x0003d4e2 0x0003d4c3 n n
+afb+ 0x0003d4a8 0x0003d4c3 12 0x0003d4da 0x0003d4cf n n
+afb+ 0x0003d4a8 0x0003d4da 8 0x0003d4e2 0xffffffffffffffff n n
+afb+ 0x0003d4a8 0x0003d4cf 10 0x0003d4e2 0xffffffffffffffff n n
+afv 4 local_4h int @ 0x3d4a8
+f _exit 64 0x0003d4e8
+af+ 0x0003d4e8 64 _exit f n
+afC cdecl @ 0x0003d4e8
+afb+ 0x0003d4e8 0x0003d4e8 17 0x0003d4fe 0x0003d4f9 n n
+afb+ 0x0003d4e8 0x0003d4fe 13 0x0003d51f 0x0003d50b n n
+afb+ 0x0003d4e8 0x0003d51f 9 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003d4e8 0x0003d50b 15 0x0003d51f 0x0003d51a n n
+afb+ 0x0003d4e8 0x0003d51a 5 0x0003d51f 0xffffffffffffffff n n
+afb+ 0x0003d4e8 0x0003d4f9 5 0x0003d4fe 0xffffffffffffffff n n
+afa 8 status dword @ 0x3d4e8
+f _write 238 0x0003d630
+af+ 0x0003d630 238 _write f n
 afC cdecl @ 0x0003d630
 afb+ 0x0003d630 0x0003d630 30 0x0003d66a 0x0003d64e n n
 afb+ 0x0003d630 0x0003d66a 12 0x0003d676 0xffffffffffffffff b n
@@ -9974,9 +10105,9 @@ afb+ 0x0003d630 0x0003d684 18 0x0003d696 0xffffffffffffffff n n
 afb+ 0x0003d630 0x0003d67d 3 0x0003d680 0xffffffffffffffff n n
 afb+ 0x0003d630 0x0003d64e 19 0x0003d66a 0x0003d661 n n
 afb+ 0x0003d630 0x0003d661 8 0x0003d716 0xffffffffffffffff n n
-afa 1 arg_1h int @ 0x3d630
-afa 8 arg_8h int @ 0x3d630
-afa 16 arg_10h int @ 0x3d630
+afa 1 fileno int @ 0x3d630
+afa 8 buf int @ 0x3d630
+afa 16 count int @ 0x3d630
 afa 29 arg_1dh int @ 0x3d630
 afv 16 local_10h int @ 0x3d630
 afv 24 local_18h int @ 0x3d630
@@ -10260,6 +10391,199 @@ afv 564 local_234h int @ 0x3e144
 afv 568 local_238h int @ 0x3e144
 afv 572 local_23ch int @ 0x3e144
 afv 584 local_248h int @ 0x3e144
+f c1xmalloc 42 0x0003e6b0
+af+ 0x0003e6b0 42 c1xmalloc f n
+afC cdecl @ 0x0003e6b0
+afb+ 0x0003e6b0 0x0003e6b0 18 0x0003e6d8 0x0003e6c2 n n
+afb+ 0x0003e6b0 0x0003e6c2 22 0x0003e6d8 0xffffffffffffffff n n
+afb+ 0x0003e6b0 0x0003e6d8 2 0xffffffffffffffff 0xffffffffffffffff n n
+f maybe.far_strlen 28 0x0003e6dc
+af+ 0x0003e6dc 28 maybe.far_strlen f n
+afC cdecl @ 0x0003e6dc
+afb+ 0x0003e6dc 0x0003e6dc 12 0x0003e6e8 0xffffffffffffffff b n
+afb+ 0x0003e6dc 0x0003e6f2 6 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003e6dc 0x0003e6ef 3 0x0003e6e8 0xffffffffffffffff n n
+afb+ 0x0003e6dc 0x0003e6e8 7 0x0003e6f2 0x0003e6ef n n
+afa 8 arg_8h int @ 0x3e6dc
+afa 12 arg_ch int @ 0x3e6dc
+f atohex 47 0x0003e6f8
+af+ 0x0003e6f8 47 atohex f n
+afC cdecl @ 0x0003e6f8
+afb+ 0x0003e6f8 0x0003e6f8 14 0x0003e722 0x0003e706 n n
+afb+ 0x0003e6f8 0x0003e722 5 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003e6f8 0x0003e706 11 0x0003e714 0x0003e711 n n
+afb+ 0x0003e6f8 0x0003e714 14 0x0003e706 0x0003e722 n n
+afb+ 0x0003e6f8 0x0003e711 3 0x0003e714 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x3e6f8
+afv 4 local_4h int @ 0x3e6f8
+f new_arg 30 0x0003e728
+af+ 0x0003e728 30 new_arg f n
+afC cdecl @ 0x0003e728
+afb+ 0x0003e728 0x0003e728 30 0xffffffffffffffff 0xffffffffffffffff n n
+afv 4 local_4h int @ 0x3e728
+f delete_arg 99 0x0003e748
+af+ 0x0003e748 99 delete_arg f n
+afC cdecl @ 0x0003e748
+afb+ 0x0003e748 0x0003e748 14 0x0003e75f 0x0003e756 n n
+afb+ 0x0003e748 0x0003e75f 7 0x0003e78e 0x0003e766 n n
+afb+ 0x0003e748 0x0003e78e 7 0x0003e79e 0x0003e795 n n
+afb+ 0x0003e748 0x0003e79e 13 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003e748 0x0003e795 9 0x0003e79e 0xffffffffffffffff n n
+afb+ 0x0003e748 0x0003e766 7 0x0003e783 0x0003e76d n n
+afb+ 0x0003e748 0x0003e783 11 0x0003e78e 0xffffffffffffffff n n
+afb+ 0x0003e748 0x0003e76d 1 0x0003e76e 0xffffffffffffffff b n
+afb+ 0x0003e748 0x0003e76e 21 0x0003e76e 0x0003e783 n n
+afb+ 0x0003e748 0x0003e756 9 0x0003e75f 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x3e748
+afv 8 local_8h int @ 0x3e748
+f new_arglist 53 0x0003e7ac
+af+ 0x0003e7ac 53 new_arglist f n
+afC cdecl @ 0x0003e7ac
+afb+ 0x0003e7ac 0x0003e7ac 53 0xffffffffffffffff 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x3e7ac
+afv 8 local_8h int @ 0x3e7ac
+f delete_arglist 54 0x0003e7e4
+af+ 0x0003e7e4 54 delete_arglist f n
+afC cdecl @ 0x0003e7e4
+afb+ 0x0003e7e4 0x0003e7e4 14 0x0003e805 0x0003e7f2 n n
+afb+ 0x0003e7e4 0x0003e805 21 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003e7e4 0x0003e7f2 19 0x0003e7f2 0x0003e805 n n
+afa 8 arg_8h int @ 0x3e7e4
+afv 8 local_8h int @ 0x3e7e4
+f parse_arg 243 0x0003e828
+af+ 0x0003e828 243 parse_arg f n
+afC cdecl @ 0x0003e828
+afb+ 0x0003e828 0x0003e828 18 0x0003e8f8 0xffffffffffffffff n n
+afb+ 0x0003e828 0x0003e8f8 17 0x0003e83a 0x0003e909 n n
+afb+ 0x0003e828 0x0003e83a 9 0x0003e909 0x0003e843 n n
+afb+ 0x0003e828 0x0003e909 18 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003e828 0x0003e843 4 0x0003e862 0x0003e847 n n
+afb+ 0x0003e828 0x0003e862 6 0x0003e86c 0x0003e868 n n
+afb+ 0x0003e828 0x0003e86c 10 0x0003e8f0 0x0003e876 n n
+afb+ 0x0003e828 0x0003e8f0 8 0x0003e83a 0x0003e8f8 n n
+afb+ 0x0003e828 0x0003e876 6 0x0003e8ef 0xffffffffffffffff n n
+afb+ 0x0003e828 0x0003e8ef 1 0x0003e8f0 0xffffffffffffffff n n
+afb+ 0x0003e828 0x0003e868 4 0x0003e87c 0x0003e86c n n
+afb+ 0x0003e828 0x0003e87c 5 0x0003e8ae 0x0003e881 n n
+afb+ 0x0003e828 0x0003e8ae 4 0x0003e8ea 0x0003e8b2 n n
+afb+ 0x0003e828 0x0003e8ea 5 0x0003e8ef 0xffffffffffffffff n n
+afb+ 0x0003e828 0x0003e8b2 21 0x0003e8db 0x0003e8c7 n n
+afb+ 0x0003e828 0x0003e8db 6 0x0003e8ea 0x0003e8e1 n n
+afb+ 0x0003e828 0x0003e8e1 9 0x0003e8ea 0xffffffffffffffff n n
+afb+ 0x0003e828 0x0003e8c7 20 0x0003e8ea 0x0003e8db n n
+afb+ 0x0003e828 0x0003e881 22 0x0003e8ae 0x0003e897 n n
+afb+ 0x0003e828 0x0003e897 8 0x0003e8ae 0x0003e89f n n
+afb+ 0x0003e828 0x0003e89f 6 0x0003e8aa 0x0003e8a5 n n
+afb+ 0x0003e828 0x0003e8aa 3 0x0003e8ea 0xffffffffffffffff n n
+afb+ 0x0003e828 0x0003e8a5 5 0x0003e8aa 0xffffffffffffffff n n
+afb+ 0x0003e828 0x0003e847 7 0x0003e87c 0x0003e84e n n
+afb+ 0x0003e828 0x0003e84e 8 0x0003e85b 0x0003e856 n n
+afb+ 0x0003e828 0x0003e85b 6 0x0003e8f0 0xffffffffffffffff n n
+afb+ 0x0003e828 0x0003e856 5 0x0003e85b 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x3e828
+afa 12 arg_ch int @ 0x3e828
+afa 20 arg_14h int @ 0x3e828
+afa 21 arg_15h int @ 0x3e828
+afa 24 arg_18h int @ 0x3e828
+afv 0 local_0h int @ 0x3e828
+afv 12 local_ch int @ 0x3e828
+f parse_bytes 191 0x0003e91c
+af+ 0x0003e91c 191 parse_bytes f n
+afC cdecl @ 0x0003e91c
+afb+ 0x0003e91c 0x0003e91c 34 0x0003e9ad 0x0003e93e n n
+afb+ 0x0003e91c 0x0003e9ad 20 0x0003e9d1 0x0003e9c1 n n
+afb+ 0x0003e91c 0x0003e9d1 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003e91c 0x0003e9c1 1 0x0003e9c2 0xffffffffffffffff b n
+afb+ 0x0003e91c 0x0003e9c2 15 0x0003e9c2 0x0003e9d1 n n
+afb+ 0x0003e91c 0x0003e93e 2 0x0003e945 0xffffffffffffffff n n
+afb+ 0x0003e91c 0x0003e945 13 0x0003e940 0x0003e952 n n
+afb+ 0x0003e91c 0x0003e940 4 0x0003e952 0x0003e944 n n
+afb+ 0x0003e91c 0x0003e952 4 0x0003e9ad 0x0003e956 n n
+afb+ 0x0003e91c 0x0003e956 87 0x0003e945 0x0003e9ad n n
+afb+ 0x0003e91c 0x0003e944 1 0x0003e945 0xffffffffffffffff n n
+afa 8 bytes char* @ 0x3e91c
+afa 12 length int @ 0x3e91c
+afa 16 length dword @ 0x3e91c
+afa 24 unquote int @ 0x3e91c
+afv 4 local_4h int @ 0x3e91c
+afv 8 local_8h int @ 0x3e91c
+afv 12 local_ch int @ 0x3e91c
+afv 16 local_10h int @ 0x3e91c
+afv 20 local_14h int @ 0x3e91c
+afv 32 local_20h int @ 0x3e91c
+f count_args 86 0x0003ea9c
+af+ 0x0003ea9c 86 count_args f n
+afC cdecl @ 0x0003ea9c
+afb+ 0x0003ea9c 0x0003ea9c 17 0x0003eae8 0x0003eaad n n
+afb+ 0x0003ea9c 0x0003eae8 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003ea9c 0x0003eaad 1 0x0003eaae 0xffffffffffffffff b n
+afb+ 0x0003ea9c 0x0003eace 7 0x0003eae2 0x0003ead5 n n
+afb+ 0x0003ea9c 0x0003eae2 1 0x0003eae3 0xffffffffffffffff b n
+afb+ 0x0003ea9c 0x0003eaae 13 0x0003eace 0x0003eabb n n
+afb+ 0x0003ea9c 0x0003ead5 13 0x0003eae3 0xffffffffffffffff n n
+afb+ 0x0003ea9c 0x0003eae3 5 0x0003eaae 0x0003eae8 n n
+afb+ 0x0003ea9c 0x0003eabb 7 0x0003eac9 0x0003eac2 n n
+afb+ 0x0003ea9c 0x0003eac9 4 0x0003eae3 0xffffffffffffffff n n
+afb+ 0x0003ea9c 0x0003eac2 7 0x0003eac2 0x0003eac9 n n
+afa 8 arg_8h int @ 0x3ea9c
+afv 12 local_ch int @ 0x3ea9c
+f fill_args 152 0x0003eaf4
+af+ 0x0003eaf4 152 fill_args f n
+afC cdecl @ 0x0003eaf4
+afb+ 0x0003eaf4 0x0003eaf4 16 0x0003eb7b 0xffffffffffffffff n n
+afb+ 0x0003eaf4 0x0003eb7b 7 0x0003eb04 0x0003eb82 n n
+afb+ 0x0003eaf4 0x0003eb04 19 0x0003eb52 0x0003eb17 n n
+afb+ 0x0003eaf4 0x0003eb52 7 0x0003eb68 0x0003eb59 n n
+afb+ 0x0003eaf4 0x0003eb68 18 0x0003eb7a 0xffffffffffffffff b n
+afb+ 0x0003eaf4 0x0003eb82 10 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003eaf4 0x0003eb59 14 0x0003eb7a 0xffffffffffffffff n n
+afb+ 0x0003eaf4 0x0003eb7a 1 0x0003eb7b 0xffffffffffffffff n n
+afb+ 0x0003eaf4 0x0003eb17 7 0x0003eb7a 0x0003eb1e n n
+afb+ 0x0003eaf4 0x0003eb1e 49 0x0003eb1e 0x0003eb4f n n
+afb+ 0x0003eaf4 0x0003eb4f 2 0x0003eb7a 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x3eaf4
+afa 12 arg_ch int @ 0x3eaf4
+afv 4 local_4h int @ 0x3eaf4
+afv 16 local_10h int @ 0x3eaf4
+f expand_response_files 305 0x0003eb8c
+af+ 0x0003eb8c 305 expand_response_files f n
+afC cdecl @ 0x0003eb8c
+afb+ 0x0003eb8c 0x0003eb8c 21 0x0003eca7 0xffffffffffffffff n n
+afb+ 0x0003eb8c 0x0003eca7 14 0x0003eba2 0x0003ecb5 n n
+afb+ 0x0003eb8c 0x0003eba2 23 0x0003eca4 0x0003ebb9 n n
+afb+ 0x0003eb8c 0x0003eca4 3 0x0003eca7 0xffffffffffffffff n n
+afb+ 0x0003eb8c 0x0003ecb5 8 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003eb8c 0x0003ebb9 11 0x0003eca4 0x0003ebc4 n n
+afb+ 0x0003eb8c 0x0003ebc4 21 0x0003eca4 0x0003ebd9 n n
+afb+ 0x0003eb8c 0x0003ebd9 26 0x0003ebf5 0x0003ebf3 n n
+afb+ 0x0003eb8c 0x0003ebf5 31 0x0003ec16 0x0003ec14 n n
+afb+ 0x0003eb8c 0x0003ec16 13 0x0003ec5a 0x0003ec23 n n
+afb+ 0x0003eb8c 0x0003ec5a 43 0x0003ec85 0xffffffffffffffff b n
+afb+ 0x0003eb8c 0x0003ec23 10 0x0003ec2e 0x0003ec2d n n
+afb+ 0x0003eb8c 0x0003ec2e 4 0x0003ec5a 0x0003ec32 n n
+afb+ 0x0003eb8c 0x0003ec32 10 0x0003ec5a 0x0003ec3c n n
+afb+ 0x0003eb8c 0x0003ec3c 29 0x0003ec85 0xffffffffffffffff n n
+afb+ 0x0003eb8c 0x0003ec85 31 0x0003eca4 0xffffffffffffffff n n
+afb+ 0x0003eb8c 0x0003ec2d 1 0x0003ec2e 0xffffffffffffffff n n
+afb+ 0x0003eb8c 0x0003ec14 2 0x0003ec16 0xffffffffffffffff n n
+afb+ 0x0003eb8c 0x0003ebf3 2 0x0003ebf5 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x3eb8c
+afv 4 local_4h int @ 0x3eb8c
+afv 8 local_8h int @ 0x3eb8c
+afv 20 local_14h int @ 0x3eb8c
+f expand_wildcards 75 0x0003ecc0
+af+ 0x0003ecc0 75 expand_wildcards f n
+afC cdecl @ 0x0003ecc0
+afb+ 0x0003ecc0 0x0003ecc0 14 0x0003ed04 0x0003ecce n n
+afb+ 0x0003ecc0 0x0003ed04 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0003ecc0 0x0003ecce 13 0x0003ece4 0x0003ecdb n n
+afb+ 0x0003ecc0 0x0003ece4 6 0x0003ecff 0x0003ecea n n
+afb+ 0x0003ecc0 0x0003ecff 5 0x0003ecce 0x0003ed04 n n
+afb+ 0x0003ecc0 0x0003ecea 18 0x0003ecfc 0xffffffffffffffff b n
+afb+ 0x0003ecc0 0x0003ecdb 8 0x0003ecfc 0xffffffffffffffff n n
+afb+ 0x0003ecc0 0x0003ecfc 3 0x0003ecff 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x3ecc0
+afv 8 local_8h int @ 0x3ecc0
 f __crt0_setup_arguments 1332 0x0003ed0c
 af+ 0x0003ed0c 1332 __crt0_setup_arguments f n
 afC cdecl @ 0x0003ed0c
@@ -10337,8 +10661,8 @@ f wrapper.___sbrk 5 0x0003f310
 af+ 0x0003f310 5 wrapper.___sbrk f n
 afC cdecl @ 0x0003f310
 afb+ 0x0003f310 0x0003f310 5 0x00001bb0 0xffffffffffffffff n n
-f fcn.0003f320 26 0x0003f320
-af+ 0x0003f320 26 fcn.0003f320 f n
+f memcpy 26 0x0003f320
+af+ 0x0003f320 26 memcpy f n
 afC cdecl @ 0x0003f320
 afb+ 0x0003f320 0x0003f320 26 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x3f320
@@ -10807,6 +11131,10 @@ afb+ 0x00045b90 0x00045b9a 8 0x00045baa 0x00045ba2 n n
 afb+ 0x00045b90 0x00045baa 11 0x00045bb5 0xffffffffffffffff n n
 afb+ 0x00045b90 0x00045ba2 8 0x00045b98 0x00045baa n n
 afb+ 0x00045b90 0x00045b98 2 0x00045b9a 0xffffffffffffffff n n
+f _clear87 11 0x00045df0
+af+ 0x00045df0 11 _clear87 f n
+afC cdecl @ 0x00045df0
+afb+ 0x00045df0 0x00045df0 11 0xffffffffffffffff 0xffffffffffffffff n n
 f fcn.00045e00 62 0x00045e00
 af+ 0x00045e00 62 fcn.00045e00 f n
 afC cdecl @ 0x00045e00
@@ -10934,8 +11262,8 @@ afv 23 local_17h int @ 0x46340
 afv 36 local_24h int @ 0x46340
 afv 52 local_34h int @ 0x46340
 afv 56 local_38h int @ 0x46340
-f fcn.000463c0 61 0x000463c0
-af+ 0x000463c0 61 fcn.000463c0 f n
+f memset 61 0x000463c0
+af+ 0x000463c0 61 memset f n
 afC cdecl @ 0x000463c0
 afb+ 0x000463c0 0x000463c0 19 0x000463f5 0x000463d3 n n
 afb+ 0x000463c0 0x000463f5 8 0xffffffffffffffff 0xffffffffffffffff n n
@@ -10943,9 +11271,9 @@ afb+ 0x000463c0 0x000463d3 12 0x000463e1 0xffffffffffffffff n n
 afb+ 0x000463c0 0x000463e1 8 0x000463df 0x000463e9 n n
 afb+ 0x000463c0 0x000463df 2 0x000463e1 0xffffffffffffffff n n
 afb+ 0x000463c0 0x000463e9 12 0x000463f5 0xffffffffffffffff n n
-afa 8 arg_8h int @ 0x463c0
-afa 12 arg_ch int @ 0x463c0
-afa 16 arg_10h int @ 0x463c0
+afa 8 buf int @ 0x463c0
+afa 12 char int @ 0x463c0
+afa 16 count int @ 0x463c0
 f fcn.00046430 37 0x00046430
 af+ 0x00046430 37 fcn.00046430 f n
 afC cdecl @ 0x00046430
@@ -10955,6 +11283,22 @@ afv 23 local_17h int @ 0x46430
 afv 24 local_18h int @ 0x46430
 afv 52 local_34h int @ 0x46430
 afv 56 local_38h int @ 0x46430
+f strncat 59 0x00046490
+af+ 0x00046490 59 strncat f n
+afC cdecl @ 0x00046490
+afb+ 0x00046490 0x00046490 15 0x000464c2 0x0004649f n n
+afb+ 0x00046490 0x000464c2 9 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00046490 0x0004649f 10 0x000464b6 0x000464a9 n n
+afb+ 0x00046490 0x000464b6 9 0x000464b2 0x000464bf n n
+afb+ 0x00046490 0x000464b2 4 0x000464bf 0x000464b6 n n
+afb+ 0x00046490 0x000464bf 3 0x000464c2 0xffffffffffffffff n n
+afb+ 0x00046490 0x000464a9 1 0x000464aa 0xffffffffffffffff b n
+afb+ 0x00046490 0x000464aa 6 0x000464aa 0x000464b0 n n
+afb+ 0x00046490 0x000464b0 2 0x000464b6 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0x46490
+afa 12 arg_ch int @ 0x46490
+afa 16 arg_10h int @ 0x46490
+afv 8 local_8h int @ 0x46490
 f fcn.000464d0 200 0x000464d0
 af+ 0x000464d0 200 fcn.000464d0 f n
 afC cdecl @ 0x000464d0
@@ -11069,4 +11413,4 @@ afv 64 local_40h int @ 0x46840
 # types
 # macros
 # seek
-s 0x0002a1ea
+s 0x0000deda
