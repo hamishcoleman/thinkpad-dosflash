@@ -647,6 +647,8 @@ int load_image(struct emu *emu, char *filename, unsigned long entry, char *cmdli
         0xee,             /* out %al, (%dx) */
         0xb0, '\n',       /* mov $'\n', %al */
         0xee,             /* out %al, (%dx) */
+        0xe7, /* out imm8,ax */
+        0xb2, /* imm8 */
         0xf4,             /* hlt */
     };
 
@@ -1484,10 +1486,11 @@ int handle_mmio(struct emu *emu) {
     if (run->mmio.phys_addr < REGION_BIOS_BASE || run->mmio.phys_addr > REGION_BIOS_BASE+REGION_BIOS_SIZE) {
         return 0;
     }
-    if (run->mmio.is_write) {
-        return 0;
+
+    if (!run->mmio.is_write) {
+        memcpy(run->mmio.data, mem_guest2host(emu, run->mmio.phys_addr) ,run->mmio.len);
     }
-    memcpy(run->mmio.data, mem_guest2host(emu, run->mmio.phys_addr) ,run->mmio.len);
+
     emu->mmio_next = run->mmio.phys_addr+run->mmio.len;
 
     if (run->mmio.phys_addr == old_mmio_next) {
@@ -1510,7 +1513,11 @@ int handle_mmio(struct emu *emu) {
         if (ret == -1)
             err(1, "KVM_GET_REGS");
 
-        debug_printf(1,"%07llx: MMIO read: 0x%08llx(0x%08x)\n",regs.rip,run->mmio.phys_addr,run->mmio.len);
+        debug_printf(1,"%07llx: MMIO %s: 0x%08llx(0x%08x)\n",
+            regs.rip,
+            run->mmio.is_write?"write":"read",
+            run->mmio.phys_addr,run->mmio.len
+        );
         dump_kvm_regs(&regs);
         __u32 *stack = mem_getstack(&emu_global, &regs);
         debug_printf(1,"Stack:");
