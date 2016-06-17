@@ -41,8 +41,10 @@ FAT_OFFSET := 71680
 %.dosflash.flat.orig: %.dosflash.coff.orig
 	./dump_coff.pl $< write_flat $@
 
-%.dosflash.flat.test: %.dosflash.flat.orig kvm_flat bios.img
-	./kvm_flat $< 0x18d0
+# TODO - could parse dosflash.config to extract deps
+
+%.dosflash.flat.test: %.dosflash.flat.orig kvm_flat dosflash.config bios.img
+	./kvm_flat $< dosflash.config
 
 # A copy of some low memory, including all the bios ROMS
 bios.img:

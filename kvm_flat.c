@@ -37,6 +37,7 @@
 
 #include <unistd.h>
 #include <stdarg.h>
+#include <ctype.h>
 
 int debug_level = 2;
 int debug_printf(unsigned char level, const char *fmt, ...)
@@ -76,10 +77,10 @@ int debug_printf(unsigned char level, const char *fmt, ...)
 #define MEM_REGION_IDT   1
 #define MEM_REGION_STACK 2
 #define MEM_REGION_TEXT  3
-#define MEM_REGION_BIOS  4
-#define MEM_REGION_BSS   5
-#define MEM_REGION_PSP   6
-#define MEM_REGION_ZERO  7
+#define MEM_REGION_BSS   4
+#define MEM_REGION_PSP   5
+#define MEM_REGION_ZERO  6
+#define MEM_REGION_SYS_MAX   6
 #define MEM_REGION_MAX   8
 
 #define REGION_STACK_SIZE 0x1000
@@ -90,9 +91,6 @@ int debug_printf(unsigned char level, const char *fmt, ...)
 #define REGION_GDT_BASE   0xf0020000
 #define REGION_PSP_SIZE   (SEG_PSP_SIZE+SEG_ENV_SIZE+SEG_GO32_SIZE)
 #define REGION_PSP_BASE   0xf0030000
-
-#define REGION_BIOS_BASE  0x000c0000
-#define REGION_BIOS_SIZE  0x00040000
 
 #define REGION_BSS_BASE   0x00200000
 #define REGION_BSS_SIZE   0x00100000
@@ -149,11 +147,14 @@ struct __attribute__ ((__packed__)) region_psp {
 
 struct irq_handler_entry; /* forward definition */
 struct emu {
+    unsigned long entry; /* entry point for the binary - from config */
+
     int kvm;
     int vmfd;
     int vcpufd;
     struct kvm_run *run;
     struct kvm_userspace_memory_region mem[MEM_REGION_MAX];
+    unsigned int region_brk; /* start of available region slots */
     unsigned int bss_brk; /* start of available bss */
     unsigned int gdt_brk; /* start of available descriptors */
 
@@ -402,14 +403,18 @@ void dump_kvm_sregs(struct emu *emu) {
     debug_printf(1,"\n");
 }
 
+void dump_kvm_memmap_one(struct kvm_userspace_memory_region *p) {
+    debug_printf(1,"%i: 0x%08llx(0x%08llx) = 0x%08llx (flags=%x)\n",
+        p->slot, p->guest_phys_addr, p->memory_size,
+        p->userspace_addr, p->flags
+    );
+}
+
 void dump_kvm_memmap(struct emu *emu) {
     struct kvm_userspace_memory_region *p = &emu->mem[0];
     debug_printf(1,"Memmap:\n");
     for (int i=0; i<MEM_REGION_MAX; i++,p++) {
-        debug_printf(1,"%i: 0x%08llx(0x%08llx) = 0x%08llx (flags=%x)\n",
-            p->slot, p->guest_phys_addr, p->memory_size,
-            p->userspace_addr, p->flags
-        );
+        dump_kvm_memmap_one(p);
     }
 }
 
@@ -432,6 +437,42 @@ void dump_kvm_exit(struct emu *emu) {
         dump_kvm_memmap(emu);
         break;
     }
+}
+
+#define MEMORY_REGISTER 1
+int load_memory(struct emu *emu, __u32 phys_addr, __u32 size, char *filename, __u32 file_offset, __u32 flags) {
+
+
+    int fd = open(filename, O_RDONLY);
+    if (fd == -1)
+        errx(1, "opening file %s",filename);
+
+    void *region = mmap(NULL, size, PROT_READ, MAP_SHARED , fd, file_offset);
+    if (!region)
+        errx(1, "mmap memory from %s",filename);
+
+    int slot = emu->region_brk++;
+    if (slot > MEM_REGION_MAX) {
+        errx(1, "too many memory regions loading %s",filename);
+    }
+
+    emu->mem[slot].slot = slot;
+    emu->mem[slot].guest_phys_addr = phys_addr;
+    emu->mem[slot].memory_size = size;
+    emu->mem[slot].userspace_addr = (uint64_t)region;
+
+    if (flags & MEMORY_REGISTER) {
+        /*
+         * by adding the region to the mem table, but not registering it, it becomes
+         * straightforward to trace accesses as MMIO exits
+         */
+
+        int ret = ioctl(emu->vmfd, KVM_SET_USER_MEMORY_REGION, &emu->mem[slot]);
+        if (ret == -1)
+            errx(1, "KVM_SET_USER_MEMORY_REGION %i: %s",slot,filename);
+    }
+
+    return 0;
 }
 
 void setup_gdt(struct kvm_sregs *sregs, struct emu *emu) {
@@ -617,28 +658,10 @@ int kvm_init(struct emu *emu) {
 
     emu->bss_brk = 0;
 
-    int fd = open("bios.img", O_RDONLY);
-    if (fd == -1)
-        err(1, "opening bios file");
-
-    void *bios = mmap(NULL, REGION_BIOS_SIZE, PROT_READ, MAP_SHARED , fd, 0);
-    if (!bios)
-        err(1, "allocating bios area");
-
-    emu->mem[MEM_REGION_BIOS].slot = MEM_REGION_BIOS;
-    emu->mem[MEM_REGION_BIOS].guest_phys_addr = REGION_BIOS_BASE;
-    emu->mem[MEM_REGION_BIOS].memory_size = REGION_BIOS_SIZE;
-    emu->mem[MEM_REGION_BIOS].userspace_addr = (uint64_t)bios;
-
-    /*
-     * by adding the bios to the mem table, but not registering it, it becomes
-     * straightforward to use the same tools for MMIO as for faults
-     */
-
     return 0;
 }
 
-int load_image(struct emu *emu, char *filename, unsigned long entry, char *cmdline) {
+int load_image(struct emu *emu, char *filename, char *cmdline) {
     int ret;
 
     const uint8_t code[] = {
@@ -668,7 +691,7 @@ int load_image(struct emu *emu, char *filename, unsigned long entry, char *cmdli
             err(1, "opening file");
         struct stat s;
         ret = fstat(fd,&s);
-        if (ret == -1) 
+        if (ret == -1)
             err(1, "statting file");
         text_size = ((s.st_size >>12) +1 )<<12;
 
@@ -757,7 +780,7 @@ int load_image(struct emu *emu, char *filename, unsigned long entry, char *cmdli
      *    <others>   All unspecified registers have unspecified values in them.
      */
     struct kvm_regs regs = {
-        .rip = entry,
+        .rip = emu->entry,
         .rax = 0,
         .rbx = 0,
         .rflags = 0x2,
@@ -842,6 +865,53 @@ void load_patch_file(struct emu *emu, char *filename) {
             memcpy(data,&buf,size);
         }
     }
+}
+
+int load_configfile(struct emu *emu, char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (!file)
+        errx(1, "opening config file: %s",filename);
+
+    char buf[100]; /* Max line len */
+    char *p = (char *)&buf;
+
+    while (fgets(p,sizeof(buf),file)) {
+        /* skip initial whitespace */
+        while(isspace(*p)) { p++; };
+
+        /* skip comment lines */
+        if (*p == '#') {
+            continue;
+        }
+
+        char * key = strtok(p," \n");
+
+        /* no delimiter found, only keyword present */
+        if (!key) {
+            key = p;
+        }
+
+        if (!strcmp(key,"entry")) {
+            emu->entry=strtoul(strtok(NULL," \n"),NULL,0);
+        } else if (!strcmp(key,"include")) {
+            if (load_configfile(emu,strtok(NULL," \n"))==-1) {
+                return -1;
+            }
+        } else if (!strcmp(key,"load_patch")) {
+            load_patch_file(emu,strtok(NULL," \n"));
+        } else if (!strcmp(key,"load_memory")) {
+            __u32 phys_addr = strtoul(strtok(NULL," "),NULL,0);
+            __u32 size = strtoul(strtok(NULL," "),NULL,0);
+            char *filename = strtok(NULL," ");
+            __u32 file_offset = strtoul(strtok(NULL," "),NULL,0);
+            int flags = 0;
+            /* TODO - flags from config line */
+            load_memory(emu,phys_addr,size,filename,file_offset,flags);
+        }
+
+        p = (char *)&buf;
+    }
+    return 0;
 }
 
 int alloc_bss(struct emu *emu, unsigned int size) {
@@ -1649,22 +1719,24 @@ int main(int argc, char **argv)
     int ret;
     struct emu * emu = &emu_global;
 
+    emu->region_brk = MEM_REGION_SYS_MAX+1;
+
     if (argc<3) {
-        printf("Need args: filename entry\n");
+        printf("Need args: filename configfile\n");
         return 1;
     }
     char *filename=argv[1];
-    unsigned long entry=strtoul(argv[2],NULL,0);
+    char *configfile=argv[2];
+    if (load_configfile(emu,configfile) == -1) {
+        return 1;
+    }
+
     char *cmdline=argv[3];
 
     kvm_init(emu);
 
-    if (load_image(emu,filename,entry,cmdline) == -1) {
+    if (load_image(emu,filename,cmdline) == -1) {
         return 1;
-    }
-
-    if (argc>4) {
-        load_patch_file(emu,argv[4]);
     }
 
     emu->irq = &irq_handlers[0];
