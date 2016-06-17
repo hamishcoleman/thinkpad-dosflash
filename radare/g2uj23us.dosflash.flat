@@ -3196,6 +3196,23 @@ Cs 3 @ 0x0003e81a # ___
 Cs 4 @ 0x0003e81d # ___
 Cs 4 @ 0x0003e821 # ...
 Cd 2 @ 0x0004cb24
+CCu base64:cGh5cyBhZGRyIGxvdw== @ 0x00039f09
+CCu base64:cGh5cyBhZGRyIGhp @ 0x00039f0d
+CCu base64:c2l6ZSBsb3c= @ 0x00039f11
+CCu base64:c2l6ZSBoaWdo @ 0x00039f15
+CCu base64:c2l6ZQ== @ 0x0000f186
+CCu base64:cGh5cyBhZGRy @ 0x0000f183
+CCu base64:c2l6ZQ== @ 0x0000f17c
+CCu base64:cGh5cyBhZGRy @ 0x0000f17f
+CCu base64:ZGVzdA== @ 0x0000e531
+CCu base64:c2l6ZQ== @ 0x0000e532
+CCu base64:cGh5cyBhZGRy @ 0x0000e537
+CCu base64:ZGVzdA== @ 0x0000e457
+CCu base64:c2l6ZQ== @ 0x0000e458
+CCu base64:cGh5cyBhZGRy @ 0x0000e45d
+CCu base64:cGh5cyBhZGRy @ 0x0000e4a9
+CCu base64:emVyb3MgaW4= @ 0x0000e4b0
+CCu base64:YW5vdGhlciBwaHlzIGFkZHI= @ 0x0000e4b4
 f entry0 516 0x000018d0
 af+ 0x000018d0 516 entry0 f n
 afC cdecl @ 0x000018d0
@@ -6616,9 +6633,9 @@ afa 19 arg_13h int @ 0xe40f
 afa 22 arg_16h int @ 0xe40f
 afv 0 local_0h int @ 0xe40f
 afv 12 local_ch int @ 0xe40f
-afv 28 local_1ch int @ 0xe40f
+afv 28 phys_addr1 int @ 0xe40f
 afv 36 local_24h int @ 0xe40f
-afv 40 local_28h int @ 0xe40f
+afv 40 phys_addr2 int @ 0xe40f
 afv 44 local_2ch int @ 0xe40f
 afv 48 local_30h int @ 0xe40f
 afv 60 local_3ch int @ 0xe40f
@@ -6846,13 +6863,13 @@ afb+ 0x0000f170 0x0000f1d5 12 0x0000f1e1 0xffffffffffffffff n n
 afb+ 0x0000f170 0x0000f1e5 35 0x0000f208 0xffffffffffffffff b n
 afb+ 0x0000f170 0x0000f1a3 19 0x0000f208 0xffffffffffffffff n n
 afb+ 0x0000f170 0x0000f208 8 0xffffffffffffffff 0xffffffffffffffff n n
-afa 8 arg_8h int @ 0xf170
-afa 12 arg_ch int @ 0xf170
-afa 16 arg_10h int @ 0xf170
+afa 8 phys_addr int @ 0xf170
+afa 12 size int @ 0xf170
+afa 16 dest_ptr int @ 0xf170
 afv 12 local_ch int @ 0xf170
-afv 28 local_1ch int @ 0xf170
-afv 32 local_20h int @ 0xf170
-afv 36 local_24h int @ 0xf170
+afv 28 dpmi_phys_addr int @ 0xf170
+afv 32 dpmi_size int @ 0xf170
+afv 36 dpmi_struct int @ 0xf170
 f fcn.0000f210 225 0x0000f210
 af+ 0x0000f210 225 fcn.0000f210 f n
 afC cdecl @ 0x0000f210
@@ -11413,4 +11430,4 @@ afv 64 local_40h int @ 0x46840
 # types
 # macros
 # seek
-s 0x0000deda
+s 0x0000e499
