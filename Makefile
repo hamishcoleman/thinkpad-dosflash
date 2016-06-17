@@ -47,3 +47,12 @@ FAT_OFFSET := 71680
 # A copy of some low memory, including all the bios ROMS
 bios.img:
 	sudo dd if=/dev/mem of=bios.img bs=65536 skip=12 count=4
+
+MEMMAP_ACPI = $(dir $(shell egrep -l "ACPI Tables" /sys/firmware/memmap/*/type))
+ACPI_START = $(shell cat $(MEMMAP_ACPI)/start)
+ACPI_END = $(shell cat $(MEMMAP_ACPI)/end)
+ACPI_LEN = $(ACPI_END) - $(ACPI_START) +1
+
+# A copy of the high-mem ACPI tables
+acpi.img: /dev/fmem
+	sudo bash -c "./dd_hack.pl /dev/fmem acpi.img $$[$(ACPI_START)] $$[$(ACPI_LEN)]" 
