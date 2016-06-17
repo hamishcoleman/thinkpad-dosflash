@@ -771,7 +771,7 @@ int load_image(struct emu *emu, char *filename, unsigned long entry, char *cmdli
     return 0;
 }
 
-void patch_image(struct emu *emu, char *filename) {
+void load_patch_file(struct emu *emu, char *filename) {
     FILE *file = fopen(filename, "r");
     if (!file)
         err(1, "opening patch file");
@@ -1664,7 +1664,7 @@ int main(int argc, char **argv)
     }
 
     if (argc>4) {
-        patch_image(emu,argv[4]);
+        load_patch_file(emu,argv[4]);
     }
 
     emu->irq = &irq_handlers[0];
