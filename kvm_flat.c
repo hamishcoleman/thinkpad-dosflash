@@ -1289,20 +1289,40 @@ int irq_dpmi_0800(void *data, struct emu *emu, struct kvm_regs *regs) {
     __u32 size = (regs->rsi & 0xffff) << 16 | (regs->rdi & 0xffff);
 
     debug_printf(1," 0x%08x(0x%08x)",phys_start, size);
-    __u32 phys_finish = phys_start + size;
 
-    /* TODO - make this more generic? */
-    if (phys_start >= REGION_BIOS_BASE && phys_finish <= REGION_BIOS_BASE+REGION_BIOS_SIZE) {
-        /* we can give you that mapping, yes */
+    int failed = 0;
+    __u32 *hostaddr = mem_guest2host(emu, phys_start);
+    if (hostaddr) {
+        debug_printf(1," matched a known mapping");
         regs->rbx = (phys_start & 0xffff0000) >>16;
         regs->rcx = (phys_start & 0xffff);
-        return WANT_NEWLINE|WANT_SET_REGS;
+    } else {
+        failed = 1;
+        /* for now, return a bogus mapping address */
+        regs->rbx = 0;
+        regs->rcx = 0;
     }
 
-    debug_printf(1," - DENIED\n");
-    iret_setflags(regs,1); /* set CF */
-    regs->rax = 0x8021; /* invalid value for numeric or flag parameter */
-    return WANT_SET_REGS;
+    if (failed) {
+        debug_printf(1," - DENIED\n");
+
+        dump_kvm_regs(regs);
+        __u32 *stack = mem_guest2host(emu, regs->rsp);
+        if (stack) {
+            debug_printf(0,"Stack:");
+            dump_dwords(stack,16);
+        }
+        dump_backtrace(emu,regs);
+        dump_kvm_sregs(emu);
+        exit(1);
+
+        iret_setflags(regs,1); /* set CF */
+        regs->rax = 0x8021; /* invalid value for numeric or flag parameter */
+        return WANT_SET_REGS;
+    }
+
+    return WANT_NEWLINE|WANT_SET_REGS;
+
 }
 
 int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
@@ -1542,6 +1562,12 @@ int handle_mmio(struct emu *emu) {
     if (!addr) {
         return 0;
     }
+
+    /* Special addresses - TODO handle them?
+    0x449 - Display Mode
+    0x465 - ?
+    0x484 - ?
+     */
 
     if (run->mmio.is_write) {
         memcpy(addr, run->mmio.data, run->mmio.len);
