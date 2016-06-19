@@ -153,6 +153,47 @@ sub dump_rsdp {
     );
 }
 
+sub handle_XSDT {
+    my $SDT = shift;
+
+    my @tables = unpack("Q*",$SDT->{_data});
+
+    delete $SDT->{_data};
+    $SDT->{tables} = \@tables;
+
+    return $SDT;
+}
+
+sub handle_FACP {
+    my $SDT = shift;
+
+    my @fields = qw(
+        FirmwareCtrl Dsdt Reserved PreferredPowerManagementProfile
+        SCI_Interrupt SMI_CommandPort AcpiEnable AcpiDisable S4BIOS_REQ
+        PSTATE_Control PM1aEventBlock PM1bEventBlock PM1aControlBlock
+        PM1bControlBlock PM2ControlBlock PMTimerBlock GPE0Block GPE1Block
+        PM1EventLength PM1ControlLength PM2ControlLength PMTimerLength
+        GPE0Length GPE1Length GPE1Base CStateControl
+        WorstC2Latency WorstC3Latency FlushSize FlushStride
+        DutyOffset DutyWidth DayAlarm MonthAlarm Century
+        BootArchitectureFlags
+        Reserved2 Flags
+        ResetReg.AddressSpace ResetReg.BitWidth ResetReg.BitOffset
+        ResetReg.AccessSize ResetReg.Address
+    );
+    # TODO - GenericAddressStructure helper and the rest of the fields
+    my @values = unpack("VVCCvVCCCCVVVVVVVVCCCCCCCCvvvvCCCCCvCVCCCCQ",$SDT->{_data});
+    map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
+
+    delete $SDT->{_data};
+    return $SDT;
+}
+
+my %handler = (
+    XSDT => \&handle_XSDT,
+    FACP => \&handle_FACP,
+);
+
 sub read_SDT {
     my $db = shift;
     my $addr = shift;
@@ -179,8 +220,12 @@ sub read_SDT {
 
     my $remainder = $header{length} - $header_len;
     return $sdt if ($remainder<=0);
-
     $sdt->{_data} = memr_read($db,$addr+$header_len,$remainder);
+
+    if (defined($handler{$header{signature}})) {
+        $handler{$header{signature}}($sdt);
+    }
+
     return $sdt;
 }
 
@@ -188,27 +233,13 @@ sub dump_SDT {
     my $sdt = shift;
     my $header = $sdt->{_header};
 
-    printf("0x%08x: %s(%i) %s %s(%i) %s(%i)\n",
-        $sdt->{_addr},
+    printf("0x%08x(%04x): %s(%i) %s %s(%i) %s(%i)\n",
+        $sdt->{_addr}, $header->{length},
         $header->{signature}, $header->{revision},
         $header->{oemid},
         $header->{oemtableid}, $header->{oemrevision},
         $header->{creatorid}, $header->{creatorrevision},
     );
-}
-
-sub read_XSDT {
-    my $db = shift;
-    my $addr = shift;
-
-    my $SDT = read_SDT($db,$addr);
-
-    my @tables = unpack("Q*",$SDT->{_data});
-
-    delete $SDT->{_data};
-    $SDT->{tables} = \@tables;
-
-    return $SDT;
 }
 
 sub main() {
@@ -226,7 +257,7 @@ sub main() {
     }
 
     $db->{RSDP} = read_rsdp($db,$db->{address}{RSDP});
-    read_XSDT($db,$db->{RSDP}{xsdtaddress});
+    read_SDT($db,$db->{RSDP}{xsdtaddress});
 
     dump_rsdp($db->{RSDP});
     dump_SDT($db->{SDT}{XSDT});
