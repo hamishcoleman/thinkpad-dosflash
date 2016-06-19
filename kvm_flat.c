@@ -79,7 +79,7 @@ int debug_printf(unsigned char level, const char *fmt, ...)
 #define MEM_REGION_PSP   3
 #define MEM_REGION_ZERO  4
 #define MEM_REGION_SYS_MAX   4
-#define MEM_REGION_MAX   10
+#define MEM_REGION_MAX   16
 
 #define REGION_STACK_SIZE 0x1000
 #define REGION_STACK_BASE 0xf0000000
@@ -161,6 +161,7 @@ struct emu {
     __u32 mmio_next; /* if mmio matches this, avoid verbosity */
     int mmio_count; /* just how many mmio_next matches have we seen */
 
+    int trace;          /* enable instruction tracing */
     __u32 debug_addr;
     int debug_count;
 } emu_global;
@@ -296,6 +297,9 @@ void dump_kvm_run(struct kvm_run *run) {
     case KVM_EXIT_MMIO:
         debug_printf(1,"\tphys_addr: 0x%llx\n",run->mmio.phys_addr);
         break;
+    case KVM_EXIT_IO:
+        debug_printf(1,"\tport: 0x%llx\n",run->io.port);
+        break;
     }
 }
 
@@ -429,10 +433,14 @@ void dump_kvm_exit(struct emu *emu) {
     switch(emu->run->exit_reason) {
     case KVM_EXIT_SHUTDOWN:
     case KVM_EXIT_MMIO:
+    case KVM_EXIT_IO:
+        __u32 *stack = mem_guest2host(emu, regs.rsp);
+        if (stack) {
+            debug_printf(0,"Stack:");
+            dump_dwords(stack,16);
+        }
+        dump_backtrace(emu,&regs);
         dump_kvm_sregs(emu);
-        __u32 *stack = mem_getstack(&emu_global, &regs);
-        debug_printf(1,"Stack:");
-        dump_dwords(stack,16);
         dump_kvm_memmap(emu);
         break;
     }
@@ -440,23 +448,33 @@ void dump_kvm_exit(struct emu *emu) {
 
 #define MEMORY_REGISTER 1
 #define MEMORY_ANONYMOUS 2
+#define MEMORY_RDWR 4
 int load_memory(struct emu *emu, __u32 phys_addr, __u32 size, char *filename, __u32 file_offset, __u32 flags) {
     int fd;
     int mmap_prot;
     int mmap_flags;
 
     if (!(flags & MEMORY_ANONYMOUS)) {
-        fd = open(filename, O_RDONLY);
+        int oflag;
+        if ((flags & MEMORY_RDWR)) {
+            oflag = O_RDWR;
+        } else {
+            oflag = O_RDONLY;
+        }
+        fd = open(filename, oflag);
         if (fd == -1)
             errx(1, "opening file %s",filename);
         mmap_prot = PROT_READ;
         mmap_flags = MAP_SHARED;
     } else {
-        filename = "malloc://anonymous";
         file_offset = 0;
         fd = -1;
-        mmap_prot = PROT_READ | PROT_WRITE;
+        mmap_prot = PROT_READ;
         mmap_flags = MAP_SHARED | MAP_ANONYMOUS;
+    }
+
+    if ((flags & MEMORY_RDWR)) {
+        mmap_prot |= PROT_WRITE;
     }
 
     void *region = mmap(NULL, size, mmap_prot, mmap_flags, fd, file_offset);
@@ -640,7 +658,7 @@ int kvm_init(struct emu *emu) {
         err(1, "KVM_SET_SREGS");
 
     debug_printf(1,"Map stack\n");
-    ret = load_memory(emu,REGION_STACK_BASE,REGION_STACK_SIZE,NULL,0,MEMORY_REGISTER|MEMORY_ANONYMOUS);
+    ret = load_memory(emu,REGION_STACK_BASE,REGION_STACK_SIZE,"stack",0,MEMORY_REGISTER|MEMORY_ANONYMOUS|MEMORY_RDWR);
     if (ret == -1)
         err(1, "load_memory stack");
     emu->region_stack = ret;
@@ -650,7 +668,7 @@ int kvm_init(struct emu *emu) {
     *((__u32*)stack) = 0xbad0add0;
 
     debug_printf(1,"Map bss\n");
-    ret = load_memory(emu,REGION_BSS_BASE,REGION_BSS_SIZE,NULL,0,MEMORY_REGISTER|MEMORY_ANONYMOUS);
+    ret = load_memory(emu,REGION_BSS_BASE,REGION_BSS_SIZE,"bss",0,MEMORY_REGISTER|MEMORY_ANONYMOUS|MEMORY_RDWR);
     if (ret == -1)
         err(1, "load_memory bss");
 
@@ -892,6 +910,8 @@ int load_configfile(struct emu *emu, char *filename) {
 
         if (!strcmp(key,"entry")) {
             emu->entry=strtoul(strtok(NULL," \n"),NULL,0);
+        } else if (!strcmp(key,"trace")) {
+            emu->trace=strtoul(strtok(NULL," \n"),NULL,0);
         } else if (!strcmp(key,"include")) {
             if (load_configfile(emu,strtok(NULL," \n"))==-1) {
                 return -1;
@@ -903,7 +923,7 @@ int load_configfile(struct emu *emu, char *filename) {
             __u32 size = strtoul(strtok(NULL," "),NULL,0);
             char *filename = strtok(NULL," ");
             __u32 file_offset = strtoul(strtok(NULL," "),NULL,0);
-            int flags = 0;
+            int flags = strtoul(strtok(NULL," \n"),NULL,0);
             /* TODO - flags from config line */
             load_memory(emu,phys_addr,size,filename,file_offset,flags);
         }
@@ -1147,6 +1167,16 @@ int irq_dpmi_0008(void *data, struct emu *emu, struct kvm_regs *regs) {
 
     int entry = selector>>3;
     gdt_setlimit(&gdt[entry],limit);
+
+    dump_kvm_regs(regs);
+    __u32 *stack = mem_guest2host(emu, regs->rsp);
+    if (stack) {
+        debug_printf(0,"Stack:");
+        dump_dwords(stack,16);
+    }
+    dump_backtrace(emu,regs);
+    dump_kvm_sregs(emu);
+    dump_kvm_memmap(emu);
 
     return WANT_SET_REGS;
 }
@@ -1745,12 +1775,10 @@ int main(int argc, char **argv)
     struct kvm_guest_debug debug;
     debug.control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP;
 
-    int trace = 0;
-
     /* Repeatedly run code and handle VM exits. */
     while (1) {
         struct kvm_run *run = emu->run;
-        if (trace) {
+        if (emu->trace) {
             ret = ioctl(emu->vcpufd, KVM_SET_GUEST_DEBUG, &debug);
             if (ret == -1)
                 err(1, "KVM_SET_GUEST_DEBUG");
