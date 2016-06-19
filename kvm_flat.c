@@ -79,7 +79,7 @@ int debug_printf(unsigned char level, const char *fmt, ...)
 #define MEM_REGION_PSP   3
 #define MEM_REGION_ZERO  4
 #define MEM_REGION_SYS_MAX   4
-#define MEM_REGION_MAX   8
+#define MEM_REGION_MAX   10
 
 #define REGION_STACK_SIZE 0x1000
 #define REGION_STACK_BASE 0xf0000000
@@ -639,7 +639,7 @@ int kvm_init(struct emu *emu) {
     if (ret == -1)
         err(1, "KVM_SET_SREGS");
 
-
+    debug_printf(1,"Map stack\n");
     ret = load_memory(emu,REGION_STACK_BASE,REGION_STACK_SIZE,NULL,0,MEMORY_REGISTER|MEMORY_ANONYMOUS);
     if (ret == -1)
         err(1, "load_memory stack");
@@ -649,6 +649,7 @@ int kvm_init(struct emu *emu) {
     uint8_t *stack = mem_guest2host(emu, REGION_STACK_BASE+REGION_STACK_SIZE-4);
     *((__u32*)stack) = 0xbad0add0;
 
+    debug_printf(1,"Map bss\n");
     ret = load_memory(emu,REGION_BSS_BASE,REGION_BSS_SIZE,NULL,0,MEMORY_REGISTER|MEMORY_ANONYMOUS);
     if (ret == -1)
         err(1, "load_memory bss");
