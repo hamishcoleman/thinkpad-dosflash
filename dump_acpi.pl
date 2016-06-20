@@ -189,9 +189,21 @@ sub handle_FACP {
     return $SDT;
 }
 
+sub handle_AML {
+    my $SDT = shift;
+
+    delete $SDT->{_data};
+    $SDT->{AML} = "Binary AML data not processed";
+    # use an acpi decompiler ...
+
+    return $SDT;
+}
+
 my %handler = (
     XSDT => \&handle_XSDT,
     FACP => \&handle_FACP,
+    DSDT => \&handle_AML,
+    SSDT => \&handle_AML,
 );
 
 sub read_SDT {
@@ -265,6 +277,9 @@ sub main() {
     for my $addr (@{$db->{SDT}{XSDT}{tables}}) {
         dump_SDT(read_SDT($db,$addr));
     }
+
+    dump_SDT(read_SDT($db,$db->{SDT}{FACP}{Dsdt}));
+    # TODO - dump_FACS(read_FACS($db,$db->{SDT}{FACP}{FirmwareCtrl}));
 
     print Dumper($db);
 
