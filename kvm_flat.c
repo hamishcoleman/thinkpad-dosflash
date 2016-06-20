@@ -164,6 +164,7 @@ struct emu {
     int trace;          /* enable instruction tracing */
     __u32 debug_addr;
     int debug_count;
+    int smi_count;      /* number of SMI io ops we have seen */
 } emu_global;
 
 struct irq_subhandler_entry {
@@ -1029,11 +1030,11 @@ int irq_dos_lseek(void *data, struct emu *emu, struct kvm_regs *regs) {
     case 2: whence = SEEK_END; break;
     }
 
-    int new_pos = 0; /* Fake it */
+    int new_pos = lseek(handle,offset,whence);
     regs->rdx = new_pos >> 16;
     regs->rax = new_pos & 0xffff;
 
-    debug_printf(1,"lseek(%i,%i,%s) = %i - Faked\n",
+    debug_printf(1,"lseek(%i,%i,%s) = %i\n",
         handle,offset,
         (whence==SEEK_SET)?"SEEK_SET":(whence==SEEK_CUR)?"SEEK_CUR":(whence==SEEK_END)?"SEEK_END":"UNK",
         new_pos
@@ -1169,16 +1170,6 @@ int irq_dpmi_0008(void *data, struct emu *emu, struct kvm_regs *regs) {
 
     int entry = selector>>3;
     gdt_setlimit(&gdt[entry],limit);
-
-    dump_kvm_regs(regs);
-    __u32 *stack = mem_guest2host(emu, regs->rsp);
-    if (stack) {
-        debug_printf(0,"Stack:");
-        dump_dwords(stack,16);
-    }
-    dump_backtrace(emu,regs);
-    dump_kvm_sregs(emu);
-    dump_kvm_memmap(emu);
 
     return WANT_SET_REGS;
 }
@@ -1539,6 +1530,7 @@ struct irq_subhandler_entry irq_dpmi_subcode[] = {
     { .subcode = 0x0008, .name = "SET SEGMENT LIMIT", .handler = irq_dpmi_0008 },
     { .subcode = 0x0009, .name = "SET DESCRIPTOR ACCESS RIGHTS", .handler = irq_ignore },
     { .subcode = 0x000a, .name = "CREATE ALIAS DESCRIPTOR", .handler = irq_dpmi_000a },
+    { .subcode = 0x0100, .name = "ALLOCATE DOS MEMORY BLOCK", .handler = irq_unhandled },
     { .subcode = 0x0200, .name = "GET REAL MODE INTERRUPT VECTOR", .handler = irq_dpmi_0200 },
     { .subcode = 0x0201, .name = "SET REAL MODE INTERRUPT VECTOR", .handler = irq_dpmi_0201 },
     { .subcode = 0x0202, .name = "GET PROCESSOR EXCEPTION HANDLER VECTOR", .handler = irq_dpmi_0202 },
@@ -1653,6 +1645,41 @@ int handle_softirq(struct emu *emu) {
         debug_printf(1,"\n");
     }
 
+    return 1;
+}
+
+int handle_smi(struct emu *emu) {
+    struct kvm_run *run = emu->run;
+    if (run->io.direction != KVM_EXIT_IO_OUT || run->io.size != 1 || run->io.port != 178 || run->io.count != 1) {
+        return 0;
+    }
+
+    emu->smi_count++;
+
+    struct kvm_regs regs;
+    int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &regs);
+    if (ret == -1)
+        err(1, "KVM_GET_REGS");
+    debug_printf(1,"%07llx: SMI\n", regs.rip);
+
+    if (emu->smi_count>10) {
+        /* crash-stop on the nth smi call */
+
+        /* >10 is just after the open of the binary */
+        return 0;
+    }
+
+    /* do nothing, yet? */
+    return 1;
+}
+
+int handle_console(struct emu *emu) {
+    struct kvm_run *run = emu->run;
+    if (run->io.direction != KVM_EXIT_IO_OUT || run->io.size != 1 || run->io.port != 0x3f8 || run->io.count != 1) {
+        return 0;
+    }
+
+    putchar(*(((char *)run) + run->io.data_offset));
     return 1;
 }
 
@@ -1798,8 +1825,10 @@ int main(int argc, char **argv)
             if (handle_softirq(emu)) {
                 continue;
             }
-            if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 1 && run->io.port == 0x3f8 && run->io.count == 1) {
-                putchar(*(((char *)run) + run->io.data_offset));
+            if (handle_smi(emu)) {
+                continue;
+            }
+            if (handle_console(emu)) {
                 continue;
             }
             dump_kvm_exit(emu);
