@@ -9,6 +9,8 @@ use strict;
 my $debug = 0;
 
 use IO::File;
+use UUID ':all';
+
 
 use Data::Dumper;
 $Data::Dumper::Indent = 1;
@@ -153,6 +155,40 @@ sub dump_rsdp {
     );
 }
 
+sub handle_UEFI_1 {
+    my $SDT = shift;
+    my @fields = qw(
+        addr
+        unknown
+        _data
+    );
+    # TODO - GenericAddressStructure helper and the rest of the fields
+    my @values = unpack("VVa*",$SDT->{_data});
+    map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
+
+    return $SDT;
+}
+
+sub handle_UEFI_2 {
+    my $SDT = shift;
+    my @fields = qw(
+        unknown1
+        addr
+        unknown2
+        _data
+    );
+    # TODO - GenericAddressStructure helper and the rest of the fields
+    my @values = unpack("VVVa*",$SDT->{_data});
+    map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
+
+    return $SDT;
+}
+
+my %handler_UEFI = (
+    'e86395d2-e1cf-414d-8e54-da4322fede5c' => \&handle_UEFI_1,
+    'be96e815-df0c-e247-9b97-a28a398bc765' => \&handle_UEFI_2,
+);
+
 sub handle_XSDT {
     my $SDT = shift;
 
@@ -180,12 +216,12 @@ sub handle_FACP {
         Reserved2 Flags
         ResetReg.AddressSpace ResetReg.BitWidth ResetReg.BitOffset
         ResetReg.AccessSize ResetReg.Address
+        _data
     );
     # TODO - GenericAddressStructure helper and the rest of the fields
-    my @values = unpack("VVCCvVCCCCVVVVVVVVCCCCCCCCvvvvCCCCCvCVCCCCQ",$SDT->{_data});
+    my @values = unpack("VVCCvVCCCCVVVVVVVVCCCCCCCCvvvvCCCCCvCVCCCCQa*",$SDT->{_data});
     map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
 
-    delete $SDT->{_data};
     return $SDT;
 }
 
@@ -199,11 +235,29 @@ sub handle_AML {
     return $SDT;
 }
 
+sub handle_UEFI {
+    my $SDT = shift;
+
+    my ($uuid,$DataOffset,$data) = unpack("a16va*",$SDT->{_data});
+    unparse($uuid,$uuid);
+    $SDT->{UUID} = $uuid;
+    $SDT->{DataOffset} = $DataOffset;
+    # TODO - DataOffset technically should be used to set the _data field
+    $SDT->{_data} = $data;
+
+    if (defined($handler_UEFI{$uuid})) {
+        $handler_UEFI{$uuid}($SDT);
+    }
+
+    return $SDT;
+}
+
 my %handler = (
     XSDT => \&handle_XSDT,
     FACP => \&handle_FACP,
     DSDT => \&handle_AML,
     SSDT => \&handle_AML,
+    UEFI => \&handle_UEFI,
 );
 
 sub read_SDT {
