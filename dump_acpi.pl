@@ -159,11 +159,10 @@ sub handle_UEFI_1 {
     my $SDT = shift;
     my @fields = qw(
         addr
-        unknown
         _data
     );
     # TODO - GenericAddressStructure helper and the rest of the fields
-    my @values = unpack("VVa*",$SDT->{_data});
+    my @values = unpack("Qa*",$SDT->{_data});
     map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
 
     return $SDT;
@@ -171,14 +170,18 @@ sub handle_UEFI_1 {
 
 sub handle_UEFI_2 {
     my $SDT = shift;
+
+    # guessing that this is the same layout as the SMM Communication
+    # ACPI Table. described in the UEFI docs
+    # GUID {0xc68ed8e2, 0x9dc6, 0x4cbd, 0x9d, 0x94, 0xdb, 0x65, 0xac, 0xc5, 0xc3, 0x32}
+
     my @fields = qw(
-        unknown1
-        addr
-        unknown2
+        SW_SMI_Number
+        Buffer_Ptr_Address
         _data
     );
     # TODO - GenericAddressStructure helper and the rest of the fields
-    my @values = unpack("VVVa*",$SDT->{_data});
+    my @values = unpack("VQa*",$SDT->{_data});
     map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
 
     return $SDT;
