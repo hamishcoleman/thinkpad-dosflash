@@ -423,6 +423,8 @@ void dump_kvm_memmap(struct emu *emu) {
 
 void dump_kvm_exit(struct emu *emu) {
     struct kvm_regs regs;
+    __u32 *stack;
+
     int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &regs);
     if (ret == -1)
         err(1, "KVM_GET_REGS");
@@ -434,7 +436,7 @@ void dump_kvm_exit(struct emu *emu) {
     case KVM_EXIT_SHUTDOWN:
     case KVM_EXIT_MMIO:
     case KVM_EXIT_IO:
-        __u32 *stack = mem_guest2host(emu, regs.rsp);
+        stack = mem_guest2host(emu, regs.rsp);
         if (stack) {
             debug_printf(0,"Stack:");
             dump_dwords(stack,16);
