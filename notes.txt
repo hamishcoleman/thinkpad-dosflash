@@ -1,0 +1,32 @@
+Notes on the structures and sequence discovered so far
+
+Program flow:
+
+Look for RSDP
+Parse XSDT
+Parse FACP
+    Save SMI_CommandPort
+Parse UEFI e86395d2-e1cf-414d-8e54-da4322fede5c "uuid_4"
+    Save addr (as unknown_addr1)
+Parse UEFI be96e815-df0c-e247-9b97-a28a398bc765 "uuid_2"
+    Save Buffer_Ptr_Address
+
+Load some bytes from unknown_addr1, but I dont know what for
+
+Create Header at Buffer_Ptr_Address:
+
+00000000  00 00 01 00 00 00 00 00  ff 00 00 00 00 00 00 00  |................|
+00000010  68 00 00 00 00 00 00 00  fc 44 de b1 46 79 82 49  |h........D..Fy.I|
+00000020  9b 4b 2f 8c a4 5e a7 92  00 00 00 00 00 00 00 00  |.K/..^..........|
+00000030  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+
+Header size 0x28
+   dword        unknown            = 0x10000
+   dword        unknown            = 0
+   qword        unknown            = 0xff
+   qword        total packet size  = 0x40+0x28
+   uuid         "uuid_1"           = fc 44 de b1 46 79 82 49 9b 4b 2f 8c a4 5e a7 92
+
+Call SMI
+    out SMI_CommandPort, ?
+
