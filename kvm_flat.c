@@ -98,6 +98,15 @@ int debug_printf(unsigned char level, const char *fmt, ...)
 #define REGION_BSS_BASE   0x00200000
 #define REGION_BSS_SIZE   0x00100000
 
+struct __attribute__ ((__packed__)) smi_buffer {
+    __u32 unk1;
+    __u32 unk2;
+    __u64 unk3;
+    __u64 size;
+    __u8 uuid[16];
+    __u8 data[];
+};
+
 struct __attribute__ ((__packed__)) gdt_entry {
     __u16 limit_l;
     __u16 base_l;
@@ -326,6 +335,64 @@ void dump_kvm_run(struct kvm_run *run) {
         }
         break;
     }
+}
+
+void dump_hex(__u8 *data, int size) {
+    if (!data) {
+        return;
+    }
+    int addr_line;
+    int addr = 0;
+    while(addr_line<size) {
+        addr = 0;
+        debug_printf(1," %04x  ",addr_line);
+        while (addr<16 && addr_line+addr<size) {
+            debug_printf(1,"%02x ",data[addr_line+addr++]);
+            if (addr==8) {
+                debug_printf(1," ");
+            }
+        }
+        while (addr<16) {
+            debug_printf(1,"   ");
+            addr++;
+        }
+        addr = 0;
+        debug_printf(1," |");
+        while (addr<16 && addr_line+addr<size) {
+            debug_printf(1,"%c",
+                isprint(data[addr_line+addr])?data[addr_line+addr]:'.');
+            addr++;
+        }
+        debug_printf(1,"|\n");
+        addr_line+=16;
+    }
+}
+
+void dump_uuid(__u8 *data) {
+    debug_printf(1,"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+        data[0],data[1],data[2],data[3],
+        data[4],data[5],
+        data[6],data[7],
+        data[8],data[9],
+        data[10],data[11],data[12],data[13],data[14],data[15]);
+}
+
+void dump_smi(struct emu *emu) {
+    if (!emu->smi_Buffer_Ptr_Address) {
+        return;
+    }
+
+    struct smi_buffer *smi = mem_guest2host(emu, emu->smi_Buffer_Ptr_Address);
+    if (!smi) {
+        return;
+    }
+
+    debug_printf(1,"buf: 0x%x 0x%x 0x%x size=0x%x uuid=",
+        smi->unk1, smi->unk2, smi->unk3, smi->size
+    );
+    dump_uuid(smi->uuid);
+    debug_printf(1,"\n");
+    dump_hex(smi->data, smi->size - sizeof(*smi));
 }
 
 void dump_dwords(void *data, int words) {
@@ -1732,6 +1799,8 @@ int handle_smi(struct emu *emu) {
     if (ret == -1)
         err(1, "KVM_GET_REGS");
     debug_printf(1,"%07llx: SMI (port[0x%02llx] = 0x%02llx)\n", regs.rip, run->io.port, val);
+
+    dump_smi(emu);
 
     if (emu->smi_count>10) {
         /* crash-stop on the nth smi call */
