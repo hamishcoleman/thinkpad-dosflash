@@ -39,6 +39,10 @@
 #include <stdarg.h>
 #include <ctype.h>
 
+#ifndef KVM_INTERNAL_ERROR_DELIVERY_EV
+#define KVM_INTERNAL_ERROR_DELIVERY_EV  3
+#endif
+
 int debug_level = 2;
 int debug_printf(unsigned char level, const char *fmt, ...)
 {
