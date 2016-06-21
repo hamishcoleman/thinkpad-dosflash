@@ -271,7 +271,8 @@ void dump_backtrace(struct emu *emu, struct kvm_regs *called_regs) {
         regs.rsp = regs.rbp;
         stack = mem_getstack(emu,&regs);
         if (!stack) {
-            return;
+            debug_printf(2,"!stack");
+            break;
         }
         regs.rbp = stack[0];
         debug_printf(2,"0x%08x ",stack[1]);
@@ -1434,11 +1435,11 @@ int irq_dpmi_0800(void *data, struct emu *emu, struct kvm_regs *regs) {
 }
 
 int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
-    debug_printf(0," - General Protection");
+    debug_printf(0," - Protection Fault");
     __u32 *stack = mem_guest2host(emu, regs->rsp);
     if (stack) {
         __u32 errcode = stack[0];
-        debug_printf(0," at address 0x%08x with %s%s selector 0x%x\n",
+        debug_printf(0," at addr 0x%08x with %s%s selector 0x%x\n",
             stack[1],
             (errcode&0x1)?"EXT ":"",
             (errcode&0x2)?"IDT": (errcode&0x4)?"LDT":"GDT",
