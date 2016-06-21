@@ -1495,16 +1495,19 @@ int irq_dpmi_0400(void *data, struct emu *emu, struct kvm_regs *regs) {
 int irq_dpmi_0501(void *data, struct emu *emu, struct kvm_regs *regs) {
     unsigned int size = (regs->rbx & 0xffff) <<16 | (regs->rcx & 0xffff);
     unsigned int addr = alloc_bss(emu, size);
+    regs->rbx = regs->rsi = addr >> 16;
+    regs->rcx = regs->rdi = addr & 0xffff;
 
-    debug_printf(1,"alloc(%i) = 0x%08x\n",size,addr);
+    debug_printf(1,"alloc(%i) = ",size);
 
     if (!addr) {
         iret_setflags(regs,1); /* set CF */
-        return WANT_NONE;
+        debug_printf(1,"failed\n");
+        exit(1);
+        return WANT_SET_REGS;
     }
 
-    regs->rbx = regs->rsi = addr >> 16;
-    regs->rcx = regs->rdi = addr & 0xffff;
+    debug_printf(1,"0x%08x\n",addr);
 
     return WANT_SET_REGS;
 }
