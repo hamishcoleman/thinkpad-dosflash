@@ -1712,9 +1712,9 @@ int handle_mmio(struct emu *emu) {
     }
 
     /* Special addresses - TODO handle them?
-    0x449 - Display Mode
-    0x465 - ?
-    0x484 - ?
+    0x449 - CURRENT VIDEO MODE
+    0x465 - CURRENT MODE SELECT REGISTER
+    0x484 - ROWS ON SCREEN MINUS ONE
      */
 
     if (run->mmio.is_write) {
