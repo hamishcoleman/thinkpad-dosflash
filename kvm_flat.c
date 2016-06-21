@@ -809,9 +809,9 @@ int load_image(struct emu *emu, char *filename, char *cmdline) {
     region_psp->stubinfo.minstack = 0x80000; /* 512k */
     region_psp->stubinfo.memory_handle = 0xfeedbad0;
     region_psp->stubinfo.initial_size = text_size;
-    region_psp->stubinfo.minkeep = 16384;
+    region_psp->stubinfo.minkeep = 256;
     region_psp->stubinfo.ds_selector = SEG_GO32;
-    region_psp->stubinfo.ds_segment = 0x10; /* gets shl 4 and xref 0x0003de8d */
+    region_psp->stubinfo.ds_segment = 0x1; /* gets shl 4 and xref 0x0003de8d */
     region_psp->stubinfo.psp_selector = SEG_PSP;
     region_psp->stubinfo.cs_selector = SEG_GO32_TEXT;
     region_psp->stubinfo.env_size = 1;
