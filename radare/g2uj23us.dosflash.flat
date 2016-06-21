@@ -145,7 +145,7 @@ f fcn.00003c8e 70 0x00003c8e
 f fcn.00003c4c 5 0x00003c4c 
 f fcn.00003cfe 7 0x00003cfe 
 f fcn.00005f34 10 0x00005f34 
-f dos_alloc_and_zero_something 115 0x00005f54 
+f alloc_dos_memory 115 0x00005f54 
 f __dpmi_allocate_dos_memory 57 0x00036e50 
 f something.ds.segment.magic 97 0x00036e90 
 f fcn.00006117 30 0x00006117 
@@ -965,6 +965,14 @@ fs *
 f smi_Buffer_Ptr_Address_lo 1 0x0004ca50 
 fs *
 f smi_Buffer_Ptr_Address_hi 1 0x0004ca54 
+fs *
+f pDOSmem 1 0x00054040 
+fs *
+f DOSMaxAvail 1 0x00054040 
+fs *
+f data.dosbuf.something.0x4ca68 1 0x0004ca68 
+fs *
+f data.dosbuf.something.0x4ca64 1 0x0004ca64 
 # eval
 "e anal.a2f = false"
 "e anal.afterjmp = true"
@@ -1190,7 +1198,7 @@ f smi_Buffer_Ptr_Address_hi 1 0x0004ca54
 "e graph.title = "
 "e graph.to = 0xffffffffffffffff"
 "e graph.web = false"
-"e hex.cols = 10"
+"e hex.cols = 8"
 "e hex.depth = 5"
 "e hex.flagsz = 0"
 "e hex.onechar = false"
@@ -3329,7 +3337,7 @@ CCu base64:RGF0YVNpemU= @ 0x0000e1b9
 CCu base64:YnVm @ 0x00005e2e
 Cd 4 @ 0x0004ca64
 Cd 4 @ 0x00049010
-Cs 8 @ 0x00005d10 # __exec__
+Cs 8 @ 0x00005d10 # __exec_
 Cd 1 @ 0x00005d11
 Cd 1 @ 0x00005d12
 Cd 1 @ 0x00005d13
@@ -3337,7 +3345,7 @@ Cd 1 @ 0x00005d14
 Cd 1 @ 0x00005d15
 Cd 1 @ 0x00005d16
 Cd 1 @ 0x00005d17
-Cs 26 @ 0x00005d18 # U_x_9_x.5WVS_x_3_x.__f_x__u_b_x____f_x_3_x___x01__x18RRh_x10__
+Cs 26 @ 0x00005d18 # U_x_9_x.5WVS_x_3_x.__f_x__u_b_x____f_x_3_x___x01__x18RRh_x10_
 CCu base64:ZGVzdA== @ 0x00013934
 CCu base64:c2l6ZQ== @ 0x00013935
 CCu base64:cGh5c19hZGRy @ 0x0001393a
@@ -3353,6 +3361,11 @@ CCu base64:c3dfc21pX251bWJlcg== @ 0x0000e868
 Cd 4 @ 0x0004ca58
 CCu base64:c21pX0J1ZmZlcl9QdHJfQWRkcmVzc19sbw== @ 0x0000e854
 CCu base64:c21pX0J1ZmZlcl9QdHJfQWRkcmVzc19oaQ== @ 0x0000e857
+CCu base64:cGFyYWdyYXBocw== @ 0x00005f7c
+Cd 4 @ 0x00054040
+CCu base64:YW55IGZhaWx1cmUsIGJhaWwgb3V0 @ 0x00005f91
+Cd 1 @ 0x0004ca60
+Cd 1 @ 0x0004cb3c
 f entry0 516 0x000018d0
 af+ 0x000018d0 516 entry0 f n
 afC cdecl @ 0x000018d0
@@ -4545,8 +4558,8 @@ f set_eax.0x00005f4a 10 0x00005f4a
 af+ 0x00005f4a 10 set_eax.0x00005f4a f n
 afC cdecl @ 0x00005f4a
 afb+ 0x00005f4a 0x00005f4a 10 0xffffffffffffffff 0xffffffffffffffff n n
-f dos_alloc_and_zero_something 115 0x00005f54
-af+ 0x00005f54 115 dos_alloc_and_zero_something f n
+f alloc_dos_memory 115 0x00005f54
+af+ 0x00005f54 115 alloc_dos_memory f n
 afC cdecl @ 0x00005f54
 afb+ 0x00005f54 0x00005f54 26 0x00005fbd 0x00005f6e n n
 afb+ 0x00005f54 0x00005f6e 7 0x00005fbd 0x00005f75 n n
@@ -4555,8 +4568,8 @@ afb+ 0x00005f54 0x00005f93 19 0x00005fbd 0x00005fa6 n n
 afb+ 0x00005f54 0x00005fa6 23 0x00005fbd 0xffffffffffffffff n n
 afb+ 0x00005f54 0x00005fbd 10 0xffffffffffffffff 0xffffffffffffffff n n
 afa 1 arg_1h int @ 0x5f54
-afa 12 arg_ch int @ 0x5f54
-afa 16 arg_10h int @ 0x5f54
+afa 12 dosbuf void* @ 0x5f54
+afa 16 arg_10h int* @ 0x5f54
 afv 12 local_ch int @ 0x5f54
 f fcn.00005fd0 10 0x00005fd0
 af+ 0x00005fd0 10 fcn.00005fd0 f n
@@ -9973,8 +9986,8 @@ afb+ 0x00036e50 0x00036e7f 5 0x00036e84 0xffffffffffffffff b n
 afb+ 0x00036e50 0x00036e7a 5 0x00036e7f 0xffffffffffffffff n n
 afb+ 0x00036e50 0x00036e65 13 0x00036e84 0xffffffffffffffff n n
 afb+ 0x00036e50 0x00036e84 5 0xffffffffffffffff 0xffffffffffffffff n n
-afa 8 arg_8h int @ 0x36e50
-afa 12 arg_ch int @ 0x36e50
+afa 8 paragraphs int @ 0x36e50
+afa 12 pMaxAvail int* @ 0x36e50
 f something.ds.segment.magic 97 0x00036e90
 af+ 0x00036e90 97 something.ds.segment.magic f n
 afC cdecl @ 0x00036e90
@@ -11692,4 +11705,4 @@ afv 64 local_40h int @ 0x46840
 # types
 # macros
 # seek
-s 0x0000e8ce
+s 0x0000602c
