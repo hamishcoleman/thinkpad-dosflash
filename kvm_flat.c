@@ -68,7 +68,8 @@ int debug_printf(unsigned char level, const char *fmt, ...)
 #define SEG_PSP  0x18
 #define SEG_ENV  0x20
 #define SEG_GO32 0x28
-#define SEG_SYS_MAX SEG_GO32
+#define SEG_GO32_TEXT 0x30
+#define SEG_SYS_MAX SEG_GO32_TEXT
 
 #define SEG_PSP_SIZE  256
 #define SEG_PSP_BASE  0xf0030000
@@ -562,6 +563,12 @@ void setup_gdt(struct kvm_sregs *sregs, struct emu *emu) {
     gdt_setlimit(&gdt[5],SEG_GO32_SIZE);
     gdt_setbase(&gdt[5],SEG_GO32_BASE);
 
+    /* Segment used for running the exit code */
+    gdt[6].type_flags = 0x9e;
+    gdt[6].limit_flags = 0x40;
+    gdt_setlimit(&gdt[6],SEG_GO32_SIZE);
+    gdt_setbase(&gdt[6],SEG_GO32_BASE);
+
     emu->mem[MEM_REGION_GDT].slot = MEM_REGION_GDT;
     emu->mem[MEM_REGION_GDT].guest_phys_addr = REGION_GDT_BASE;
     emu->mem[MEM_REGION_GDT].memory_size = REGION_GDT_SIZE;
@@ -800,7 +807,7 @@ int load_image(struct emu *emu, char *filename, char *cmdline) {
     region_psp->stubinfo.ds_selector = SEG_GO32;
     region_psp->stubinfo.ds_segment = 0x10; /* gets shl 4 and xref 0x0003de8d */
     region_psp->stubinfo.psp_selector = SEG_PSP;
-    region_psp->stubinfo.cs_selector = SEG_TEXT;
+    region_psp->stubinfo.cs_selector = SEG_GO32_TEXT;
     region_psp->stubinfo.env_size = 1;
     memset(&region_psp->stubinfo.basename,0,8);
     memset(&region_psp->stubinfo.argv0,0,16);
