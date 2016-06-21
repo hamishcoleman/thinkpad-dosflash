@@ -34,14 +34,19 @@ sub load_memory {
     $region->{file_offset} = $file_offset;
     $region->{flags}       = $flags;
 
+    push @{$db->{region}}, $region;
+
+    if ($flags & 2) {
+        # anonymous memory has no file backing
+        return;
+    }
+
     my $fh = IO::File->new($filename, O_RDONLY);
     if (!defined($fh)) {
         warn("Could not open $filename\n");
         exit(1);
     }
     $region->{fh} = $fh;
-
-    push @{$db->{region}}, $region;
 }
 
 sub load_configfile {
@@ -83,14 +88,14 @@ sub memr_read {
     my $region;
     # find the correct region
     for my $r (@{$db->{region}}) {
-        if ($phys_addr > $r->{phys_addr} && $phys_addr < $r->{phys_addr}+$r->{size}) {
+        if ($phys_addr >= $r->{phys_addr} && $phys_addr <= $r->{phys_addr}+$r->{size}) {
             $region = $r;
             last;
         }
     }
 
     if (!defined($region)) {
-        printf("unhandled address 0x%08x\n",$phys_addr);
+        printf("unhandled address 0x%08x(0x%x)\n",$phys_addr,$size);
         return undef;
     }
 
@@ -103,6 +108,11 @@ sub memr_read {
             $offset,
             $region->{filename},
         );
+    }
+
+    if ($region->{flags} & 2) {
+        # anonymous memory
+        return chr(0)x$size;
     }
 
     $region->{fh}->seek($offset,SEEK_SET);
