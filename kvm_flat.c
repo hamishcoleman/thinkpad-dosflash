@@ -38,6 +38,8 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <errno.h>
+
 
 #ifndef KVM_INTERNAL_ERROR_DELIVERY_EV
 #define KVM_INTERNAL_ERROR_DELIVERY_EV  3
@@ -1096,6 +1098,30 @@ int irq_dos_version(void *data, struct emu *emu, struct kvm_regs *regs) {
     return WANT_NEWLINE|WANT_SET_REGS;
 }
 
+int irq_dos_read(void *data, struct emu *emu, struct kvm_regs *regs) {
+    int handle = (regs->rbx & 0xffff);
+    int count = (regs->rcx & 0xffff);
+    int dos_bufaddr = (regs->r9 << 4) | (regs->rdx & 0xffff);
+    uint8_t *buf =  mem_guest2host(emu, dos_bufaddr);
+
+    debug_printf(1,"read(%i,0x%x,%i)",handle,dos_bufaddr,count);
+
+    int ret = read(handle,buf,count);
+        fflush(stdout);
+
+    if (ret<0) {
+        debug_printf(1," - error %i\n",errno);
+        exit(1);
+    }
+    debug_printf(1," = %i bytes\n",ret);
+
+    regs->rax = ret;
+
+    irq_dump_rm(data,emu,regs);
+
+    return WANT_SET_REGS;
+}
+
 int irq_dos_write(void *data, struct emu *emu, struct kvm_regs *regs) {
     int handle = (regs->rbx & 0xffff);
     int count = (regs->rcx & 0xffff);
@@ -1620,6 +1646,15 @@ int handle_subcode(struct irq_subhandler_entry *p, int subcode, struct emu *emu,
         p++;
     }
     debug_printf(0," undefined subcode\n");
+
+    dump_kvm_regs(regs);
+    __u32 *stack = mem_guest2host(emu, regs->rsp);
+    if (stack) {
+        debug_printf(0,"Stack:");
+        dump_dwords(stack,16);
+    }
+    dump_backtrace(emu,regs);
+
     exit(1);
 }
 
@@ -1706,6 +1741,7 @@ struct irq_subhandler_entry irq_dos_subcode[] = {
     { .subcode = 0x19, .name = "GET DRIVE", .handler = irq_dos_get_drive },
     { .subcode = 0x30, .name = "VERSION", .handler = irq_dos_version },
     { .subcode = 0x3e, .name = "CLOSE", .handler = irq_ignore },
+    { .subcode = 0x3f, .name = "READ", .handler = irq_dos_read },
     { .subcode = 0x40, .name = "WRITE", .handler = irq_dos_write },
     { .subcode = 0x42, .name = "LSEEK", .handler = irq_dos_lseek },
     { .subcode = 0x44, .handler = irq_subcode_al, .data = irq_dos_ioctl },
@@ -1807,12 +1843,14 @@ int handle_smi(struct emu *emu) {
 
     dump_smi(emu);
 
+#if 0
     if (emu->smi_count>10) {
         /* crash-stop on the nth smi call */
 
         /* >10 is just after the open of the binary */
         return 0;
     }
+#endif
 
     /* do nothing, yet? */
     return 1;
