@@ -171,6 +171,7 @@ struct emu {
     int debug_count;
     int smi_count;      /* number of SMI io ops we have seen */
     __u32 smi_Buffer_Ptr_Address; /* Could set this by reading ACPI tables */
+    int dos_alloc;      /* have we given out the low memory region? */
 } emu_global;
 
 struct irq_subhandler_entry {
@@ -1230,6 +1231,40 @@ int irq_dpmi_000a(void *data, struct emu *emu, struct kvm_regs *regs) {
     return WANT_SET_REGS;
 }
 
+/* ALLOCATE DOS MEMORY BLOCK */
+int irq_dpmi_0100(void *data, struct emu *emu, struct kvm_regs *regs) {
+    int paragraphs = regs->rbx & 0xffff;
+    debug_printf(1,"0x%x paragraphs",paragraphs);
+
+    /* TODO - use a less hacky allocation strategy (and less magic numbers) */
+    if (emu->dos_alloc || paragraphs > 0x100) {
+        debug_printf(1," - return failure\n");
+        iret_setflags(regs,1); /* set CF */
+        regs->rax = 8; /* insufficient memory */
+        regs->rbx = 0x100; /* largest available block */
+        return WANT_SET_REGS;
+    }
+
+    /* first come, only one served */
+    emu->dos_alloc = 1;
+
+    struct gdt_entry *gdt = (struct gdt_entry *)emu->mem[MEM_REGION_GDT].userspace_addr;
+    /* start with a copy of the data segment */
+    memcpy(&gdt[emu->gdt_brk],&gdt[SEG_DATA>>3],sizeof(*gdt));
+
+    gdt_setlimit(&gdt[emu->gdt_brk],paragraphs<<4);
+    gdt_setbase(&gdt[emu->gdt_brk],0x110);
+
+    regs->rax = 0x110>>4;
+    regs->rdx = emu->gdt_brk<<3;
+
+    emu->gdt_brk++;
+
+    debug_printf(1," selector=0x%llx\n",regs->rdx);
+
+    return WANT_SET_REGS;
+}
+
 /* GET REAL MODE INTERRUPT VECTOR */
 int irq_dpmi_0200(void *data, struct emu *emu, struct kvm_regs *regs) {
     int irqno = regs->rbx & 0xff;
@@ -1562,7 +1597,7 @@ struct irq_subhandler_entry irq_dpmi_subcode[] = {
     { .subcode = 0x0008, .name = "SET SEGMENT LIMIT", .handler = irq_dpmi_0008 },
     { .subcode = 0x0009, .name = "SET DESCRIPTOR ACCESS RIGHTS", .handler = irq_ignore },
     { .subcode = 0x000a, .name = "CREATE ALIAS DESCRIPTOR", .handler = irq_dpmi_000a },
-    { .subcode = 0x0100, .name = "ALLOCATE DOS MEMORY BLOCK", .handler = irq_unhandled },
+    { .subcode = 0x0100, .name = "ALLOCATE DOS MEMORY BLOCK", .handler = irq_dpmi_0100 },
     { .subcode = 0x0200, .name = "GET REAL MODE INTERRUPT VECTOR", .handler = irq_dpmi_0200 },
     { .subcode = 0x0201, .name = "SET REAL MODE INTERRUPT VECTOR", .handler = irq_dpmi_0201 },
     { .subcode = 0x0202, .name = "GET PROCESSOR EXCEPTION HANDLER VECTOR", .handler = irq_dpmi_0202 },
