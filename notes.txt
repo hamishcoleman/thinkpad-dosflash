@@ -12,6 +12,8 @@ Parse UEFI be96e815-df0c-e247-9b97-a28a398bc765 "uuid_2"
     Save Buffer_Ptr_Address
 
 Load some bytes from unknown_addr1, but I dont know what for
+    (check dword at offset 0x4, if 0x40 set flag, if 0x20 reset flag,
+    if other set flag and return zero)
 
 Create Header at Buffer_Ptr_Address:
 
@@ -28,7 +30,7 @@ Header size 0x28
    uuid         "uuid_1"           = fc 44 de b1 46 79 82 49 9b 4b 2f 8c a4 5e a7 92
 
 Call SMI
-    out SMI_CommandPort, ?
+   out SMI_CommandPort, 0xe9 (val is hardcoded in binary - eg 0x0000e8d7)
 
 packet 3: dw0 = 00 01 01 00, size = 0x38, 0x28 = 0x06, 0x30 = 0x10
 packet 4: dw0 = 00 01 01 00, size = 0x38, 0x28 = 0x06, 0x30 = 0x03

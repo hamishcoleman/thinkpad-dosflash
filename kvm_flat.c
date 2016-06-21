@@ -165,6 +165,7 @@ struct emu {
     __u32 debug_addr;
     int debug_count;
     int smi_count;      /* number of SMI io ops we have seen */
+    __u32 smi_Buffer_Ptr_Address; /* Could set this by reading ACPI tables */
 } emu_global;
 
 struct irq_subhandler_entry {
@@ -274,6 +275,9 @@ void dump_backtrace(struct emu *emu, struct kvm_regs *called_regs) {
         }
         regs.rbp = stack[0];
         debug_printf(2,"0x%08x ",stack[1]);
+        if (stack[1] == 0) {
+            break;
+        }
         depth++;
     }
     debug_printf(2,"\n");
@@ -299,7 +303,15 @@ void dump_kvm_run(struct kvm_run *run) {
         debug_printf(1,"\tphys_addr: 0x%llx\n",run->mmio.phys_addr);
         break;
     case KVM_EXIT_IO:
-        debug_printf(1,"\tport: 0x%llx\n",run->io.port);
+        debug_printf(1,"\tport[0x%llx]",run->io.port);
+        if (run->io.direction == KVM_EXIT_IO_OUT) {
+            __u64 val = 0;
+            /* FIXME - what if size is > 8 ? */
+            memcpy(&val,((char *)run)+run->io.data_offset,run->io.size);
+            debug_printf(1,"=0x%llx(%i)\n",val,run->io.size);
+        } else {
+            debug_printf(1,"\n");
+        }
         break;
     }
 }
@@ -449,17 +461,17 @@ void dump_kvm_exit(struct emu *emu) {
     }
 }
 
-#define MEMORY_REGISTER 1
-#define MEMORY_ANONYMOUS 2
-#define MEMORY_RDWR 4
+#define MEMR_REGISTER 1
+#define MEMR_ANONYMOUS 2
+#define MEMR_RDWR 4
 int load_memory(struct emu *emu, __u32 phys_addr, __u32 size, char *filename, __u32 file_offset, __u32 flags) {
     int fd;
     int mmap_prot;
     int mmap_flags;
 
-    if (!(flags & MEMORY_ANONYMOUS)) {
+    if (!(flags & MEMR_ANONYMOUS)) {
         int oflag;
-        if ((flags & MEMORY_RDWR)) {
+        if ((flags & MEMR_RDWR)) {
             oflag = O_RDWR;
         } else {
             oflag = O_RDONLY;
@@ -476,7 +488,7 @@ int load_memory(struct emu *emu, __u32 phys_addr, __u32 size, char *filename, __
         mmap_flags = MAP_SHARED | MAP_ANONYMOUS;
     }
 
-    if ((flags & MEMORY_RDWR)) {
+    if ((flags & MEMR_RDWR)) {
         mmap_prot |= PROT_WRITE;
     }
 
@@ -494,7 +506,7 @@ int load_memory(struct emu *emu, __u32 phys_addr, __u32 size, char *filename, __
     emu->mem[slot].memory_size = size;
     emu->mem[slot].userspace_addr = (uint64_t)region;
 
-    if (flags & MEMORY_REGISTER) {
+    if (flags & MEMR_REGISTER) {
         /*
          * by adding the region to the mem table, but not registering it, it becomes
          * straightforward to trace accesses as MMIO exits
@@ -661,7 +673,7 @@ int kvm_init(struct emu *emu) {
         err(1, "KVM_SET_SREGS");
 
     debug_printf(1,"Map stack\n");
-    ret = load_memory(emu,REGION_STACK_BASE,REGION_STACK_SIZE,"stack",0,MEMORY_REGISTER|MEMORY_ANONYMOUS|MEMORY_RDWR);
+    ret = load_memory(emu,REGION_STACK_BASE,REGION_STACK_SIZE,"stack",0,MEMR_REGISTER|MEMR_ANONYMOUS|MEMR_RDWR);
     if (ret == -1)
         err(1, "load_memory stack");
     emu->region_stack = ret;
@@ -671,7 +683,7 @@ int kvm_init(struct emu *emu) {
     *((__u32*)stack) = 0xbad0add0;
 
     debug_printf(1,"Map bss\n");
-    ret = load_memory(emu,REGION_BSS_BASE,REGION_BSS_SIZE,"bss",0,MEMORY_REGISTER|MEMORY_ANONYMOUS|MEMORY_RDWR);
+    ret = load_memory(emu,REGION_BSS_BASE,REGION_BSS_SIZE,"bss",0,MEMR_REGISTER|MEMR_ANONYMOUS|MEMR_RDWR);
     if (ret == -1)
         err(1, "load_memory bss");
 
@@ -915,6 +927,8 @@ int load_configfile(struct emu *emu, char *filename) {
             emu->entry=strtoul(strtok(NULL," \n"),NULL,0);
         } else if (!strcmp(key,"trace")) {
             emu->trace=strtoul(strtok(NULL," \n"),NULL,0);
+        } else if (!strcmp(key,"smi_Buffer_Ptr_Address")) {
+            emu->smi_Buffer_Ptr_Address=strtoul(strtok(NULL," \n"),NULL,0);
         } else if (!strcmp(key,"include")) {
             if (load_configfile(emu,strtok(NULL," \n"))==-1) {
                 return -1;
@@ -1654,13 +1668,17 @@ int handle_smi(struct emu *emu) {
         return 0;
     }
 
+    __u64 val = 0;
+    /* FIXME - what if size is > 8 ? */
+    memcpy(&val,((char *)run)+run->io.data_offset,run->io.size);
+
     emu->smi_count++;
 
     struct kvm_regs regs;
     int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &regs);
     if (ret == -1)
         err(1, "KVM_GET_REGS");
-    debug_printf(1,"%07llx: SMI\n", regs.rip);
+    debug_printf(1,"%07llx: SMI (port[0x%02llx] = 0x%02llx)\n", regs.rip, run->io.port, val);
 
     if (emu->smi_count>10) {
         /* crash-stop on the nth smi call */
@@ -1733,9 +1751,7 @@ int handle_mmio(struct emu *emu) {
             run->mmio.phys_addr,run->mmio.len
         );
         dump_kvm_regs(&regs);
-        __u32 *stack = mem_getstack(&emu_global, &regs);
-        debug_printf(1,"Stack:");
-        dump_dwords(stack,16);
+        dump_backtrace(emu,&regs);
     } else {
         debug_printf(1,".");
     }

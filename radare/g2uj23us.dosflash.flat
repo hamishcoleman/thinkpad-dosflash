@@ -78,8 +78,8 @@ f maybe.strcpy 37 0x00036bf0
 f fcn.0000ed50 25 0x0000ed50 
 f fcn.0001371d 66 0x0001371d 
 f fcn.00013670 45 0x00013670 
-f fcn.00013900 116 0x00013900 
-f fcn.00013980 7 0x00013980 
+f check_acpi_uefi_4_ptr 116 0x00013900 
+f zero_eax.0x00013980 7 0x00013980 
 f fcn.000039d0 29 0x000039d0 
 f loc.00005df0 13 0x00005df0 
 f maybe.memset 22 0x000084e0 
@@ -957,6 +957,14 @@ f list.free.all 45 0x000135e0
 f list.free.all.0x000135c0 32 0x000135c0 
 f wrapper.free.0x00015a90 88 0x00015a90 
 f list.free.all.0x0000e08a 40 0x0000e08a 
+fs *
+f data.0x00049000 1 0x00049000 
+fs *
+f sw_smi_number 1 0x0004ca58 
+fs *
+f smi_Buffer_Ptr_Address_lo 1 0x0004ca50 
+fs *
+f smi_Buffer_Ptr_Address_hi 1 0x0004ca54 
 # eval
 "e anal.a2f = false"
 "e anal.afterjmp = true"
@@ -3330,6 +3338,21 @@ Cd 1 @ 0x00005d15
 Cd 1 @ 0x00005d16
 Cd 1 @ 0x00005d17
 Cs 26 @ 0x00005d18 # U_x_9_x.5WVS_x_3_x.__f_x__u_b_x____f_x_3_x___x01__x18RRh_x10__
+CCu base64:ZGVzdA== @ 0x00013934
+CCu base64:c2l6ZQ== @ 0x00013935
+CCu base64:cGh5c19hZGRy @ 0x0001393a
+Cd 4 @ 0x0004ca50
+Cd 4 @ 0x0004ca54
+CCu base64:ZXJyY29kZQ== @ 0x00013901
+CCu base64:YXJnIG11c3QgYmUgbm9uIHplcm8= @ 0x00013912
+CCu base64:b25lIG9mIHRoZSB0d28gZHdvcmRzIG11c3QgYmUgbm9uIHplcm8gKDY0IHZhbCBub256ZXJvPyk= @ 0x00013928
+CCu base64:ZXJybm8= @ 0x00013945
+CCu base64:Y29weSBmYWlsZWQ/ @ 0x0001394c
+Cd 4 @ 0x00049000
+CCu base64:c3dfc21pX251bWJlcg== @ 0x0000e868
+Cd 4 @ 0x0004ca58
+CCu base64:c21pX0J1ZmZlcl9QdHJfQWRkcmVzc19sbw== @ 0x0000e854
+CCu base64:c21pX0J1ZmZlcl9QdHJfQWRkcmVzc19oaQ== @ 0x0000e857
 f entry0 516 0x000018d0
 af+ 0x000018d0 516 entry0 f n
 afC cdecl @ 0x000018d0
@@ -8127,8 +8150,8 @@ f fcn.000138f0 10 0x000138f0
 af+ 0x000138f0 10 fcn.000138f0 f n
 afC cdecl @ 0x000138f0
 afb+ 0x000138f0 0x000138f0 10 0xffffffffffffffff 0xffffffffffffffff n n
-f fcn.00013900 116 0x00013900
-af+ 0x00013900 116 fcn.00013900 f n
+f check_acpi_uefi_4_ptr 116 0x00013900
+af+ 0x00013900 116 check_acpi_uefi_4_ptr f n
 afC cdecl @ 0x00013900
 afb+ 0x00013900 0x00013900 22 0x0001396f 0x00013916 n n
 afb+ 0x00013900 0x0001396f 5 0xffffffffffffffff 0xffffffffffffffff n n
@@ -8141,11 +8164,11 @@ afb+ 0x00013900 0x00013963 3 0x00013966 0xffffffffffffffff b n
 afb+ 0x00013900 0x00013959 5 0x00013966 0xffffffffffffffff n n
 afb+ 0x00013900 0x00013966 4 0x0001396f 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x13900
-afv 4 local_4h int @ 0x13900
-afv 516 local_204h int @ 0x13900
-afv 520 local_208h int @ 0x13900
-f fcn.00013980 7 0x00013980
-af+ 0x00013980 7 fcn.00013980 f n
+afv 4 save_ebx int @ 0x13900
+afv 516 buf_dw1 int @ 0x13900
+afv 520 buf char[0x200] @ 0x13900
+f zero_eax.0x00013980 7 0x00013980
+af+ 0x00013980 7 zero_eax.0x00013980 f n
 afC cdecl @ 0x00013980
 afb+ 0x00013980 0x00013980 7 0xffffffffffffffff 0xffffffffffffffff n n
 f fcn.00013990 66 0x00013990
@@ -11669,4 +11692,4 @@ afv 64 local_40h int @ 0x46840
 # types
 # macros
 # seek
-s 0x00005d0c
+s 0x0000e8ce
