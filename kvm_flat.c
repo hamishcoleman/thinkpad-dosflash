@@ -304,6 +304,11 @@ void dump_kvm_run(struct kvm_run *run) {
     switch (run->exit_reason) {
     case KVM_EXIT_INTERNAL_ERROR:
         debug_printf(1,"\tsuberror: 0x%x\n",run->internal.suberror);
+        debug_printf(1,"\textra data (%i):\n\t",run->internal.ndata);
+        for (int i=0; i<run->internal.ndata; i++) {
+            debug_printf(1,"0x%x ",run->internal.data[i]);
+        }
+        debug_printf(1,"\n");
         break;
     case KVM_EXIT_MMIO:
         debug_printf(1,"\tphys_addr: 0x%llx\n",run->mmio.phys_addr);
@@ -452,6 +457,7 @@ void dump_kvm_exit(struct emu *emu) {
     dump_kvm_run(emu->run);
     dump_kvm_regs(&regs);
     switch(emu->run->exit_reason) {
+    case KVM_EXIT_INTERNAL_ERROR:
     case KVM_EXIT_SHUTDOWN:
     case KVM_EXIT_MMIO:
     case KVM_EXIT_IO:
