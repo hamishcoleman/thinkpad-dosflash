@@ -141,6 +141,7 @@ sub read_rsdp {
     my %rsdp = map { $fields[$_] => $values[$_] } (0..scalar(@fields)-1);
 
     $rsdp{_addr} = $addr;
+    $db->{RSDP} = \%rsdp;
     return \%rsdp;
 }
 
@@ -155,20 +156,19 @@ sub dump_rsdp {
     );
 }
 
-sub handle_UEFI_1 {
+sub handle_uuid_4 {
     my $SDT = shift;
     my @fields = qw(
         addr
         _data
     );
-    # TODO - GenericAddressStructure helper and the rest of the fields
     my @values = unpack("Qa*",$SDT->{_data});
     map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
 
     return $SDT;
 }
 
-sub handle_UEFI_2 {
+sub handle_uuid_2 {
     my $SDT = shift;
 
     # guessing that this is the same layout as the SMM Communication
@@ -180,7 +180,6 @@ sub handle_UEFI_2 {
         Buffer_Ptr_Address
         _data
     );
-    # TODO - GenericAddressStructure helper and the rest of the fields
     my @values = unpack("VQa*",$SDT->{_data});
     map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
 
@@ -188,8 +187,8 @@ sub handle_UEFI_2 {
 }
 
 my %handler_UEFI = (
-    'e86395d2-e1cf-414d-8e54-da4322fede5c' => \&handle_UEFI_1,
-    'be96e815-df0c-e247-9b97-a28a398bc765' => \&handle_UEFI_2,
+    'e86395d2-e1cf-414d-8e54-da4322fede5c' => \&handle_uuid_4,
+    'be96e815-df0c-e247-9b97-a28a398bc765' => \&handle_uuid_2,
 );
 
 sub handle_XSDT {
@@ -311,6 +310,29 @@ sub dump_SDT {
     );
 }
 
+sub read_FACS {
+    my $db = shift;
+    my $addr = shift;
+
+    my $signature = memr_read($db,$addr,4);
+    return if ($signature ne 'FACS');
+
+    my $length = unpack("V",memr_read($db,$addr+4,4));
+
+    my $buf = memr_read($db,$addr,$length);
+
+    my @fields = qw(signature Length Hardware_Signature
+        Firmware_Waking_Vector Global_Lock Flags X_Firmware_Waking_Vector
+        Version Reserved
+        );
+    my @values = unpack("A4VVVVVQCA31",$buf);
+    my %table = map { $fields[$_] => $values[$_] } (0..scalar(@fields)-1);
+
+    $table{_addr} = $addr;
+    $db->{FACS} = \%table;
+    return \%table;
+}
+
 sub main() {
     my $configfile = shift @ARGV;
     if (!defined($configfile)) {
@@ -325,7 +347,7 @@ sub main() {
         die("Could not find RSDP\n");
     }
 
-    $db->{RSDP} = read_rsdp($db,$db->{address}{RSDP});
+    read_rsdp($db,$db->{address}{RSDP});
     read_SDT($db,$db->{RSDP}{xsdtaddress});
 
     dump_rsdp($db->{RSDP});
@@ -336,7 +358,7 @@ sub main() {
     }
 
     dump_SDT(read_SDT($db,$db->{SDT}{FACP}{Dsdt}));
-    # TODO - dump_FACS(read_FACS($db,$db->{SDT}{FACP}{FirmwareCtrl}));
+    read_FACS($db,$db->{SDT}{FACP}{FirmwareCtrl});
 
     print Dumper($db);
 
