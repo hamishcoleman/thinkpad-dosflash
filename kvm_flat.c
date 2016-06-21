@@ -88,6 +88,11 @@ int debug_printf(unsigned char level, const char *fmt, ...)
 #define MEM_REGION_SYS_MAX   4
 #define MEM_REGION_MAX   16
 
+#define REGION_TB_BASE     0x10
+#define REGION_TB_SIZE     0x800
+#define REGION_DOSMEM_BASE 0x810
+#define REGION_DOSMEM_SIZE 0x1000
+
 #define REGION_STACK_SIZE 0x1000
 #define REGION_STACK_BASE 0xf0000000
 #define REGION_IDT_SIZE   0x1000
@@ -879,9 +884,9 @@ int load_image(struct emu *emu, char *filename, char *cmdline) {
     region_psp->stubinfo.minstack = 0x80000; /* 512k */
     region_psp->stubinfo.memory_handle = 0xfeedbad0;
     region_psp->stubinfo.initial_size = text_size;
-    region_psp->stubinfo.minkeep = 256;
+    region_psp->stubinfo.minkeep = REGION_TB_SIZE;
     region_psp->stubinfo.ds_selector = SEG_GO32;
-    region_psp->stubinfo.ds_segment = 0x1; /* gets shl 4 and xref 0x0003de8d */
+    region_psp->stubinfo.ds_segment = REGION_TB_BASE >>4; /* gets shl 4 and xref 0x0003de8d */
     region_psp->stubinfo.psp_selector = SEG_PSP;
     region_psp->stubinfo.cs_selector = SEG_GO32_TEXT;
     region_psp->stubinfo.env_size = 1;
@@ -1116,9 +1121,6 @@ int irq_dos_read(void *data, struct emu *emu, struct kvm_regs *regs) {
     debug_printf(1," = %i bytes\n",ret);
 
     regs->rax = ret;
-
-    irq_dump_rm(data,emu,regs);
-
     return WANT_SET_REGS;
 }
 
@@ -1332,11 +1334,11 @@ int irq_dpmi_0100(void *data, struct emu *emu, struct kvm_regs *regs) {
     debug_printf(1,"0x%x paragraphs",paragraphs);
 
     /* TODO - use a less hacky allocation strategy (and less magic numbers) */
-    if (emu->dos_alloc || paragraphs > 0x100) {
+    if (emu->dos_alloc || paragraphs > (REGION_DOSMEM_SIZE>>4)) {
         debug_printf(1," - return failure\n");
         iret_setflags(regs,1); /* set CF */
         regs->rax = 8; /* insufficient memory */
-        regs->rbx = 0x100; /* largest available block */
+        regs->rbx = (REGION_DOSMEM_SIZE>>4); /* largest available block */
         return WANT_SET_REGS;
     }
 
@@ -1348,9 +1350,9 @@ int irq_dpmi_0100(void *data, struct emu *emu, struct kvm_regs *regs) {
     memcpy(&gdt[emu->gdt_brk],&gdt[SEG_DATA>>3],sizeof(*gdt));
 
     gdt_setlimit(&gdt[emu->gdt_brk],paragraphs<<4);
-    gdt_setbase(&gdt[emu->gdt_brk],0x110);
+    gdt_setbase(&gdt[emu->gdt_brk],REGION_DOSMEM_BASE);
 
-    regs->rax = 0x110>>4;
+    regs->rax = REGION_DOSMEM_BASE>>4;
     regs->rdx = emu->gdt_brk<<3;
 
     emu->gdt_brk++;
