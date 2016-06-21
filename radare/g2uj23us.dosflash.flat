@@ -75,7 +75,7 @@ f fcn.00006c7c 295 0x00006c7c
 f fcn.00006a70 212 0x00006a70 
 f fcn.00006c07 117 0x00006c07 
 f maybe.strcpy 37 0x00036bf0 
-f fcn.0000ed50 25 0x0000ed50 
+f wrapper.strncpy.0x0000ed50 25 0x0000ed50 
 f fcn.0001371d 66 0x0001371d 
 f fcn.00013670 45 0x00013670 
 f check_acpi_uefi_4_ptr 116 0x00013900 
@@ -164,12 +164,12 @@ f fcn.000133f0 12 0x000133f0
 f fcn.00038450 5 0x00038450 
 f fcn.00041fd0 82 0x00041fd0 
 f maybe.detect_package_information 282 0x00013400 
-f fcn.00010643 184 0x00010643 
-f fcn.000140d2 96 0x000140d2 
-f fcn.000367c0 309 0x000367c0 
+f maybe.slirpfile.0x00010643 184 0x00010643 
+f maybe.getfilesize.0x000140d2 96 0x000140d2 
+f maybe.fopen.0x000367c0 309 0x000367c0 
 f fcn.00040d34 153 0x00040d34 
 f memset 61 0x000463c0 
-f fcn.00040f50 143 0x00040f50 
+f maybe.lseek.0x00040f50 143 0x00040f50 
 f fcn.00045fa0 41 0x00045fa0 
 f fcn.00045e00 62 0x00045e00 
 f fcn.00040dd0 370 0x00040dd0 
@@ -195,24 +195,24 @@ f memcpy 26 0x0003f320
 f copy.0x00045b90 40 0x00045b90 
 f fcn.000464d0 200 0x000464d0 
 f fcn.0003d47c 43 0x0003d47c 
-f fcn.00046340 119 0x00046340 
+f maybe._close.0x00046340 119 0x00046340 
 f fcn.00046840 290 0x00046840 
 f _write 238 0x0003d630 
 f fcn.00041420 36 0x00041420 
 f movedata 41 0x0003d890 
-f fcn.0003a370 240 0x0003a370 
-f fcn.0003a460 87 0x0003a460 
+f maybe.filesize.0x0003a370 240 0x0003a370 
+f maybe.seekend.0x0003a460 87 0x0003a460 
 f maybe.fwrite 237 0x00036690 
 f fcn.00040b70 64 0x00040b70 
-f fcn.00036b10 165 0x00036b10 
-f fcn.00041210 13 0x00041210 
+f maybe.fclose.0x00036b10 165 0x00036b10 
+f maybe.close.0x00041210 13 0x00041210 
 f fcn.00038850 237 0x00038850 
-f fcn.0003a040 379 0x0003a040 
+f maybe.fread.0x0003a040 379 0x0003a040 
 f fcn.00041560 55 0x00041560 
-f fcn.00045984 457 0x00045984 
-f fcn.00046250 226 0x00046250 
-f fcn.00041450 36 0x00041450 
-f fcn.00046670 28 0x00046670 
+f maybe.read.something.0x00045984 457 0x00045984 
+f maybe.read.0x00046250 226 0x00046250 
+f wrapper.movedata.0x00041450 36 0x00041450 
+f maybe.strchr.0x00046670 28 0x00046670 
 f fcn.000137b0 71 0x000137b0 
 f getenv_PACKORGDIR 59 0x0001352b 
 f fcn.0000d9b0 62 0x0000d9b0 
@@ -291,12 +291,12 @@ f fcn.0000bac0 65 0x0000bac0
 f fcn.0000e98d 39 0x0000e98d 
 f fcn.0000ba7a 61 0x0000ba7a 
 f fcn.00008d99 99 0x00008d99 
-f fcn.000039b0 29 0x000039b0 
-f loc.00005de0 16 0x00005de0 
+f ifnz_set_arg_1.0x000039b0 29 0x000039b0 
+f set_arg_1.0x00005de0 16 0x00005de0 
 f fcn.00001de0 37 0x00001de0 
 f fcn.00003d3d 419 0x00003d3d 
 f fcn.00006330 10 0x00006330 
-f fcn.0000653e 235 0x0000653e 
+f find.IPACK 235 0x0000653e 
 f fcn.00006635 255 0x00006635 
 f fcn.0000ea03 163 0x0000ea03 
 f fcn.00013990 66 0x00013990 
@@ -344,9 +344,9 @@ f fcn.0003f368 3261 0x0003f368
 f strncpy 56 0x00036780 
 f fcn.000383f0 85 0x000383f0 
 f fcn.00007fc0 374 0x00007fc0 
-f fcn.00008500 125 0x00008500 
+f wrapper.slirpfile.0x00008500 125 0x00008500 
 f fcn.0000c00f 261 0x0000c00f 
-f fcn.0000bfea 188171 0x0000bfea 
+f fcn.0000bfea 37 0x0000bfea 
 f fcn.0000be2d 73 0x0000be2d 
 f fcn.00012d20 267 0x00012d20 
 f fcn.0000641f 287 0x0000641f 
@@ -858,7 +858,7 @@ f fcn.0000dd0b 84 0x0000dd0b
 f fcn.0000e070 26 0x0000e070 
 f fcn.000131a0 12 0x000131a0 
 f fcn.0002a970 58 0x0002a970 
-f fcn.00036690 237 0x00036690 
+f maybe.fflush.0x00036690 237 0x00036690 
 f fcn.00036e50 57 0x00036e50 
 fs *
 f str.ERROR__03d____s___ 18 0x0000df7d 
@@ -973,6 +973,16 @@ fs *
 f data.dosbuf.something.0x4ca68 1 0x0004ca68 
 fs *
 f data.dosbuf.something.0x4ca64 1 0x0004ca64 
+fs *
+f str.r_ 2 0x000140d0 
+fs *
+f str.rb_ 3 0x00010640 
+fs functions
+f fcn.00039ef0 5 0x00039ef0 
+f fcn.0000bd81 172 0x0000bd81 
+f fcn.00036bc0 41 0x00036bc0 
+f fcn.00039ee0 5 0x00039ee0 
+f fcn.00045810 202 0x00045810 
 # eval
 "e anal.a2f = false"
 "e anal.afterjmp = true"
@@ -1198,7 +1208,7 @@ f data.dosbuf.something.0x4ca64 1 0x0004ca64
 "e graph.title = "
 "e graph.to = 0xffffffffffffffff"
 "e graph.web = false"
-"e hex.cols = 8"
+"e hex.cols = 6"
 "e hex.depth = 5"
 "e hex.flagsz = 0"
 "e hex.onechar = false"
@@ -3366,6 +3376,32 @@ Cd 4 @ 0x00054040
 CCu base64:YW55IGZhaWx1cmUsIGJhaWwgb3V0 @ 0x00005f91
 Cd 1 @ 0x0004ca60
 Cd 1 @ 0x0004cb3c
+CCu base64:Y2hhcg== @ 0x00045ac1
+CCu base64:c2l6ZQ== @ 0x00045ac0
+CCu base64:YnVm @ 0x00045ac3
+Cd 2 @ 0x000140d0
+Cs 2 @ 0x000140d0 # r_
+CCu base64:ZmlsZW5hbWU= @ 0x0001065c
+CCu base64:KnNpemU= @ 0x0001065b
+Cs 3 @ 0x00010640 # rb_
+CCu base64:ZmlsZW5hbWU= @ 0x0001067b
+CCu base64:c2F2ZSBGSUxF @ 0x00010684
+CCu base64:RklMRQ== @ 0x000106ae
+CCu base64:ZmlsZXNpemU= @ 0x000106af
+CCu base64:bmVtYj8= @ 0x000106b1
+CCu base64:YnVm @ 0x000106b3
+CCu base64:ZmlsZW5hbWU= @ 0x0000856c
+CCu base64:YnVm @ 0x0000856b
+CCu base64:cHNpemU= @ 0x0000856a
+CCu base64:ZmlsZW5hbWU= @ 0x0000412c
+CCu base64:YnVm @ 0x0000412b
+CCu base64:c2l6ZQ== @ 0x0000412a
+CCu base64:YnVm @ 0x000040dc
+CCu base64:Y2hhcg== @ 0x000040da
+CCu base64:Y291bnQ= @ 0x000040d8
+CCu base64:Y29udmVydCB0byAiJElQQUNLIg== @ 0x0000656b
+Cd 8 @ 0x00049390
+Cd 8 @ 0x00049398
 f entry0 516 0x000018d0
 af+ 0x000018d0 516 entry0 f n
 afC cdecl @ 0x000018d0
@@ -3887,8 +3923,8 @@ afa 8 arg_8h int @ 0x3920
 afa 16 arg_10h int @ 0x3920
 afv 12 local_ch int @ 0x3920
 afv 28 local_1ch int @ 0x3920
-f fcn.000039b0 29 0x000039b0
-af+ 0x000039b0 29 fcn.000039b0 f n
+f ifnz_set_arg_1.0x000039b0 29 0x000039b0
+af+ 0x000039b0 29 ifnz_set_arg_1.0x000039b0 f n
 afC cdecl @ 0x000039b0
 afb+ 0x000039b0 0x000039b0 13 0x000039c4 0x000039bd n n
 afb+ 0x000039b0 0x000039bd 7 0xffffffffffffffff 0xffffffffffffffff n n
@@ -4104,12 +4140,13 @@ afb+ 0x000040c0 0x000041fb 4 0x00004261 0x000041ff n n
 afb+ 0x000040c0 0x00004164 12 0x00004170 0xffffffffffffffff n n
 afa 1 arg_1h int @ 0x40c0
 afa 2 arg_2h int @ 0x40c0
+afa 8 filename char* @ 0x40c0
 afa 12 arg_ch int @ 0x40c0
 afv 0 local_0h int @ 0x40c0
 afv 8 local_8h int @ 0x40c0
 afv 9 local_9h int @ 0x40c0
-afv 16 local_10h int @ 0x40c0
-afv 20 local_14h int @ 0x40c0
+afv 16 buf char** @ 0x40c0
+afv 20 filesize int* @ 0x40c0
 afv 24 local_18h int @ 0x40c0
 afv 28 local_1ch int @ 0x40c0
 afv 36 local_24h int @ 0x40c0
@@ -4119,7 +4156,7 @@ afv 48 local_30h int @ 0x40c0
 afv 52 local_34h int @ 0x40c0
 afv 56 local_38h int @ 0x40c0
 afv 60 local_3ch int @ 0x40c0
-afv 124 local_7ch int @ 0x40c0
+afv 124 struct int @ 0x40c0
 f fcn.00004270 35 0x00004270
 af+ 0x00004270 35 fcn.00004270 f n
 afC cdecl @ 0x00004270
@@ -4507,8 +4544,8 @@ afb+ 0x00005d80 0x00005da9 7 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x5d80
 afa 12 arg_ch int @ 0x5d80
 afv 8 local_8h int @ 0x5d80
-f loc.00005de0 16 0x00005de0
-af+ 0x00005de0 16 loc.00005de0 l n
+f set_arg_1.0x00005de0 16 0x00005de0
+af+ 0x00005de0 16 set_arg_1.0x00005de0 l n
 afC cdecl @ 0x00005de0
 afb+ 0x00005de0 0x00005de0 16 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x5de0
@@ -4719,8 +4756,8 @@ afa 16 arg_10h int @ 0x641f
 afv 12 local_ch int @ 0x641f
 afv 28 local_1ch int @ 0x641f
 afv 32 local_20h int @ 0x641f
-f fcn.0000653e 235 0x0000653e
-af+ 0x0000653e 235 fcn.0000653e f n
+f find.IPACK 235 0x0000653e
+af+ 0x0000653e 235 find.IPACK f n
 afC cdecl @ 0x0000653e
 afb+ 0x0000653e 0x0000653e 45 0x0000656b 0xffffffffffffffff b n
 afb+ 0x0000653e 0x0000656b 7 0x0000656b 0x00006572 n n
@@ -5116,11 +5153,11 @@ f maybe.memset 22 0x000084e0
 af+ 0x000084e0 22 maybe.memset f n
 afC cdecl @ 0x000084e0
 afb+ 0x000084e0 0x000084e0 22 0xffffffffffffffff 0xffffffffffffffff n n
-afa 8 arg_8h int @ 0x84e0
-afa 12 arg_ch int @ 0x84e0
-afa 16 arg_10h int @ 0x84e0
-f fcn.00008500 125 0x00008500
-af+ 0x00008500 125 fcn.00008500 f n
+afa 8 buf char* @ 0x84e0
+afa 12 ch char @ 0x84e0
+afa 16 count int @ 0x84e0
+f wrapper.slirpfile.0x00008500 125 0x00008500
+af+ 0x00008500 125 wrapper.slirpfile.0x00008500 f n
 afC cdecl @ 0x00008500
 afb+ 0x00008500 0x00008500 36 0x00008575 0x00008524 n n
 afb+ 0x00008500 0x00008575 8 0xffffffffffffffff 0xffffffffffffffff n n
@@ -5131,9 +5168,9 @@ afb+ 0x00008500 0x00008569 9 0x00008572 0xffffffffffffffff b n
 afb+ 0x00008500 0x00008555 9 0x00008569 0x0000855e n n
 afb+ 0x00008500 0x0000855e 11 0x00008572 0xffffffffffffffff n n
 afb+ 0x00008500 0x00008572 3 0x00008575 0xffffffffffffffff n n
-afa 8 arg_8h int @ 0x8500
-afa 12 arg_ch int @ 0x8500
-afa 16 arg_10h int @ 0x8500
+afa 8 filename char* @ 0x8500
+afa 12 buf char** @ 0x8500
+afa 16 psize int* @ 0x8500
 afv 12 local_ch int @ 0x8500
 afv 28 local_1ch int @ 0x8500
 f fcn.000085ad 223 0x000085ad
@@ -6242,6 +6279,19 @@ af+ 0x0000bb10 12 fcn.0000bb10 f n
 afC cdecl @ 0x0000bb10
 afb+ 0x0000bb10 0x0000bb10 12 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0xbb10
+f fcn.0000bd81 172 0x0000bd81
+af+ 0x0000bd81 172 fcn.0000bd81 f n
+afC cdecl @ 0x0000bd81
+afb+ 0x0000bd81 0x0000bd81 31 0x0000be11 0x0000bda0 n n
+afb+ 0x0000bd81 0x0000be11 20 0x0000be25 0xffffffffffffffff b n
+afb+ 0x0000bd81 0x0000bda0 6 0x0000bda6 0xffffffffffffffff b n
+afb+ 0x0000bd81 0x0000be25 8 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0000bd81 0x0000bdb6 23 0x0000bda6 0x0000bdcd n n
+afb+ 0x0000bd81 0x0000bda6 16 0x0000be25 0x0000bdb6 n n
+afb+ 0x0000bd81 0x0000bdcd 20 0x0000bda6 0x0000bde1 n n
+afb+ 0x0000bd81 0x0000bde1 48 0x0000bda6 0xffffffffffffffff n n
+afv 12 local_ch int @ 0xbd81
+afv 279 local_117h int @ 0xbd81
 f fcn.0000be2d 73 0x0000be2d
 af+ 0x0000be2d 73 fcn.0000be2d f n
 afC cdecl @ 0x0000be2d
@@ -6252,6 +6302,15 @@ afa 16 arg_10h int @ 0xbe2d
 afa 20 arg_14h int @ 0xbe2d
 afv 12 local_ch int @ 0xbe2d
 afv 16 local_10h int @ 0xbe2d
+f fcn.0000bfea 37 0x0000bfea
+af+ 0x0000bfea 37 fcn.0000bfea f n
+afC cdecl @ 0x0000bfea
+afb+ 0x0000bfea 0x0000bfea 16 0x0000bffe 0x0000bffa n n
+afb+ 0x0000bfea 0x0000bffe 5 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0000bfea 0x0000bffa 4 0x0000c003 0x0000bffe n n
+afb+ 0x0000bfea 0x0000c003 12 0xffffffffffffffff 0xffffffffffffffff n n
+afa 8 arg_8h int @ 0xbfea
+afa 12 arg_ch int @ 0xbfea
 f fcn.0000c00f 261 0x0000c00f
 af+ 0x0000c00f 261 fcn.0000c00f f n
 afC cdecl @ 0x0000c00f
@@ -6930,8 +6989,8 @@ afa 8 arg_8h int @ 0xeb3e
 afa 12 arg_ch int @ 0xeb3e
 afv 4 local_4h int @ 0xeb3e
 afv 12 local_ch int @ 0xeb3e
-f fcn.0000ed50 25 0x0000ed50
-af+ 0x0000ed50 25 fcn.0000ed50 f n
+f wrapper.strncpy.0x0000ed50 25 0x0000ed50
+af+ 0x0000ed50 25 wrapper.strncpy.0x0000ed50 f n
 afC cdecl @ 0x0000ed50
 afb+ 0x0000ed50 0x0000ed50 25 0xffffffffffffffff 0xffffffffffffffff n n
 f fcn.0000ed70 171 0x0000ed70
@@ -7104,8 +7163,8 @@ afb+ 0x000105f2 0x0001062d 13 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x105f2
 afv 9 local_9h int @ 0x105f2
 afv 13 local_dh int @ 0x105f2
-f fcn.00010643 184 0x00010643
-af+ 0x00010643 184 fcn.00010643 f n
+f maybe.slirpfile.0x00010643 184 0x00010643
+af+ 0x00010643 184 maybe.slirpfile.0x00010643 f n
 afC cdecl @ 0x00010643
 afb+ 0x00010643 0x00010643 44 0x000106f1 0x0001066f n n
 afb+ 0x00010643 0x000106f1 10 0xffffffffffffffff 0xffffffffffffffff n n
@@ -7118,9 +7177,9 @@ afb+ 0x00010643 0x000106c0 37 0x000106ee 0xffffffffffffffff n n
 afb+ 0x00010643 0x000106ee 3 0x000106f1 0xffffffffffffffff n n
 afb+ 0x00010643 0x000106a7 7 0x000106f1 0xffffffffffffffff n n
 afb+ 0x00010643 0x0001068a 7 0x000106f1 0xffffffffffffffff n n
-afa 8 arg_8h int @ 0x10643
-afa 12 arg_ch int @ 0x10643
-afa 16 arg_10h int @ 0x10643
+afa 8 filename char* @ 0x10643
+afa 12 buf char** @ 0x10643
+afa 16 psize int* @ 0x10643
 afv 12 local_ch int @ 0x10643
 f fcn.00010732 55 0x00010732
 af+ 0x00010732 55 fcn.00010732 f n
@@ -8237,14 +8296,15 @@ afv 47 local_2fh int @ 0x14069
 afv 48 local_30h int @ 0x14069
 afv 76 local_4ch int @ 0x14069
 afv 140 local_8ch int @ 0x14069
-f fcn.000140d2 96 0x000140d2
-af+ 0x000140d2 96 fcn.000140d2 f n
+f maybe.getfilesize.0x000140d2 96 0x000140d2
+af+ 0x000140d2 96 maybe.getfilesize.0x000140d2 f n
 afC cdecl @ 0x000140d2
 afb+ 0x000140d2 0x000140d2 32 0x00014120 0x000140f2 n n
 afb+ 0x000140d2 0x00014120 11 0x0001412b 0xffffffffffffffff b n
 afb+ 0x000140d2 0x000140f2 46 0x0001412b 0xffffffffffffffff n n
 afb+ 0x000140d2 0x0001412b 7 0xffffffffffffffff 0xffffffffffffffff n n
-afa 12 arg_ch int @ 0x140d2
+afa 8 filename char* @ 0x140d2
+afa 12 psize int* @ 0x140d2
 afv 8 local_8h int @ 0x140d2
 f fcn.00014140 19 0x00014140
 af+ 0x00014140 19 fcn.00014140 f n
@@ -9701,8 +9761,8 @@ afb+ 0x00036600 0x00036624 10 0x0003662e 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x36600
 afa 12 arg_ch int @ 0x36600
 afv 4 local_4h int @ 0x36600
-f fcn.00036690 237 0x00036690
-af+ 0x00036690 237 fcn.00036690 f n
+f maybe.fflush.0x00036690 237 0x00036690
+af+ 0x00036690 237 maybe.fflush.0x00036690 f n
 afC cdecl @ 0x00036690
 afb+ 0x00036690 0x00036690 16 0x000366e4 0x000366a0 n n
 afb+ 0x00036690 0x000366e4 19 0x0003675d 0x000366f7 n n
@@ -9744,8 +9804,8 @@ afa 8 arg_8h int @ 0x36780
 afa 12 arg_ch int @ 0x36780
 afa 16 arg_10h int @ 0x36780
 afv 8 local_8h int @ 0x36780
-f fcn.000367c0 309 0x000367c0
-af+ 0x000367c0 309 fcn.000367c0 f n
+f maybe.fopen.0x000367c0 309 0x000367c0
+af+ 0x000367c0 309 maybe.fopen.0x000367c0 f n
 afC cdecl @ 0x000367c0
 afb+ 0x000367c0 0x000367c0 24 0x00036895 0x000367d8 n n
 afb+ 0x000367c0 0x00036895 4 0x000368ed 0xffffffffffffffff n n
@@ -9783,6 +9843,7 @@ afb+ 0x000367c0 0x00036816 2 0x00036895 0xffffffffffffffff n n
 afb+ 0x000367c0 0x000367f9 4 0x0003680a 0x000367fd n n
 afb+ 0x000367c0 0x0003680a 6 0x00036830 0x00036810 n n
 afb+ 0x000367c0 0x000367fd 6 0x0003680a 0x00036803 n n
+afa 8 arg_8h int @ 0x367c0
 afa 12 arg_ch int @ 0x367c0
 afv 0 local_0h int @ 0x367c0
 afv 4 local_4h int @ 0x367c0
@@ -9847,8 +9908,8 @@ afa 20 arg_14h int @ 0x36900
 afv 0 local_0h int @ 0x36900
 afv 4 local_4h int @ 0x36900
 afv 16 local_10h int @ 0x36900
-f fcn.00036b10 165 0x00036b10
-af+ 0x00036b10 165 fcn.00036b10 f n
+f maybe.fclose.0x00036b10 165 0x00036b10
+af+ 0x00036b10 165 maybe.fclose.0x00036b10 f n
 afC cdecl @ 0x00036b10
 afb+ 0x00036b10 0x00036b10 21 0x00036bac 0x00036b25 n n
 afb+ 0x00036b10 0x00036bac 9 0xffffffffffffffff 0xffffffffffffffff n n
@@ -9864,6 +9925,17 @@ afb+ 0x00036b10 0x00036b56 11 0x00036b61 0xffffffffffffffff n n
 afb+ 0x00036b10 0x00036b4b 5 0x00036b50 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x36b10
 afv 8 local_8h int @ 0x36b10
+f fcn.00036bc0 41 0x00036bc0
+af+ 0x00036bc0 41 fcn.00036bc0 f n
+afC cdecl @ 0x00036bc0
+afb+ 0x00036bc0 0x00036bc0 17 0x00036bd8 0x00036bd1 n n
+afb+ 0x00036bc0 0x00036bd8 10 0x00036bd8 0x00036be2 n n
+afb+ 0x00036bc0 0x00036be2 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00036bc0 0x00036bd1 1 0x00036bd2 0xffffffffffffffff b n
+afb+ 0x00036bc0 0x00036bd2 6 0x00036bd2 0x00036bd8 n n
+afa 8 arg_8h int @ 0x36bc0
+afa 12 arg_ch int @ 0x36bc0
+afv 4 local_4h int @ 0x36bc0
 f maybe.strcpy 37 0x00036bf0
 af+ 0x00036bf0 37 maybe.strcpy f n
 afC cdecl @ 0x00036bf0
@@ -10062,6 +10134,23 @@ afv 48 local_30h int @ 0x38850
 afv 52 local_34h int @ 0x38850
 afv 56 local_38h int @ 0x38850
 afv 68 local_44h int @ 0x38850
+f fcn.00039ee0 5 0x00039ee0
+af+ 0x00039ee0 5 fcn.00039ee0 f n
+afC cdecl @ 0x00039ee0
+afb+ 0x00039ee0 0x00039ee0 5 0xffffffffffffffff 0xffffffffffffffff n n
+afa 1 arg_1h int @ 0x39ee0
+afa 8 arg_8h int @ 0x39ee0
+afa 12 arg_ch int @ 0x39ee0
+afv 16 local_10h int @ 0x39ee0
+afv 23 local_17h int @ 0x39ee0
+afv 24 local_18h int @ 0x39ee0
+afv 32 local_20h int @ 0x39ee0
+afv 52 local_34h int @ 0x39ee0
+afv 60 local_3ch int @ 0x39ee0
+f fcn.00039ef0 5 0x00039ef0
+af+ 0x00039ef0 5 fcn.00039ef0 f n
+afC cdecl @ 0x00039ef0
+afb+ 0x00039ef0 0x00039ef0 5 0x00041fd0 0xffffffffffffffff n n
 f dpmi_physical_address_map 66 0x00039f00
 af+ 0x00039f00 66 dpmi_physical_address_map f n
 afC cdecl @ 0x00039f00
@@ -10114,8 +10203,8 @@ afb+ 0x0003a010 0x0003a02c 2 0x0003a02e 0xffffffffffffffff b n
 afb+ 0x0003a010 0x0003a01f 13 0x0003a02e 0xffffffffffffffff n n
 afb+ 0x0003a010 0x0003a02e 5 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x3a010
-f fcn.0003a040 379 0x0003a040
-af+ 0x0003a040 379 fcn.0003a040 f n
+f maybe.fread.0x0003a040 379 0x0003a040
+af+ 0x0003a040 379 maybe.fread.0x0003a040 f n
 afC cdecl @ 0x0003a040
 afb+ 0x0003a040 0x0003a040 26 0x0003a081 0x0003a05a n n
 afb+ 0x0003a040 0x0003a081 9 0x0003a0aa 0x0003a08a n n
@@ -10233,8 +10322,8 @@ afa 16 arg_10h int @ 0x3a330
 afv 16 local_10h int @ 0x3a330
 afv 28 local_1ch int @ 0x3a330
 afv 32 local_20h int @ 0x3a330
-f fcn.0003a370 240 0x0003a370
-af+ 0x0003a370 240 fcn.0003a370 f n
+f maybe.filesize.0x0003a370 240 0x0003a370
+af+ 0x0003a370 240 maybe.filesize.0x0003a370 f n
 afC cdecl @ 0x0003a370
 afb+ 0x0003a370 0x0003a370 43 0x0003a420 0x0003a39b n n
 afb+ 0x0003a370 0x0003a420 7 0x0003a44c 0x0003a427 n n
@@ -10263,8 +10352,8 @@ afa 12 arg_ch int @ 0x3a370
 afa 16 arg_10h int @ 0x3a370
 afv 0 local_0h int @ 0x3a370
 afv 12 local_ch int @ 0x3a370
-f fcn.0003a460 87 0x0003a460
-af+ 0x0003a460 87 fcn.0003a460 f n
+f maybe.seekend.0x0003a460 87 0x0003a460
+af+ 0x0003a460 87 maybe.seekend.0x0003a460 f n
 afC cdecl @ 0x0003a460
 afb+ 0x0003a460 0x0003a460 14 0x0003a470 0x0003a46e n n
 afb+ 0x0003a460 0x0003a470 7 0x0003a47e 0x0003a477 n n
@@ -11056,8 +11145,8 @@ afv 0 local_0h int @ 0x40dd0
 afv 4 local_4h int @ 0x40dd0
 afv 8 local_8h int @ 0x40dd0
 afv 20 local_14h int @ 0x40dd0
-f fcn.00040f50 143 0x00040f50
-af+ 0x00040f50 143 fcn.00040f50 f n
+f maybe.lseek.0x00040f50 143 0x00040f50
+af+ 0x00040f50 143 maybe.lseek.0x00040f50 f n
 afC cdecl @ 0x00040f50
 afb+ 0x00040f50 0x00040f50 28 0x00040f84 0x00040f6c n n
 afb+ 0x00040f50 0x00040f84 50 0x00040fc6 0x00040fb6 n n
@@ -11141,8 +11230,8 @@ afa 12 arg_ch int @ 0x410b0
 afv 1 local_1h int @ 0x410b0
 afv 8 local_8h int @ 0x410b0
 afv 20 local_14h int @ 0x410b0
-f fcn.00041210 13 0x00041210
-af+ 0x00041210 13 fcn.00041210 f n
+f maybe.close.0x00041210 13 0x00041210
+af+ 0x00041210 13 maybe.close.0x00041210 f n
 afC cdecl @ 0x00041210
 afb+ 0x00041210 0x00041210 13 0xffffffffffffffff 0xffffffffffffffff n n
 f __dpmi_get_protected_mode_interrupt_vector 44 0x000412e0
@@ -11192,8 +11281,8 @@ f fcn.00041420 36 0x00041420
 af+ 0x00041420 36 fcn.00041420 f n
 afC cdecl @ 0x00041420
 afb+ 0x00041420 0x00041420 36 0xffffffffffffffff 0xffffffffffffffff n n
-f fcn.00041450 36 0x00041450
-af+ 0x00041450 36 fcn.00041450 f n
+f wrapper.movedata.0x00041450 36 0x00041450
+af+ 0x00041450 36 wrapper.movedata.0x00041450 f n
 afC cdecl @ 0x00041450
 afb+ 0x00041450 0x00041450 36 0xffffffffffffffff 0xffffffffffffffff n n
 f fcn.00041560 55 0x00041560
@@ -11362,8 +11451,32 @@ afv 28 local_1ch int @ 0x45780
 afv 36 local_24h int @ 0x45780
 afv 52 local_34h int @ 0x45780
 afv 60 local_3ch int @ 0x45780
-f fcn.00045984 457 0x00045984
-af+ 0x00045984 457 fcn.00045984 f n
+f fcn.00045810 202 0x00045810
+af+ 0x00045810 202 fcn.00045810 f n
+afC cdecl @ 0x00045810
+afb+ 0x00045810 0x00045810 34 0x0004583a 0x00045832 n n
+afb+ 0x00045810 0x0004583a 4 0x0004583e 0xffffffffffffffff b n
+afb+ 0x00045810 0x000458a4 45 0x000458d3 0x000458d1 n n
+afb+ 0x00045810 0x000458d3 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00045810 0x000458d1 2 0x000458d3 0xffffffffffffffff n n
+afb+ 0x00045810 0x00045864 26 0x0004589c 0x0004587e n n
+afb+ 0x00045810 0x0004589c 7 0x000458d3 0xffffffffffffffff n n
+afb+ 0x00045810 0x0004587e 12 0x00045896 0x0004588a n n
+afb+ 0x00045810 0x00045896 6 0x0004589c 0xffffffffffffffff n n
+afb+ 0x00045810 0x0004588a 12 0x0004589c 0xffffffffffffffff n n
+afb+ 0x00045810 0x00045832 8 0x0004583e 0xffffffffffffffff n n
+afb+ 0x00045810 0x0004583e 38 0x000458a4 0x00045864 n n
+afa 1 arg_1h int @ 0x45810
+afa 8 arg_8h int @ 0x45810
+afa 12 arg_ch int @ 0x45810
+afv 16 local_10h int @ 0x45810
+afv 23 local_17h int @ 0x45810
+afv 24 local_18h int @ 0x45810
+afv 32 local_20h int @ 0x45810
+afv 52 local_34h int @ 0x45810
+afv 60 local_3ch int @ 0x45810
+f maybe.read.something.0x00045984 457 0x00045984
+af+ 0x00045984 457 maybe.read.something.0x00045984 f n
 afC cdecl @ 0x00045984
 afb+ 0x00045984 0x00045984 20 0x0004599d 0x00045998 n n
 afb+ 0x00045984 0x0004599d 11 0x00045b34 0x000459a8 n n
@@ -11506,8 +11619,8 @@ afv 52 struct_regs int @ 0x46080
 afv 56 local_38h int @ 0x46080
 afv 60 use_lfn int @ 0x46080
 afv 72 local_48h int @ 0x46080
-f fcn.00046250 226 0x00046250
-af+ 0x00046250 226 fcn.00046250 f n
+f maybe.read.0x00046250 226 0x00046250
+af+ 0x00046250 226 maybe.read.0x00046250 f n
 afC cdecl @ 0x00046250
 afb+ 0x00046250 0x00046250 30 0x000462a4 0x0004626e n n
 afb+ 0x00046250 0x000462a4 16 0x000462b4 0xffffffffffffffff b n
@@ -11537,8 +11650,8 @@ afv 56 local_38h int @ 0x46250
 afv 60 local_3ch int @ 0x46250
 afv 64 local_40h int @ 0x46250
 afv 76 local_4ch int @ 0x46250
-f fcn.00046340 119 0x00046340
-af+ 0x00046340 119 fcn.00046340 f n
+f maybe._close.0x00046340 119 0x00046340
+af+ 0x00046340 119 maybe._close.0x00046340 f n
 afC cdecl @ 0x00046340
 afb+ 0x00046340 0x00046340 24 0x00046386 0x00046358 n n
 afb+ 0x00046340 0x00046386 28 0x000463a6 0x000463a2 n n
@@ -11613,8 +11726,8 @@ afv 32 local_20h int @ 0x464d0
 afv 36 local_24h int @ 0x464d0
 afv 52 local_34h int @ 0x464d0
 afv 64 local_40h int @ 0x464d0
-f fcn.00046670 28 0x00046670
-af+ 0x00046670 28 fcn.00046670 f n
+f maybe.strchr.0x00046670 28 0x00046670
+af+ 0x00046670 28 maybe.strchr.0x00046670 f n
 afC cdecl @ 0x00046670
 afb+ 0x00046670 0x00046670 13 0x00046688 0x0004667d n n
 afb+ 0x00046670 0x00046688 2 0x0004668a 0xffffffffffffffff b n
@@ -11622,9 +11735,9 @@ afb+ 0x00046670 0x0004667d 3 0x00046680 0xffffffffffffffff b n
 afb+ 0x00046670 0x0004668a 2 0xffffffffffffffff 0xffffffffffffffff n n
 afb+ 0x00046670 0x00046684 4 0x00046680 0x00046688 n n
 afb+ 0x00046670 0x00046680 4 0x0004668a 0x00046684 n n
-afa 8 arg_8h int @ 0x46670
-afa 12 arg_ch int @ 0x46670
-afa 16 arg_10h int @ 0x46670
+afa 8 buf char* @ 0x46670
+afa 12 ch char @ 0x46670
+afa 16 size int @ 0x46670
 f fcn.000466c0 45 0x000466c0
 af+ 0x000466c0 45 fcn.000466c0 f n
 afC cdecl @ 0x000466c0
@@ -11705,4 +11818,4 @@ afv 64 local_40h int @ 0x46840
 # types
 # macros
 # seek
-s 0x0000602c
+s 0x000024d4
