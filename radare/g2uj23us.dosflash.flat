@@ -91,7 +91,7 @@ f fcn.00006135 59 0x00006135
 f fcn.00006007 272 0x00006007 
 f eventually.smi.0x0000e2c1 12 0x0000e2c1 
 f fcn.000138b8 12 0x000138b8 
-f fcn.00003d10 9746 0x00003d10 
+f eventually.smi.0x00003d10 9746 0x00003d10 
 f get_val.0x00006290 10 0x00006290 
 f fcn.0000e328 12 0x0000e328 
 f loc.0000e3b7 10 0x0000e3b7 
@@ -396,24 +396,24 @@ f fcn.00006374 23 0x00006374
 f fcn.000085ad 223 0x000085ad 
 f fcn.00004270 35 0x00004270 
 f fcn.000045b4 604 0x000045b4 
-f fcn.00009d40 10 0x00009d40 
-f fcn.00009d4f 10 0x00009d4f 
-f fcn.00009d59 10 0x00009d59 
-f fcn.00009d63 10 0x00009d63 
+f set_eax.0x00009d40 10 0x00009d40 
+f set_eax.0x00009d4f 10 0x00009d4f 
+f set_eax.0x00009d59 10 0x00009d59 
+f set_eax.0x00009d63 10 0x00009d63 
 f fcn.00004520 148 0x00004520 
 f fcn.0000887c 70 0x0000887c 
 f fcn.000097a2 78 0x000097a2 
 f fcn.0001090b 59 0x0001090b 
 f fcn.000088e3 78 0x000088e3 
 f fcn.0000975a 72 0x0000975a 
-f fcn.00009f91 677 0x00009f91 
+f smi_packet_0x5 677 0x00009f91 
 f fcn.000120c0 23 0x000120c0 
 f send_packet_to_smi 184 0x00009dc0 
 f set_eax.0x00005f40 10 0x00005f40 
 f set_eax.0x00005f4a 10 0x00005f4a 
 f wrapper.copy_to_phys.0x00011f10 38 0x00011f10 
 f wrapper.copy_from_physical_mem.0x00011fc0 38 0x00011fc0 
-f fcn.000120e0 46 0x000120e0 
+f copy_dosbuf_to_buffer 46 0x000120e0 
 f fcn.00009e78 281 0x00009e78 
 f fcn.0000a240 195 0x0000a240 
 f fcn.0000a378 208 0x0000a378 
@@ -983,6 +983,12 @@ f fcn.0000bd81 172 0x0000bd81
 f fcn.00036bc0 41 0x00036bc0 
 f fcn.00039ee0 5 0x00039ee0 
 f fcn.00045810 202 0x00045810 
+fs *
+f packet_buf 1 0x0004cb68 
+fs functions
+f eventually.smi.0x0000629a 136 0x0000629a 
+fs *
+f packet_buf.0x0004dc48 1 0x0004dc48 
 # eval
 "e anal.a2f = false"
 "e anal.afterjmp = true"
@@ -1208,7 +1214,7 @@ f fcn.00045810 202 0x00045810
 "e graph.title = "
 "e graph.to = 0xffffffffffffffff"
 "e graph.web = false"
-"e hex.cols = 6"
+"e hex.cols = 16"
 "e hex.depth = 5"
 "e hex.flagsz = 0"
 "e hex.onechar = false"
@@ -3380,10 +3386,10 @@ CCu base64:Y2hhcg== @ 0x00045ac1
 CCu base64:c2l6ZQ== @ 0x00045ac0
 CCu base64:YnVm @ 0x00045ac3
 Cd 2 @ 0x000140d0
-Cs 2 @ 0x000140d0 # r_
+Cs 2 @ 0x000140d0 # r
 CCu base64:ZmlsZW5hbWU= @ 0x0001065c
 CCu base64:KnNpemU= @ 0x0001065b
-Cs 3 @ 0x00010640 # rb_
+Cs 3 @ 0x00010640 # rb
 CCu base64:ZmlsZW5hbWU= @ 0x0001067b
 CCu base64:c2F2ZSBGSUxF @ 0x00010684
 CCu base64:RklMRQ== @ 0x000106ae
@@ -3402,6 +3408,36 @@ CCu base64:Y291bnQ= @ 0x000040d8
 CCu base64:Y29udmVydCB0byAiJElQQUNLIg== @ 0x0000656b
 Cd 8 @ 0x00049390
 Cd 8 @ 0x00049398
+CCu base64:bWFsbG9jIHNpemU= @ 0x00009fa8
+CCu base64:aWYgbWFsbG9jIGZhaWx1cmU= @ 0x00009fc2
+CCu base64:c2l6ZQ== @ 0x00009fca
+CCu base64:YnVm @ 0x00009fcf
+Cd 8 @ 0x000491e0
+Cd 8 @ 0x000491e8
+Cd 8 @ 0x000491f0
+Cd 8 @ 0x000491f8
+Cd 8 @ 0x00049200
+Cd 8 @ 0x00049208
+Cd 8 @ 0x00049210
+Cd 8 @ 0x00049218
+Cd 8 @ 0x00049220
+Cd 8 @ 0x00049228
+Cd 8 @ 0x00049230
+Cd 8 @ 0x00049238
+Cd 8 @ 0x00049240
+Cd 8 @ 0x00049248
+CCu base64:bWVtemVybw== @ 0x00009fd6
+Cd 4 @ 0x0004cb68
+CCu base64:cGFja2V0ICsweDE0 @ 0x000046a3
+CCu base64:cGFja2V0ICsweDEw @ 0x000046a9
+Cd 4 @ 0x0004cabb
+Cd 4 @ 0x0004cabf
+Cd 4 @ 0x0004cac3
+Cd 4 @ 0x0004cad8
+Cd 1 @ 0x0004cacf
+Cd 4 @ 0x0004dc48
+CCu base64:Y29weSBmcm9tIHBhY2tldCBidWY= @ 0x0000e175
+CCu base64:emVybyBvdXQgYnVm @ 0x0000e187
 f entry0 516 0x000018d0
 af+ 0x000018d0 516 entry0 f n
 afC cdecl @ 0x000018d0
@@ -4021,6 +4057,23 @@ f loc.00003d07 2 0x00003d07
 af+ 0x00003d07 2 loc.00003d07 l n
 afC cdecl @ 0x00003d07
 afb+ 0x00003d07 0x00003d07 2 0xffffffffffffffff 0xffffffffffffffff n n
+f eventually.smi.0x00003d10 9746 0x00003d10
+af+ 0x00003d10 9746 eventually.smi.0x00003d10 f n
+afC cdecl @ 0x00003d10
+afb+ 0x00003d10 0x00003d10 18 0x00003d28 0x00003d22 n n
+afb+ 0x00003d10 0x00003d28 2 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00003d10 0x00003d22 6 0x0000629a 0xffffffffffffffff n n
+afb+ 0x00003d10 0x0000629a 15 0x000062ba 0x000062a9 n n
+afb+ 0x00003d10 0x000062ba 11 0x0000631b 0x000062c5 n n
+afb+ 0x00003d10 0x0000631b 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x00003d10 0x000062c5 9 0x00006316 0x000062ce n n
+afb+ 0x00003d10 0x00006316 5 0x0000631b 0xffffffffffffffff n n
+afb+ 0x00003d10 0x000062ce 10 0x00006316 0x000062d8 n n
+afb+ 0x00003d10 0x000062d8 37 0x0000631b 0x000062fd n n
+afb+ 0x00003d10 0x000062fd 9 0x0000630d 0x00006306 n n
+afb+ 0x00003d10 0x0000630d 9 0x0000631b 0xffffffffffffffff n n
+afb+ 0x00003d10 0x00006306 7 0x0000631b 0xffffffffffffffff n n
+afb+ 0x00003d10 0x000062a9 17 0x0000631b 0xffffffffffffffff n n
 f fcn.00003d3d 419 0x00003d3d
 af+ 0x00003d3d 419 fcn.00003d3d f n
 afC cdecl @ 0x00003d3d
@@ -4710,6 +4763,20 @@ f get_val.0x00006290 10 0x00006290
 af+ 0x00006290 10 get_val.0x00006290 f n
 afC cdecl @ 0x00006290
 afb+ 0x00006290 0x00006290 10 0xffffffffffffffff 0xffffffffffffffff n n
+f eventually.smi.0x0000629a 136 0x0000629a
+af+ 0x0000629a 136 eventually.smi.0x0000629a f n
+afC cdecl @ 0x0000629a
+afb+ 0x0000629a 0x0000629a 15 0x000062ba 0x000062a9 n n
+afb+ 0x0000629a 0x000062ba 11 0x0000631b 0x000062c5 n n
+afb+ 0x0000629a 0x0000631b 7 0xffffffffffffffff 0xffffffffffffffff n n
+afb+ 0x0000629a 0x000062c5 9 0x00006316 0x000062ce n n
+afb+ 0x0000629a 0x00006316 5 0x0000631b 0xffffffffffffffff n n
+afb+ 0x0000629a 0x000062ce 10 0x00006316 0x000062d8 n n
+afb+ 0x0000629a 0x000062d8 37 0x0000631b 0x000062fd n n
+afb+ 0x0000629a 0x000062fd 9 0x0000630d 0x00006306 n n
+afb+ 0x0000629a 0x0000630d 9 0x0000631b 0xffffffffffffffff n n
+afb+ 0x0000629a 0x00006306 7 0x0000631b 0xffffffffffffffff n n
+afb+ 0x0000629a 0x000062a9 17 0x0000631b 0xffffffffffffffff n n
 f fcn.00006330 10 0x00006330
 af+ 0x00006330 10 fcn.00006330 f n
 afC cdecl @ 0x00006330
@@ -5626,24 +5693,24 @@ afv 8 local_8h int @ 0x9af9
 afv 10 local_ah int @ 0x9af9
 afv 12 local_ch int @ 0x9af9
 afv 16 local_10h int @ 0x9af9
-f fcn.00009d40 10 0x00009d40
-af+ 0x00009d40 10 fcn.00009d40 f n
+f set_eax.0x00009d40 10 0x00009d40
+af+ 0x00009d40 10 set_eax.0x00009d40 f n
 afC cdecl @ 0x00009d40
 afb+ 0x00009d40 0x00009d40 10 0xffffffffffffffff 0xffffffffffffffff n n
 f fcn.00009d4a 5 0x00009d4a
 af+ 0x00009d4a 5 fcn.00009d4a f n
 afC cdecl @ 0x00009d4a
 afb+ 0x00009d4a 0x00009d4a 5 0xffffffffffffffff 0xffffffffffffffff n n
-f fcn.00009d4f 10 0x00009d4f
-af+ 0x00009d4f 10 fcn.00009d4f f n
+f set_eax.0x00009d4f 10 0x00009d4f
+af+ 0x00009d4f 10 set_eax.0x00009d4f f n
 afC cdecl @ 0x00009d4f
 afb+ 0x00009d4f 0x00009d4f 10 0xffffffffffffffff 0xffffffffffffffff n n
-f fcn.00009d59 10 0x00009d59
-af+ 0x00009d59 10 fcn.00009d59 f n
+f set_eax.0x00009d59 10 0x00009d59
+af+ 0x00009d59 10 set_eax.0x00009d59 f n
 afC cdecl @ 0x00009d59
 afb+ 0x00009d59 0x00009d59 10 0xffffffffffffffff 0xffffffffffffffff n n
-f fcn.00009d63 10 0x00009d63
-af+ 0x00009d63 10 fcn.00009d63 f n
+f set_eax.0x00009d63 10 0x00009d63
+af+ 0x00009d63 10 set_eax.0x00009d63 f n
 afC cdecl @ 0x00009d63
 afb+ 0x00009d63 0x00009d63 10 0xffffffffffffffff 0xffffffffffffffff n n
 f fcn.00009d77 10 0x00009d77
@@ -5697,8 +5764,8 @@ afv 20 local_14h int @ 0x9e78
 afv 24 local_18h int @ 0x9e78
 afv 28 local_1ch int @ 0x9e78
 afv 32 local_20h int @ 0x9e78
-f fcn.00009f91 677 0x00009f91
-af+ 0x00009f91 677 fcn.00009f91 f n
+f smi_packet_0x5 677 0x00009f91
+af+ 0x00009f91 677 smi_packet_0x5 f n
 afC cdecl @ 0x00009f91
 afb+ 0x00009f91 0x00009f91 55 0x0000a22c 0x00009fc8 n n
 afb+ 0x00009f91 0x0000a22c 10 0xffffffffffffffff 0xffffffffffffffff n n
@@ -5739,8 +5806,8 @@ afv 216 local_d8h int @ 0x9f91
 afv 220 local_dch int @ 0x9f91
 afv 224 local_e0h int @ 0x9f91
 afv 228 local_e4h int @ 0x9f91
-afv 236 local_ech int @ 0x9f91
-afv 240 local_f0h int @ 0x9f91
+afv 236 temp_arg_ch int @ 0x9f91
+afv 240 temp_arg_8h int @ 0x9f91
 afv 244 local_f4h int @ 0x9f91
 f fcn.0000a240 195 0x0000a240
 af+ 0x0000a240 195 fcn.0000a240 f n
@@ -7569,16 +7636,16 @@ afb+ 0x000120c0 0x000120c0 15 0x000120d5 0x000120cf n n
 afb+ 0x000120c0 0x000120cf 6 0x000120d5 0xffffffffffffffff n n
 afb+ 0x000120c0 0x000120d5 2 0xffffffffffffffff 0xffffffffffffffff n n
 afa 8 arg_8h int @ 0x120c0
-f fcn.000120e0 46 0x000120e0
-af+ 0x000120e0 46 fcn.000120e0 f n
+f copy_dosbuf_to_buffer 46 0x000120e0
+af+ 0x000120e0 46 copy_dosbuf_to_buffer f n
 afC cdecl @ 0x000120e0
 afb+ 0x000120e0 0x000120e0 19 0x000120f7 0x000120f3 n n
 afb+ 0x000120e0 0x000120f7 7 0x0001210a 0xffffffffffffffff n n
 afb+ 0x000120e0 0x0001210a 4 0xffffffffffffffff 0xffffffffffffffff n n
 afb+ 0x000120e0 0x000120f3 4 0x000120fe 0x000120f7 n n
 afb+ 0x000120e0 0x000120fe 12 0x0001210a 0xffffffffffffffff n n
-afa 8 arg_8h int @ 0x120e0
-afa 12 arg_ch int @ 0x120e0
+afa 8 buf char* @ 0x120e0
+afa 12 size int @ 0x120e0
 f wrapper.malloc.0x00012110 12 0x00012110
 af+ 0x00012110 12 wrapper.malloc.0x00012110 f n
 afC cdecl @ 0x00012110
@@ -11818,4 +11885,4 @@ afv 64 local_40h int @ 0x46840
 # types
 # macros
 # seek
-s 0x000024d4
+s 0x0000a001

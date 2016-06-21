@@ -104,7 +104,7 @@ int debug_printf(unsigned char level, const char *fmt, ...)
 
 #define REGION_BSS_BASE   0x00200000
 
-struct __attribute__ ((__packed__)) smi_buffer {
+struct __attribute__ ((__packed__)) smi_buffer00 {
     __u32 unk1;
     __u32 unk2;
     __u64 unk3;
@@ -112,6 +112,22 @@ struct __attribute__ ((__packed__)) smi_buffer {
     __u8 uuid[16];
     __u8 data[];
 };
+
+struct __attribute__ ((__packed__)) smi_buffer05 {
+    __u32 unk1; /* looks like packet type */
+    __u32 unk2;
+    __u32 unk3;
+    __u32 unk4;
+    __u64 unk5;
+    __u8 pad1[0x18];
+    __u64 unk6;
+    __u8 pad2[0x10];
+    __u64 unk7;
+    __u64 unk8;
+    __u64 unk9;
+    __u8 uuid[16];
+};
+
 
 struct __attribute__ ((__packed__)) gdt_entry {
     __u16 limit_l;
@@ -348,8 +364,8 @@ void dump_hex(__u8 *data, int size) {
     if (!data) {
         return;
     }
-    int addr_line;
-    int addr = 0;
+    int addr_line = 0;
+    int addr;
     while(addr_line<size) {
         addr = 0;
         debug_printf(1," %04x  ",addr_line);
@@ -389,17 +405,30 @@ void dump_smi(struct emu *emu) {
         return;
     }
 
-    struct smi_buffer *smi = mem_guest2host(emu, emu->smi_Buffer_Ptr_Address);
+    __u8 *smi = mem_guest2host(emu, emu->smi_Buffer_Ptr_Address);
     if (!smi) {
         return;
     }
 
-    debug_printf(1,"buf: 0x%x 0x%x 0x%x size=0x%x uuid=",
-        smi->unk1, smi->unk2, smi->unk3, smi->size
-    );
-    dump_uuid(smi->uuid);
-    debug_printf(1,"\n");
-    dump_hex(smi->data, smi->size - sizeof(*smi));
+    if (*smi == 0x5) {
+        struct smi_buffer05 *smi5 = (struct smi_buffer05 *)smi;
+        debug_printf(1,"buf: 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n",
+            smi5->unk1, smi5->unk2, smi5->unk3, smi5->unk4,
+            smi5->unk5, smi5->unk6, smi5->unk7, smi5->unk8,
+            smi5->unk9
+        );
+        debug_printf(1,"\tuuid=");
+        dump_uuid(smi5->uuid);
+    } else {
+        struct smi_buffer00 *smi0 = (struct smi_buffer00 *)smi;
+
+        debug_printf(1,"buf: 0x%x 0x%x 0x%x size=0x%x uuid=",
+            smi0->unk1, smi0->unk2, smi0->unk3, smi0->size
+        );
+        dump_uuid(smi0->uuid);
+        debug_printf(1,"\n");
+        dump_hex(smi0->data, smi0->size - sizeof(*smi0));
+    }
 }
 
 void dump_dwords(void *data, int words) {
@@ -1845,7 +1874,7 @@ int handle_smi(struct emu *emu) {
 
     dump_smi(emu);
 
-#if 0
+#if 1
     if (emu->smi_count>10) {
         /* crash-stop on the nth smi call */
 
