@@ -25,6 +25,12 @@ sub main() {
         exit(1);
     }
 
+    # possibly convert from hex
+    $offset = eval $offset;
+    $count = eval $count;
+
+    printf("Reading 0x%x bytes at 0x%x\n", $count, $offset);
+
     my $errors =0;
     while($count) {
         $in->seek($offset,SEEK_SET);
