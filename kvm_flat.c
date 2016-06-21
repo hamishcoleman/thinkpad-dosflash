@@ -96,7 +96,6 @@ int debug_printf(unsigned char level, const char *fmt, ...)
 #define REGION_PSP_BASE   0xf0030000
 
 #define REGION_BSS_BASE   0x00200000
-#define REGION_BSS_SIZE   0x00100000
 
 struct __attribute__ ((__packed__)) smi_buffer {
     __u32 unk1;
@@ -169,6 +168,7 @@ struct emu {
     unsigned int region_stack; /* which slot contains the stack */
     unsigned int region_brk; /* start of available region slots */
     unsigned int bss_brk; /* start of available bss */
+    unsigned int bss_size; /* how much space to allocate for the BSS */
     unsigned int gdt_brk; /* start of available descriptors */
 
     struct irq_handler_entry *irq;
@@ -769,7 +769,7 @@ int kvm_init(struct emu *emu) {
     *((__u32*)stack) = 0xbad0add0;
 
     debug_printf(1,"Map bss\n");
-    ret = load_memory(emu,REGION_BSS_BASE,REGION_BSS_SIZE,"bss",0,MEMR_REGISTER|MEMR_ANONYMOUS|MEMR_RDWR);
+    ret = load_memory(emu,REGION_BSS_BASE,emu->bss_size,"bss",0,MEMR_REGISTER|MEMR_ANONYMOUS|MEMR_RDWR);
     if (ret == -1)
         err(1, "load_memory bss");
 
@@ -1015,6 +1015,8 @@ int load_configfile(struct emu *emu, char *filename) {
             emu->trace=strtoul(strtok(NULL," \n"),NULL,0);
         } else if (!strcmp(key,"smi_Buffer_Ptr_Address")) {
             emu->smi_Buffer_Ptr_Address=strtoul(strtok(NULL," \n"),NULL,0);
+        } else if (!strcmp(key,"bss_size")) {
+            emu->bss_size=strtoul(strtok(NULL," \n"),NULL,0);
         } else if (!strcmp(key,"include")) {
             if (load_configfile(emu,strtok(NULL," \n"))==-1) {
                 return -1;
@@ -1037,7 +1039,7 @@ int load_configfile(struct emu *emu, char *filename) {
 }
 
 int alloc_bss(struct emu *emu, unsigned int size) {
-    if (emu->bss_brk + size > REGION_BSS_SIZE) {
+    if (emu->bss_brk + size > emu->bss_size) {
         return 0;
     }
     unsigned int guest_addr = REGION_BSS_BASE + emu->bss_brk;
@@ -1502,7 +1504,7 @@ int irq_dpmi_0501(void *data, struct emu *emu, struct kvm_regs *regs) {
 
     if (!addr) {
         iret_setflags(regs,1); /* set CF */
-        debug_printf(1,"failed\n");
+        debug_printf(1,"failed - current brk 0x%x\n",emu->bss_brk);
         exit(1);
         return WANT_SET_REGS;
     }
@@ -1921,6 +1923,7 @@ int main(int argc, char **argv)
     struct emu * emu = &emu_global;
 
     emu->region_brk = MEM_REGION_SYS_MAX+1;
+    emu->bss_size = 0x00100000; /* Default mem size */
 
     if (argc<3) {
         printf("Need args: filename configfile\n");
