@@ -147,3 +147,32 @@ buf: unknown
 +0x5c dword 0
 +0x60 uuid = uuid_1
 
+---
+FL2 ec firmware:
+
+the x220.8DHT34WW.s01CB000.FL2.orig consists of:
+           0 - 0x4fffff padding 0xff
+    0x500000 - 0x51ffff EC firmware
+    0x520000 - 0x75fccf garbage?
+    0x75fcd0 - 0x77bfff padding 0xff
+    0x77c000 - ?        _FLASH_MAP
+    ?        - 0x7fffff garbage? (minimum size of tail)
+    0x800000 - 0x8140bf gargage? (starts with "$PFH")
+    0x8140c0 - 0x820fff padding 0xff
+
+the x230.G2HT35WW.s01D3000.FL2.orig consists of:
+           0 - 0x4fffff padding 0xff
+    0x500000 - 0x52fff0 EC firmware
+    0x530000 - 0x7fffff padding 0xff
+    0x800000 - 0xb0ffff garbage? seems to be from a bios image
+    0xb10000 - 0xb10354 _FLASH_MAP http://wiki.phoenix.com/wiki/index.php/PHOENIX_FLASH_MAP_HEADER
+    0xb10355 - 0xc140bf garbage?
+    0xc140c0 - 0xc20fff padding 0xff
+
+fuzz testing shows that dosflash accepts a binary with the following:
+           0 - 0x25c32f minimum initial size (any data)
+    0x25c330 - 0x2e0330 copied from x220 fl2 at offset 0x77c000 - 0x7fffff
+
+(dd if=/dev/zero bs=$[0x25c330] count=1; dd if=x220.8DHT34WW.s01CB000.FL2.orig bs=1 skip=$[0x77c000] count=$[0x84000] ) >test2.FL2
+(dd if=/dev/zero bs=$[0x25c330] count=1; dd if=x230.G2HT35WW.s01D3000.FL2.orig bs=1 skip=$[0xa7d330] count=$[0x1a3cd0] ) >test2.FL2
+
