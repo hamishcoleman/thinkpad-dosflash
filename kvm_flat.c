@@ -237,8 +237,8 @@ void *mem_guest2host(struct emu *emu, __u64 guestaddr) {
  * Do the same as mem_guest2host, but take some extra steps
  * if it looks like we are running a strange stack
  */
-void *mem_getstack(struct emu *emu, struct kvm_regs *regs) {
-    if (regs->rsp>0 && regs->rsp<0x1000) {
+void *mem_getstack(struct emu *emu, __u64 rsp) {
+    if (rsp>0 && rsp<0x1000) {
         /* Stack is in the zero-page area, possibly we are using the
          * GO32 segment for the stack
          */
@@ -249,14 +249,14 @@ void *mem_getstack(struct emu *emu, struct kvm_regs *regs) {
             err(1, "KVM_GET_SREGS");
 
         if (sregs.ss.selector == SEG_GO32) {
-            return mem_guest2host(emu, SEG_GO32_BASE + regs->rsp);
+            return mem_guest2host(emu, SEG_GO32_BASE + rsp);
         }
     }
-    return mem_guest2host(emu, regs->rsp);
+    return mem_guest2host(emu, rsp);
 }
 
 __u32 get_retaddr(struct emu *emu, struct kvm_regs *regs) {
-    __u32 *stack = mem_getstack(emu,regs);
+    __u32 *stack = mem_getstack(emu,regs->rsp);
     if (stack) {
         return *stack;
     }
@@ -292,7 +292,7 @@ void dump_backtrace(struct emu *emu, struct kvm_regs *called_regs) {
 
     debug_printf(2,"Backtrace:");
 
-    __u32 *stack = mem_getstack(emu,&regs);
+    __u32 *stack = mem_getstack(emu,regs.rsp);
     if (!stack) {
         return;
     }
@@ -307,7 +307,7 @@ void dump_backtrace(struct emu *emu, struct kvm_regs *called_regs) {
             debug_printf(2,"\n ");
         }
         regs.rsp = regs.rbp;
-        stack = mem_getstack(emu,&regs);
+        stack = mem_getstack(emu,regs.rsp);
         if (!stack) {
             debug_printf(2,"!stack");
             break;
@@ -565,7 +565,7 @@ void dump_kvm_exit(struct emu *emu) {
     case KVM_EXIT_SHUTDOWN:
     case KVM_EXIT_MMIO:
     case KVM_EXIT_IO:
-        stack = mem_guest2host(emu, regs.rsp);
+        stack = mem_getstack(emu, regs.rsp);
         if (stack) {
             debug_printf(0,"Stack:");
             dump_dwords(stack,16);
