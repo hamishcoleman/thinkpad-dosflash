@@ -195,6 +195,7 @@ sub handle_uuid_4 {
     my @values = unpack("Qa*",$SDT->{_data});
     map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
 
+    $SDT->{addr} = hexify($SDT->{addr});
     return $SDT;
 }
 
@@ -213,6 +214,7 @@ sub handle_uuid_2 {
     my @values = unpack("VQa*",$SDT->{_data});
     map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
 
+    $SDT->{Buffer_Ptr_Address} = hexify($SDT->{Buffer_Ptr_Address});
     return $SDT;
 }
 
@@ -251,7 +253,7 @@ sub handle_FACP {
     my $SDT = shift;
 
     my @fields = qw(
-        FirmwareCtrl Dsdt Reserved PreferredPowerManagementProfile
+        FACS DSDT Reserved PreferredPowerManagementProfile
         SCI_Interrupt SMI_CommandPort AcpiEnable AcpiDisable S4BIOS_REQ
         PSTATE_Control PM1aEventBlock PM1bEventBlock PM1aControlBlock
         PM1bControlBlock PM2ControlBlock PMTimerBlock GPE0Block GPE1Block
@@ -418,8 +420,8 @@ sub main() {
         read_SDT($db,$addr);
     }
 
-    read_SDT($db,$db->{SDT}{FACP}{Dsdt});
-    read_FACS($db,$db->{SDT}{FACP}{FirmwareCtrl});
+    read_SDT($db,$db->{SDT}{FACP}{DSDT});
+    read_FACS($db,$db->{SDT}{FACP}{FACS});
 
     my @tables = values(%{$db->{SDT}});
     @tables = sort { $a->{_header}{signature} cmp $b->{_header}{signature} } @tables;
