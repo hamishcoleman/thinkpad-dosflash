@@ -122,6 +122,22 @@ sub memr_read {
     return $buf;
 }
 
+sub hexify {
+    my $val = shift;
+    return sprintf("0x%02x",$val);
+}
+
+sub sum_buf_bytes {
+    my $buf = shift;
+
+    my $sum = 0;
+    my @bytes = unpack("C*",$buf);
+    foreach (@bytes) {
+        $sum += $_;
+    }
+    return $sum;
+}
+
 sub find_rsdp {
     my $db = shift;
 
@@ -150,15 +166,19 @@ sub read_rsdp {
     my @values = unpack("A8CA6cVVQCa3",$buf);
     my %rsdp = map { $fields[$_] => $values[$_] } (0..scalar(@fields)-1);
 
-    $rsdp{_addr} = $addr;
+    $rsdp{_sum} = hexify(sum_buf_bytes($buf));
+    $rsdp{_addr} = hexify($addr);
+    $rsdp{xsdtaddress} = hexify($rsdp{xsdtaddress});
+    $rsdp{rsdtaddress} = hexify($rsdp{rsdtaddress});
     $db->{RSDP} = \%rsdp;
-    return \%rsdp;
+    $db->{address}{$rsdp{_addr}} = $rsdp{signature};
+    return 1;
 }
 
 sub dump_rsdp {
     my $rsdp = shift;
 
-    printf("0x%08x: %s(%i) %s rsdt=0x%08x xsdt=0x%08x\n",
+    printf("%s: %s(%i) %s rsdt=%s xsdt=%s\n",
         $rsdp->{_addr},
         $rsdp->{signature}, $rsdp->{revision},
         $rsdp->{oemid},
@@ -175,6 +195,7 @@ sub handle_uuid_4 {
     my @values = unpack("Qa*",$SDT->{_data});
     map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
 
+    $SDT->{addr} = hexify($SDT->{addr});
     return $SDT;
 }
 
@@ -193,6 +214,7 @@ sub handle_uuid_2 {
     my @values = unpack("VQa*",$SDT->{_data});
     map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
 
+    $SDT->{Buffer_Ptr_Address} = hexify($SDT->{Buffer_Ptr_Address});
     return $SDT;
 }
 
@@ -201,13 +223,28 @@ my %handler_UEFI = (
     'be96e815-df0c-e247-9b97-a28a398bc765' => \&handle_uuid_2,
 );
 
+sub handle_RSDT {
+    my $SDT = shift;
+
+    my @tables = unpack("V*",$SDT->{_data});
+
+    delete $SDT->{_data};
+    foreach (@tables) {
+        push @{$SDT->{tables}}, hexify($_);
+    }
+
+    return $SDT;
+}
+
 sub handle_XSDT {
     my $SDT = shift;
 
     my @tables = unpack("Q*",$SDT->{_data});
 
     delete $SDT->{_data};
-    $SDT->{tables} = \@tables;
+    foreach (@tables) {
+        push @{$SDT->{tables}}, hexify($_);
+    }
 
     return $SDT;
 }
@@ -216,7 +253,7 @@ sub handle_FACP {
     my $SDT = shift;
 
     my @fields = qw(
-        FirmwareCtrl Dsdt Reserved PreferredPowerManagementProfile
+        FACS DSDT Reserved PreferredPowerManagementProfile
         SCI_Interrupt SMI_CommandPort AcpiEnable AcpiDisable S4BIOS_REQ
         PSTATE_Control PM1aEventBlock PM1bEventBlock PM1aControlBlock
         PM1bControlBlock PM2ControlBlock PMTimerBlock GPE0Block GPE1Block
@@ -265,6 +302,7 @@ sub handle_UEFI {
 }
 
 my %handler = (
+    RSDT => \&handle_RSDT,
     XSDT => \&handle_XSDT,
     FACP => \&handle_FACP,
     DSDT => \&handle_AML,
@@ -276,18 +314,26 @@ sub read_SDT {
     my $db = shift;
     my $addr = shift;
 
+    if (defined($db->{address}{$addr})) {
+        $db->{address_dupe}{$addr} ++;
+        return undef;
+    }
+
+    # de hex if needed
+    $addr = eval $addr;
+
     my $header_len = 36;
     my $buf = memr_read($db,$addr,$header_len);
 
     my @fields = qw(signature length revision checksum oemid oemtableid oemrevision creatorid creatorrevision);
-    my @values = unpack("A4VccA6A8VA4V",$buf);
+    my @values = unpack("A4VCCA6A8VA4V",$buf);
     my %header = map { $fields[$_] => $values[$_] } (0..scalar(@fields)-1);
 
     return undef if ($header{signature} eq "\xff\xff\xff\xff");
 
     my $sdt;
     $sdt->{_header} = \%header;
-    $sdt->{_addr} = $addr;
+    $sdt->{_addr} = hexify($addr);
 
     my $tablename = $header{signature};
     my $i = 0;
@@ -295,11 +341,13 @@ sub read_SDT {
         $tablename = sprintf("%s:%i",$header{signature},++$i);
     }
     $db->{SDT}{$tablename} = $sdt;
+    $db->{address}{$sdt->{_addr}} = $tablename;
 
     my $remainder = $header{length} - $header_len;
     return $sdt if ($remainder<=0);
     $sdt->{_data} = memr_read($db,$addr+$header_len,$remainder);
 
+    $sdt->{_sum} = hexify(sum_buf_bytes($buf)+sum_buf_bytes($sdt->{_data}));
     if (defined($handler{$header{signature}})) {
         $handler{$header{signature}}($sdt);
     }
@@ -311,7 +359,7 @@ sub dump_SDT {
     my $sdt = shift;
     my $header = $sdt->{_header};
 
-    printf("0x%08x(%04x): %s(%i) %s %s(%i) %s(%i)\n",
+    printf("%s(%04x): %s(%i) %s %s(%i) %s(%i)\n",
         $sdt->{_addr}, $header->{length},
         $header->{signature}, $header->{revision},
         $header->{oemid},
@@ -323,6 +371,9 @@ sub dump_SDT {
 sub read_FACS {
     my $db = shift;
     my $addr = shift;
+
+    # possibly dehexify
+    $addr = eval $addr;
 
     my $signature = memr_read($db,$addr,4);
     return if ($signature ne 'FACS');
@@ -338,8 +389,9 @@ sub read_FACS {
     my @values = unpack("A4VVVVVQCA31",$buf);
     my %table = map { $fields[$_] => $values[$_] } (0..scalar(@fields)-1);
 
-    $table{_addr} = $addr;
+    $table{_addr} = hexify($addr);
     $db->{FACS} = \%table;
+    $db->{address}{$table{_addr}} = $table{signature};
     return \%table;
 }
 
@@ -352,23 +404,30 @@ sub main() {
     my $db = {};
     load_configfile($db,$configfile);
 
-    $db->{address}{RSDP} = find_rsdp($db);
-    if (!$db->{address}{RSDP}) {
+    my $address_rsdp = find_rsdp($db);
+    if (!$address_rsdp) {
         die("Could not find RSDP\n");
     }
 
-    read_rsdp($db,$db->{address}{RSDP});
-    read_SDT($db,$db->{RSDP}{xsdtaddress});
-
+    read_rsdp($db,$address_rsdp);
     dump_rsdp($db->{RSDP});
-    dump_SDT($db->{SDT}{XSDT});
 
-    for my $addr (@{$db->{SDT}{XSDT}{tables}}) {
-        dump_SDT(read_SDT($db,$addr));
+    read_SDT($db,$db->{RSDP}{xsdtaddress});
+    read_SDT($db,$db->{RSDP}{rsdtaddress});
+
+
+    for my $addr (@{$db->{SDT}{XSDT}{tables}},@{$db->{SDT}{RSDT}{tables}}) {
+        read_SDT($db,$addr);
     }
 
-    dump_SDT(read_SDT($db,$db->{SDT}{FACP}{Dsdt}));
-    read_FACS($db,$db->{SDT}{FACP}{FirmwareCtrl});
+    read_SDT($db,$db->{SDT}{FACP}{DSDT});
+    read_FACS($db,$db->{SDT}{FACP}{FACS});
+
+    my @tables = values(%{$db->{SDT}});
+    @tables = sort { $a->{_header}{signature} cmp $b->{_header}{signature} } @tables;
+    for my $sdt (@tables) {
+        dump_SDT($sdt);
+    }
 
     print Dumper($db);
 

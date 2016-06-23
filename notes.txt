@@ -119,7 +119,7 @@ buf: 0x5 0x0 0x1 0x0 0xffd20000 0x810 0xc10 0xff 0x1010
 +0x4  dword 0
 +0x8  dword 1
 +0xc  dword 0
-+0x10 dword = arg_8h (0xffd20000)
++0x10 dword = arg_8h (0xffd20000) (appears to be a base addr from the FLASH_MAP)
 +0x14 dword = arg_ch (0)
 +0x30 dword = [data.dosbuf.something.0x4ca68] (via fn that could make it 0)
 +0x34 dword 0
@@ -162,7 +162,9 @@ buf: 0x10100 0x0 0xff size=0x38 uuid=fc44deb1-4679-8249-9b4b-2f8ca45ea792
 
 ERROR 200 - Failed to perform flash initialization!
 Status = 255.
+
 ---
+
 FL2 ec firmware:
 
 the x220.8DHT34WW.s01CB000.FL2.orig consists of:

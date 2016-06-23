@@ -67,3 +67,6 @@ acpi.img: /dev/fmem
 
 acpinv.img: /dev/fmem
 	sudo bash -c "./dd_hack.pl /dev/fmem acpinv.img $$[$(ACPINV_START)] $$[$(ACPINV_LEN)]"
+
+fake.bios: fake.bios.asm
+	nasm -f bin -o $@ $<

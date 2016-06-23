@@ -1,0 +1,12 @@
+#
+# shared config for the dosflash executable
+#
+
+entry 0x18d0
+
+load_memory 0x000f0000 0x00011000 fake.bios 0 4
+
+smi_Buffer_Ptr_Address 0x00100000
+bss_size 0x1480000
+
+trace 0

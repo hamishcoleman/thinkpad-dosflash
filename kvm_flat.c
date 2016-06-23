@@ -237,8 +237,8 @@ void *mem_guest2host(struct emu *emu, __u64 guestaddr) {
  * Do the same as mem_guest2host, but take some extra steps
  * if it looks like we are running a strange stack
  */
-void *mem_getstack(struct emu *emu, struct kvm_regs *regs) {
-    if (regs->rsp>0 && regs->rsp<0x1000) {
+void *mem_getstack(struct emu *emu, __u64 rsp) {
+    if (rsp>0 && rsp<0x1000) {
         /* Stack is in the zero-page area, possibly we are using the
          * GO32 segment for the stack
          */
@@ -249,14 +249,14 @@ void *mem_getstack(struct emu *emu, struct kvm_regs *regs) {
             err(1, "KVM_GET_SREGS");
 
         if (sregs.ss.selector == SEG_GO32) {
-            return mem_guest2host(emu, SEG_GO32_BASE + regs->rsp);
+            return mem_guest2host(emu, SEG_GO32_BASE + rsp);
         }
     }
-    return mem_guest2host(emu, regs->rsp);
+    return mem_guest2host(emu, rsp);
 }
 
 __u32 get_retaddr(struct emu *emu, struct kvm_regs *regs) {
-    __u32 *stack = mem_getstack(emu,regs);
+    __u32 *stack = mem_getstack(emu,regs->rsp);
     if (stack) {
         return *stack;
     }
@@ -292,7 +292,7 @@ void dump_backtrace(struct emu *emu, struct kvm_regs *called_regs) {
 
     debug_printf(2,"Backtrace:");
 
-    __u32 *stack = mem_getstack(emu,&regs);
+    __u32 *stack = mem_getstack(emu,regs.rsp);
     if (!stack) {
         return;
     }
@@ -307,7 +307,7 @@ void dump_backtrace(struct emu *emu, struct kvm_regs *called_regs) {
             debug_printf(2,"\n ");
         }
         regs.rsp = regs.rbp;
-        stack = mem_getstack(emu,&regs);
+        stack = mem_getstack(emu,regs.rsp);
         if (!stack) {
             debug_printf(2,"!stack");
             break;
@@ -565,7 +565,7 @@ void dump_kvm_exit(struct emu *emu) {
     case KVM_EXIT_SHUTDOWN:
     case KVM_EXIT_MMIO:
     case KVM_EXIT_IO:
-        stack = mem_guest2host(emu, regs.rsp);
+        stack = mem_getstack(emu, regs.rsp);
         if (stack) {
             debug_printf(0,"Stack:");
             dump_dwords(stack,16);
@@ -1084,7 +1084,7 @@ int alloc_bss(struct emu *emu, unsigned int size) {
 }
 
 void iret_setflags(struct kvm_regs *regs, unsigned int setflags) {
-    __u32 *stack = mem_guest2host(&emu_global, regs->rsp);
+    __u32 *stack = mem_getstack(&emu_global, regs->rsp);
     if (stack) {
         stack[2] |= setflags;
     }
@@ -1096,26 +1096,38 @@ void dump_fake_segments(struct kvm_regs *call) {
     );
 }
 
-int irq_dump_rm(void *data, struct emu *emu, struct kvm_regs *regs) {
+int irq_dump(struct emu *emu, struct kvm_regs *regs) {
+    dump_kvm_regs(regs);
+    __u32 *stack = mem_getstack(emu, regs->rsp);
+    if (stack) {
+        debug_printf(0,"Stack:");
+        dump_dwords(stack,16);
+    }
+    dump_backtrace(emu,regs);
+    dump_kvm_sregs(emu);
+    dump_kvm_memmap(emu);
+    return 0;
+}
+
+int irq_dump_rm(struct emu *emu, struct kvm_regs *regs) {
     debug_printf(1,"\n");
     struct kvm_regs real_regs;
     int ret = ioctl(emu->vcpufd, KVM_GET_REGS, &real_regs);
     if (ret == -1)
         err(1, "KVM_GET_REGS");
-    dump_kvm_regs(&real_regs);
-    __u32 *stack = mem_getstack(emu, &real_regs);
-    debug_printf(1,"Stack:");
-    dump_dwords(stack,16);
-    dump_backtrace(emu,&real_regs);
+
     debug_printf(1,"Real mode registers:\n");
     dump_kvm_regs(regs);
     dump_fake_segments(regs);
+
+    debug_printf(1,"CPU registers:\n");
+    irq_dump(emu,&real_regs);
     return 0;
 }
 
 int irq_disk_status(void *data, struct emu *emu, struct kvm_regs *regs) {
     debug_printf(1,"drive=0x%02x - Faked",regs->rdx&0xff);
-    irq_dump_rm(data,emu,regs);
+    irq_dump_rm(emu,regs);
 
     regs->rax &= ~0xffff; /* just indicate a successful completion */
     return WANT_SET_REGS;
@@ -1172,7 +1184,7 @@ int irq_dos_write(void *data, struct emu *emu, struct kvm_regs *regs) {
 
     regs->rax = count; /* just claim to have written everything */
 
-    irq_dump_rm(data,emu,regs);
+    irq_dump_rm(emu,regs);
 
     return WANT_SET_REGS;
 }
@@ -1561,7 +1573,7 @@ int irq_dpmi_0501(void *data, struct emu *emu, struct kvm_regs *regs) {
 
     if (!addr) {
         iret_setflags(regs,1); /* set CF */
-        debug_printf(1,"failed - current brk 0x%x\n",emu->bss_brk);
+        debug_printf(1,"fail - 0x%x/0x%x used\n",emu->bss_brk,emu->bss_size);
         exit(1);
         return WANT_SET_REGS;
     }
@@ -1594,16 +1606,7 @@ int irq_dpmi_0800(void *data, struct emu *emu, struct kvm_regs *regs) {
     if (failed) {
         debug_printf(1," - DENIED\n");
 
-        dump_kvm_regs(regs);
-        __u32 *stack = mem_guest2host(emu, regs->rsp);
-        if (stack) {
-            debug_printf(0,"Stack:");
-            dump_dwords(stack,16);
-        }
-        dump_backtrace(emu,regs);
-        dump_kvm_sregs(emu);
-        dump_kvm_memmap(emu);
-
+        irq_dump(emu,regs);
         exit(1);
 
         iret_setflags(regs,1); /* set CF */
@@ -1617,7 +1620,7 @@ int irq_dpmi_0800(void *data, struct emu *emu, struct kvm_regs *regs) {
 
 int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
     debug_printf(0," - Protection Fault");
-    __u32 *stack = mem_guest2host(emu, regs->rsp);
+    __u32 *stack = mem_getstack(emu, regs->rsp);
     if (stack) {
         __u32 errcode = stack[0];
         debug_printf(0," at addr 0x%08x with %s%s selector 0x%x\n",
@@ -1627,40 +1630,7 @@ int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
             errcode>>3
         );
     }
-    dump_kvm_regs(regs);
-    if (stack) {
-        debug_printf(0,"Stack:");
-        dump_dwords(stack,16);
-    }
-    dump_backtrace(emu,regs);
-    dump_kvm_sregs(emu);
-
-#if 0
-    struct kvm_sregs sregs;
-    int ret = ioctl(emu->vcpufd, KVM_GET_SREGS, &sregs);
-    if (ret == -1)
-        err(1, "KVM_GET_SREGS");
-
-    if (sregs.ds.selector == 0) {
-        debug_printf(1,"Applying wierd segment fixup\n");
-
-        sregs.ds.selector = SEG_DATA;
-        sregs.ds.base = 0;
-        sregs.ds.limit = 0xffffffff;
-        sregs.ds.type = 3; /* x=0, e=0, w=1, a=1 */
-        sregs.ds.dpl = 0;
-        sregs.ds.present = 1;
-        sregs.ds.db = 1;
-        sregs.ds.s = 1;
-        sregs.ds.g = 1;
-        ret = ioctl(emu->vcpufd, KVM_SET_SREGS, &sregs);
-        if (ret == -1)
-            err(1, "KVM_SET_SREGS");
-
-        regs->rsp+=4; /* pop the errcode dword */
-        return WANT_SET_REGS;
-    }
-#endif
+    irq_dump(emu,regs);
 
     exit(1);
 }
@@ -1678,13 +1648,7 @@ int handle_subcode(struct irq_subhandler_entry *p, int subcode, struct emu *emu,
     }
     debug_printf(0," undefined subcode\n");
 
-    dump_kvm_regs(regs);
-    __u32 *stack = mem_guest2host(emu, regs->rsp);
-    if (stack) {
-        debug_printf(0,"Stack:");
-        dump_dwords(stack,16);
-    }
-    dump_backtrace(emu,regs);
+    irq_dump(emu,regs);
 
     exit(1);
 }
@@ -1813,7 +1777,7 @@ int handle_irqno(struct irq_handler_entry *p, unsigned char irqno, struct emu *e
 
     if (!p[irqno].handler) {
         debug_printf(0," undefined irq\n");
-        dump_kvm_exit(emu);
+        irq_dump(emu,regs);
         exit(1);
     }
 
