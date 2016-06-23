@@ -1342,7 +1342,6 @@ int irq_dpmi_0008(void *data, struct emu *emu, struct kvm_regs *regs) {
     int entry = selector>>3;
     gdt_setlimit(&gdt[entry],limit);
 
-    irq_dump(emu,regs);
     return WANT_SET_REGS;
 }
 
@@ -1574,7 +1573,7 @@ int irq_dpmi_0501(void *data, struct emu *emu, struct kvm_regs *regs) {
 
     if (!addr) {
         iret_setflags(regs,1); /* set CF */
-        debug_printf(1,"failed - current brk 0x%x\n",emu->bss_brk);
+        debug_printf(1,"fail - 0x%x/0x%x used\n",emu->bss_brk,emu->bss_size);
         exit(1);
         return WANT_SET_REGS;
     }
