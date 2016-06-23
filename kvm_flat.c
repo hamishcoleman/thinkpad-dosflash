@@ -1084,7 +1084,7 @@ int alloc_bss(struct emu *emu, unsigned int size) {
 }
 
 void iret_setflags(struct kvm_regs *regs, unsigned int setflags) {
-    __u32 *stack = mem_guest2host(&emu_global, regs->rsp);
+    __u32 *stack = mem_getstack(&emu_global, regs->rsp);
     if (stack) {
         stack[2] |= setflags;
     }
@@ -1617,7 +1617,7 @@ int irq_dpmi_0800(void *data, struct emu *emu, struct kvm_regs *regs) {
 
 int irq_gpf(void *data, struct emu *emu, struct kvm_regs *regs) {
     debug_printf(0," - Protection Fault");
-    __u32 *stack = mem_guest2host(emu, regs->rsp);
+    __u32 *stack = mem_getstack(emu, regs->rsp);
     if (stack) {
         __u32 errcode = stack[0];
         debug_printf(0," at addr 0x%08x with %s%s selector 0x%x\n",
