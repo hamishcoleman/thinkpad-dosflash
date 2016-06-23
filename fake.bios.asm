@@ -165,13 +165,17 @@ uefi2_size equ $ - uefi2
 
     align 16
 data1:
-    ; This appears to be the data transfer buffer for the SMI commands
+    ; Dont know what this is, but it is filled with data on the real BIOS
 times 0x200 db 0
+
+times 0xfff3-($-$$) db 0x90
+bios_end:
+    dw 0  ; this address gets checked by djgcc for a wierd bios signature
 
     align 16
 data2:
-    ; Dont know what this is, but it is filled with data on the real BIOS
-times 0x1000 db 0 ; dunno if this is the right size ..
+    ; This appears to be the data transfer buffer for the SMI commands
+    ; Note that it didnt work if I positioned it below 0x100000
+    times 0x1000 db 0
 
-times 0x10000-($-$$) db 0
-bios_end:
+

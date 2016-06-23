@@ -135,7 +135,7 @@ buf: unknown
 +0x4  dword 0
 +0x8  dword 1
 +0xc  dword 0
-+0x10 dword = arg_8h (0xffd20000)
++0x10 dword = arg_8h (0xffd20000) (appears to be a base addr from the FLASH_MAP)
 +0x14 dword = arg_ch (0)
 +0x30 dword = [data.dosbuf.something.0x4ca68] (via fn that could make it 0)
 +0x34 dword 0
