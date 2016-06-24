@@ -118,7 +118,7 @@ struct __attribute__ ((__packed__)) smi_buffer05 {
     __u32 unk2;
     __u32 unk3;
     __u32 unk4;
-    __u64 unk5;
+    __u64 unk5; /* _FLASH_MAP base ? */
     __u8 pad1[0x18];
     __u64 unk6;
     __u8 pad2[0x10];
@@ -419,6 +419,9 @@ void dump_smi(struct emu *emu) {
         );
         debug_printf(1,"\tuuid=");
         dump_uuid(smi5->uuid);
+        debug_printf(1,"\n");
+        __u8 *dosbuf = mem_guest2host(emu, 0x810);
+        dump_hex(dosbuf, 0x1000);
     } else {
         struct smi_buffer00 *smi0 = (struct smi_buffer00 *)smi;
 
@@ -1838,6 +1841,15 @@ int handle_smi(struct emu *emu) {
     debug_printf(1,"%07llx: SMI (port[0x%02llx] = 0x%02llx)\n", regs.rip, run->io.port, val);
 
     dump_smi(emu);
+
+    __u8 *smibuf = mem_guest2host(emu, emu->smi_Buffer_Ptr_Address);
+    if (val == 0xe9 && smibuf) {
+        memset(smibuf,0x5a,0x50);
+        if ( *(__u32 *)smibuf == 0x5 ) {
+            __u8 *dosbuf = mem_guest2host(emu, 0x810);
+            memset(dosbuf,0xa5,0x1000);
+        }
+    }
 
 #if 1
     if (emu->smi_count>10) {
