@@ -18,9 +18,8 @@ to perform the flashing, and that this would show up as a trap in the
 hypervisor - There is no physical hardware access from the hypervisor,
 so any access will trap.
 
-Current status is that the code is loading ACPI RDST data, but that is
-located in high memory and more difficult to access on linux.  I have
-started to add the infrastructure to extract and load the tables, but
-more testing is needed.
-
+Current status is that the dosflash code is starting the SMI sequence
+to flash the image but it now needs a valid reply packet.  So, it seems
+like it could be time to start running data replays on real hardware
+(currently pending hardware availabilty)
 
