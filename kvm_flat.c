@@ -204,6 +204,8 @@ struct emu {
     int smi_count;      /* number of SMI io ops we have seen */
     __u32 smi_Buffer_Ptr_Address; /* Could set this by reading ACPI tables */
     int dos_alloc;      /* have we given out the low memory region? */
+
+    char *cmdline;
 } emu_global;
 
 struct irq_subhandler_entry {
@@ -818,7 +820,7 @@ int kvm_init(struct emu *emu) {
     return 0;
 }
 
-int load_image(struct emu *emu, char *filename, char *cmdline) {
+int load_image(struct emu *emu, char *filename) {
     int ret;
 
     const uint8_t code[] = {
@@ -905,8 +907,8 @@ int load_image(struct emu *emu, char *filename, char *cmdline) {
 
     region_psp->cmdline_len=0;
     region_psp->cmdline[0]=0;
-    if (cmdline) {
-        strncat(region_psp->cmdline,cmdline,sizeof(region_psp->cmdline));
+    if (emu->cmdline) {
+        strncat(region_psp->cmdline,emu->cmdline,sizeof(region_psp->cmdline));
         strncat(region_psp->cmdline,"\r",sizeof(region_psp->cmdline));
         region_psp->cmdline_len = strlen(region_psp->cmdline);
     }
@@ -1062,6 +1064,12 @@ int load_configfile(struct emu *emu, char *filename) {
             }
         } else if (!strcmp(key,"load_patch")) {
             load_patch_file(emu,strtok(NULL," \n"));
+        } else if (!strcmp(key,"cmdline")) {
+            if (emu->cmdline) {
+                debug_printf(1,"Warning: overwriting existing cmdline\n");
+                free(emu->cmdline);
+            }
+            emu->cmdline = strdup(strtok(NULL,"\n"));
         } else if (!strcmp(key,"load_memory")) {
             __u32 phys_addr = strtoul(strtok(NULL," "),NULL,0);
             __u32 size = strtoul(strtok(NULL," "),NULL,0);
@@ -1981,11 +1989,13 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    char *cmdline=argv[3];
-
     kvm_init(emu);
 
-    if (load_image(emu,filename,cmdline) == -1) {
+    if (!emu->cmdline) {
+        emu->cmdline=argv[3];
+    }
+
+    if (load_image(emu,filename) == -1) {
         return 1;
     }
 

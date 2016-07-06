@@ -2,6 +2,8 @@
 # shared config for the dosflash executable
 #
 
+cmdline /sd /ipf ec /file test.FL2
+
 entry 0x18d0
 
 load_memory 0x000f0000 0x00011000 fake.bios 0 4
