@@ -43,8 +43,8 @@ FAT_OFFSET := 71680
 
 # TODO - could parse dosflash.config to extract deps
 
-%.dosflash.flat.test: %.dosflash.flat.orig kvm_flat dosflash.config bios.img
-	./kvm_flat $< dosflash.config
+%.dosflash.flat.fake: %.dosflash.flat.orig kvm_flat dosflash.config.fake fake.bios fake.fl2
+	./kvm_flat $< dosflash.config.fake
 
 # A copy of some low memory, including all the bios ROMS
 bios.img:
@@ -68,5 +68,5 @@ acpi.img: /dev/fmem
 acpinv.img: /dev/fmem
 	sudo bash -c "./dd_hack.pl /dev/fmem acpinv.img $$[$(ACPINV_START)] $$[$(ACPINV_LEN)]"
 
-fake.bios: fake.bios.asm
+%: %.asm
 	nasm -f bin -o $@ $<

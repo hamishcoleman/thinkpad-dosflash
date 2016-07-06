@@ -2,7 +2,7 @@
 # shared config for the dosflash executable
 #
 
-cmdline /sd /ipf ec /file test.FL2
+cmdline /sd /ipf ec /file fake.fl2
 
 entry 0x18d0
 
