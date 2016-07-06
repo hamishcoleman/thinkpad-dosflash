@@ -26,15 +26,15 @@
 org 0
     align 16
 bin1:
-    times 0x1000 db 0
+    times 0x10 db 0
 bin1_size equ $ - bin1
 
     align 16
 bin2:
-    times 0x1000 db 0
+    times 0x10 db 0
 bin2_size equ $ - bin2
 
-times 7847936 - ($-$$) db 0x90
+times 0x1c0 - ($-$$) db 0x90
 flashmap:
     FLASHMAP 2
     FLASHMAP_entry "0000000000000000", 0, 0, 0xf000000, bin1_size, bin1
