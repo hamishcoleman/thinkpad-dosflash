@@ -11,7 +11,7 @@ all: kvm_flat
 .PHONY: all
 
 build_dep:
-	sudo apt-get install libuuid-perl
+	sudo apt-get install libuuid-perl mtools
 
 #
 # Radare didnt seem to let me specify the directory to store the project file,
