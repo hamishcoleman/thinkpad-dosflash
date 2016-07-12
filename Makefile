@@ -10,6 +10,9 @@ all: kvm_flat
 
 .PHONY: all
 
+build_dep:
+	sudo apt-get install libuuid-perl
+
 #
 # Radare didnt seem to let me specify the directory to store the project file,
 # so this target hacks around that
@@ -70,3 +73,7 @@ acpinv.img: /dev/fmem
 
 %: %.asm
 	nasm -f bin -o $@ $<
+
+OBJECTS_kvm_flat := kvm_flat.o
+kvm_flat: $(OBJECTS_kvm_flat)
+
