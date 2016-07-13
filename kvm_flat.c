@@ -1991,7 +1991,10 @@ int main(int argc, char **argv)
 
     kvm_init(emu);
 
-    if (!emu->cmdline) {
+    if (argv[3]) {
+        if (emu->cmdline) {
+            free(emu->cmdline);
+        }
         emu->cmdline=argv[3];
     }
 
