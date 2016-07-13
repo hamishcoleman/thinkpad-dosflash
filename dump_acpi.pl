@@ -23,6 +23,46 @@ sub usage() {
     exit(1);
 }
 
+# A generic hexdumper
+sub hexdump(\$) {
+    my ($buf,$size) = @_;
+    my $r;
+
+    if (!defined $$buf) {
+        return undef;
+    }
+    if (!defined($size)) {
+        $size = length $$buf;
+    }
+
+    my $offset=0;
+    while ($offset<$size) {
+        if (defined($r)) {
+            # we have more than one line, so end the previous one first
+            $r.="\n";
+        }
+        my @buf16= split //, substr($$buf,$offset,16);
+        $r.=sprintf('%03x: ',$offset);
+        for my $i (0..15) {
+            if (defined $buf16[$i]) {
+                $r.=sprintf('%02x ',ord($buf16[$i]));
+            } else {
+                $r.=sprintf('   ');
+            }
+        }
+        $r.= "| ";
+        for my $i (@buf16) {
+            if (defined $i && ord($i)>0x20 && ord($i)<0x7f) {
+                $r.=sprintf('%s',$i);
+            } else {
+                $r.=sprintf(' ');
+            }
+        }
+        $offset+=16;
+    }
+    return $r;
+}
+
 sub load_memory {
     my $db = shift;
     my ($phys_addr, $size, $filename, $file_offset, $flags) = @_;
@@ -122,6 +162,25 @@ sub memr_read {
     return $buf;
 }
 
+# dump a memr buffer
+sub read_hexdump {
+    my $db = shift;
+    my $name = shift;
+    my $addr = shift;
+    my $size = shift;
+
+    my $entry;
+    $entry->{_addr} = $addr;
+
+    # unhexify
+    $addr = eval $addr;
+    my $buf = memr_read($db,$addr,$size);
+
+    $entry->{_hexdump} = "\n".hexdump($buf);
+    $db->{$name} = $entry;
+}
+
+# turn an int into a hex
 sub hexify {
     my $val = shift;
     return sprintf("0x%02x",$val);
@@ -172,6 +231,9 @@ sub read_rsdp {
     $rsdp{rsdtaddress} = hexify($rsdp{rsdtaddress});
     $db->{RSDP} = \%rsdp;
     $db->{address}{$rsdp{_addr}} = $rsdp{signature};
+
+    queue_add($db,\&read_SDT,$rsdp{xsdtaddress});
+    queue_add($db,\&read_SDT,$rsdp{rsdtaddress});
     return 1;
 }
 
@@ -187,6 +249,7 @@ sub dump_rsdp {
 }
 
 sub handle_uuid_4 {
+    my $db = shift;
     my $SDT = shift;
     my @fields = qw(
         addr
@@ -196,10 +259,12 @@ sub handle_uuid_4 {
     map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
 
     $SDT->{addr} = hexify($SDT->{addr});
+    queue_add($db,\&read_hexdump,"uuid_4",$SDT->{addr},0x1000);
     return $SDT;
 }
 
 sub handle_uuid_2 {
+    my $db = shift;
     my $SDT = shift;
 
     # guessing that this is the same layout as the SMM Communication
@@ -214,6 +279,7 @@ sub handle_uuid_2 {
     my @values = unpack("VQa*",$SDT->{_data});
     map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
 
+    queue_add($db,\&read_hexdump,"uuid_2",hexify($SDT->{Buffer_Ptr_Address}-8),0x200);
     $SDT->{Buffer_Ptr_Address} = hexify($SDT->{Buffer_Ptr_Address});
     return $SDT;
 }
@@ -224,32 +290,39 @@ my %handler_UEFI = (
 );
 
 sub handle_RSDT {
+    my $db = shift;
     my $SDT = shift;
 
     my @tables = unpack("V*",$SDT->{_data});
 
     delete $SDT->{_data};
     foreach (@tables) {
-        push @{$SDT->{tables}}, hexify($_);
+        my $addr = hexify($_);
+        push @{$SDT->{tables}}, $addr;
+        queue_add($db,\&read_SDT,$addr);
     }
 
     return $SDT;
 }
 
 sub handle_XSDT {
+    my $db = shift;
     my $SDT = shift;
 
     my @tables = unpack("Q*",$SDT->{_data});
 
     delete $SDT->{_data};
     foreach (@tables) {
-        push @{$SDT->{tables}}, hexify($_);
+        my $addr = hexify($_);
+        push @{$SDT->{tables}}, $addr;
+        queue_add($db,\&read_SDT,$addr);
     }
 
     return $SDT;
 }
 
 sub handle_FACP {
+    my $db = shift;
     my $SDT = shift;
 
     my @fields = qw(
@@ -271,10 +344,14 @@ sub handle_FACP {
     my @values = unpack("VVCCvVCCCCVVVVVVVVCCCCCCCCvvvvCCCCCvCVCCCCQa*",$SDT->{_data});
     map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
 
+    queue_add($db,\&read_SDT,$SDT->{DSDT});
+    queue_add($db,\&read_FACS,$SDT->{FACS});
+
     return $SDT;
 }
 
 sub handle_AML {
+    my $db = shift;
     my $SDT = shift;
 
     delete $SDT->{_data};
@@ -285,6 +362,7 @@ sub handle_AML {
 }
 
 sub handle_UEFI {
+    my $db = shift;
     my $SDT = shift;
 
     my ($uuid,$DataOffset,$data) = unpack("a16va*",$SDT->{_data});
@@ -295,7 +373,7 @@ sub handle_UEFI {
     $SDT->{_data} = $data;
 
     if (defined($handler_UEFI{$uuid})) {
-        $handler_UEFI{$uuid}($SDT);
+        $handler_UEFI{$uuid}($db,$SDT);
     }
 
     return $SDT;
@@ -349,7 +427,7 @@ sub read_SDT {
 
     $sdt->{_sum} = hexify(sum_buf_bytes($buf)+sum_buf_bytes($sdt->{_data}));
     if (defined($handler{$header{signature}})) {
-        $handler{$header{signature}}($sdt);
+        $handler{$header{signature}}($db,$sdt);
     }
 
     return $sdt;
@@ -395,6 +473,24 @@ sub read_FACS {
     return \%table;
 }
 
+sub queue_add {
+    my $db = shift;
+    my $entry;
+    $entry->{fn} = shift;
+    @{$entry->{args}} = @_;
+    push @{$db->{queue}}, $entry;
+}
+
+sub queue_run {
+    my $db = shift;
+
+    my $entry;
+    while ($entry = shift(@{$db->{queue}})) {
+        my @args = @{$entry->{args}};
+        $entry->{fn}($db,@args);
+    }
+}
+
 sub main() {
     my $configfile = shift @ARGV;
     if (!defined($configfile)) {
@@ -409,19 +505,10 @@ sub main() {
         die("Could not find RSDP\n");
     }
 
-    read_rsdp($db,$address_rsdp);
+    queue_add($db,\&read_rsdp,$address_rsdp);
+    queue_run($db);
+
     dump_rsdp($db->{RSDP});
-
-    read_SDT($db,$db->{RSDP}{xsdtaddress});
-    read_SDT($db,$db->{RSDP}{rsdtaddress});
-
-
-    for my $addr (@{$db->{SDT}{XSDT}{tables}},@{$db->{SDT}{RSDT}{tables}}) {
-        read_SDT($db,$addr);
-    }
-
-    read_SDT($db,$db->{SDT}{FACP}{DSDT});
-    read_FACS($db,$db->{SDT}{FACP}{FACS});
 
     my @tables = values(%{$db->{SDT}});
     @tables = sort { $a->{_header}{signature} cmp $b->{_header}{signature} } @tables;
