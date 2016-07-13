@@ -248,6 +248,48 @@ sub dump_rsdp {
     );
 }
 
+sub read_uuid_2_ptr {
+    my $db = shift;
+    my $addr = shift;
+    my $entry;
+
+    # unhexify
+    $addr = eval $addr;
+    $entry->{_addr} = hexify($addr);
+    $entry->{_data} = memr_read($db,$addr,0x200);
+
+    my @fields = qw(
+        all_ff
+        all_00_1
+        maybe_uuid
+        maybe_size_1
+        all_00_2
+        unknown6
+        addr1
+        addr2
+        maybe_size_2
+        addr3
+        addr4
+        _data
+    );
+    my @values = unpack("VVa16QQQQQQQQa*",$entry->{_data});
+    map { $entry->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
+
+    unparse($entry->{maybe_uuid},$entry->{maybe_uuid});
+    $entry->{all_ff} = hexify($entry->{all_ff});
+    $entry->{addr1} = hexify($entry->{addr1});
+    $entry->{addr2} = hexify($entry->{addr2});
+    $entry->{addr3} = hexify($entry->{addr3});
+    $entry->{addr4} = hexify($entry->{addr4});
+
+    queue_add($db,\&read_hexdump,"uuid_2_ptr_addr1",$entry->{addr1},0x100);
+    queue_add($db,\&read_hexdump,"uuid_2_ptr_addr2",$entry->{addr2},0x100);
+    queue_add($db,\&read_hexdump,"uuid_2_ptr_addr3",$entry->{addr3},0x100);
+    queue_add($db,\&read_hexdump,"uuid_2_ptr_addr4",$entry->{addr4},0x100);
+
+    $db->{uuid}{uuid_2_ptr} = $entry;
+}
+
 sub handle_uuid_4 {
     my $db = shift;
     my $SDT = shift;
@@ -279,7 +321,7 @@ sub handle_uuid_2 {
     my @values = unpack("VQa*",$SDT->{_data});
     map { $SDT->{$fields[$_]} = $values[$_] } (0..scalar(@fields)-1);
 
-    queue_add($db,\&read_hexdump,"uuid_2",hexify($SDT->{Buffer_Ptr_Address}-8),0x200);
+    queue_add($db,\&read_uuid_2_ptr,$SDT->{Buffer_Ptr_Address}-8);
     $SDT->{Buffer_Ptr_Address} = hexify($SDT->{Buffer_Ptr_Address});
     return $SDT;
 }
