@@ -326,9 +326,18 @@ sub handle_uuid_2 {
     return $SDT;
 }
 
+sub handle_uuid_x {
+    my $db = shift;
+    my $SDT = shift;
+
+    $SDT->{_hexdump} = "\n".hexdump($SDT->{_data});
+    return $SDT;
+}
+
 my %handler_UEFI = (
     'e86395d2-e1cf-414d-8e54-da4322fede5c' => \&handle_uuid_4,
     'be96e815-df0c-e247-9b97-a28a398bc765' => \&handle_uuid_2,
+    '97b19f0d-fcce-914e-acb1-2535d9e5a844' => \&handle_uuid_x,
 );
 
 sub handle_RSDT {
