@@ -1,0 +1,13 @@
+
+# out generated output
+dosflash.ko
+
+# all the guff created by the module kbuild process
+.dosflash.ko.cmd
+.dosflash.mod.o.cmd
+.dosflash.o.cmd
+.main.o.cmd
+.tmp_versions/
+Module.symvers
+dosflash.mod.c
+modules.order
