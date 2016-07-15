@@ -89,6 +89,11 @@ sub load_memory {
     $region->{fh} = $fh;
 }
 
+sub unload_all_memory {
+    my $db = shift;
+    delete $db->{region};
+}
+
 sub load_configfile {
     my $db = shift;
     my $filename = shift;
@@ -117,6 +122,19 @@ sub load_configfile {
                 eval "$a[1]", eval "$a[2]", $a[3], eval "$a[4]", $a[5]
             );
         }
+    }
+}
+
+sub load_raw_tables {
+    my $db = shift;
+    my @filenames = @_;
+
+    for my $filename (@filenames) {
+        # FIXME - size of 0xffff is a hack
+        load_memory( $db, 0, 0xffff, $filename, 0, 0);
+        read_SDT($db, 0);
+        unload_all_memory($db);
+        delete $db->{address};
     }
 }
 
@@ -549,6 +567,13 @@ sub main() {
     }
 
     my $db = {};
+
+    if ($configfile eq '-') {
+        load_raw_tables($db,@ARGV);
+        print Dumper($db);
+        return;
+    }
+
     load_configfile($db,$configfile);
 
     my $address_rsdp = find_rsdp($db);
