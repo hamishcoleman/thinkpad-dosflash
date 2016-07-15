@@ -1,0 +1,13 @@
+
+# our generated outputs
+fake.bios
+fake.fl2
+kvm_flat
+
+*.o
+
+# the bins we download and/or extract
+*.dosflash.flat
+*.dosflash.flat.orig
+*.iso.orig
+
