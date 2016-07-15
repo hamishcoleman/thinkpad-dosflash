@@ -1,15 +1,12 @@
 /*
- * Generic /dev/nvram driver for architectures providing some
- * "generic" hooks, that is :
+ * Provide the infrastructure needed to talk to the Thinkpad SMI
+ * interface used to flash the BIOS.
  *
- * nvram_read_byte, nvram_write_byte, nvram_sync, nvram_get_size
+ * Intended to eventually allow building a replacement for dosflash.exe
  *
- * Note that an additional hook is supported for PowerMac only
- * for getting the nvram "partition" informations
+ * Based on the generic_nvram.c driver
  *
  */
-
-#define NVRAM_VERSION "1.1"
 
 #include <linux/module.h>
 
@@ -26,26 +23,23 @@
 #include <asm/machdep.h>
 #endif
 
-#define NVRAM_SIZE	8192
-
 /* some quick hacks to make this compile */
 /* they will be removed as I actually write code */
-#define nvram_read_byte(i)      0
+#define nvram_read_byte(i)      i
 #define nvram_write_byte(c, i)  0
-#define nvram_get_size()        0
 #define nvram_sync()            0
 #define IOC_NVRAM_SYNC          0
 
-static DEFINE_MUTEX(nvram_mutex);
-static ssize_t nvram_len;
+static DEFINE_MUTEX(dosflash_mutex);    /* protect ioctl */
+static ssize_t dummy_len;               /* size of the fake read/write area */
 
-static loff_t nvram_llseek(struct file *file, loff_t offset, int origin)
+static loff_t dosflash_llseek(struct file *file, loff_t offset, int origin)
 {
 	return generic_file_llseek_size(file, offset, origin,
-					MAX_LFS_FILESIZE, nvram_len);
+					MAX_LFS_FILESIZE, dummy_len);
 }
 
-static ssize_t read_nvram(struct file *file, char __user *buf,
+static ssize_t read_dosflash(struct file *file, char __user *buf,
 			  size_t count, loff_t *ppos)
 {
 	unsigned int i;
@@ -53,16 +47,16 @@ static ssize_t read_nvram(struct file *file, char __user *buf,
 
 	if (!access_ok(VERIFY_WRITE, buf, count))
 		return -EFAULT;
-	if (*ppos >= nvram_len)
+	if (*ppos >= dummy_len)
 		return 0;
-	for (i = *ppos; count > 0 && i < nvram_len; ++i, ++p, --count)
+	for (i = *ppos; count > 0 && i < dummy_len; ++i, ++p, --count)
 		if (__put_user(nvram_read_byte(i), p))
 			return -EFAULT;
 	*ppos = i;
 	return p - buf;
 }
 
-static ssize_t write_nvram(struct file *file, const char __user *buf,
+static ssize_t write_dosflash(struct file *file, const char __user *buf,
 			   size_t count, loff_t *ppos)
 {
 	unsigned int i;
@@ -71,9 +65,9 @@ static ssize_t write_nvram(struct file *file, const char __user *buf,
 
 	if (!access_ok(VERIFY_READ, buf, count))
 		return -EFAULT;
-	if (*ppos >= nvram_len)
+	if (*ppos >= dummy_len)
 		return 0;
-	for (i = *ppos; count > 0 && i < nvram_len; ++i, ++p, --count) {
+	for (i = *ppos; count > 0 && i < dummy_len; ++i, ++p, --count) {
 		if (__get_user(c, p))
 			return -EFAULT;
 		nvram_write_byte(c, i);
@@ -82,7 +76,7 @@ static ssize_t write_nvram(struct file *file, const char __user *buf,
 	return p - buf;
 }
 
-static int nvram_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+static int dosflash_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	switch(cmd) {
 #ifdef CONFIG_PPC_PMAC
@@ -113,54 +107,51 @@ static int nvram_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	return 0;
 }
 
-static long nvram_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+static long dosflash_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int ret;
 
-	mutex_lock(&nvram_mutex);
-	ret = nvram_ioctl(file, cmd, arg);
-	mutex_unlock(&nvram_mutex);
+	mutex_lock(&dosflash_mutex);
+	ret = dosflash_ioctl(file, cmd, arg);
+	mutex_unlock(&dosflash_mutex);
 
 	return ret;
 }
 
-const struct file_operations nvram_fops = {
+const struct file_operations dosflash_fops = {
 	.owner		= THIS_MODULE,
-	.llseek		= nvram_llseek,
-	.read		= read_nvram,
-	.write		= write_nvram,
-	.unlocked_ioctl	= nvram_unlocked_ioctl,
+	.llseek		= dosflash_llseek,
+	.read		= read_dosflash,
+	.write		= write_dosflash,
+	.unlocked_ioctl	= dosflash_unlocked_ioctl,
 };
 
-static struct miscdevice nvram_dev = {
-	NVRAM_MINOR,
-	"nvram",
-	&nvram_fops
+static struct miscdevice dosflash_dev = {
+	MISC_DYNAMIC_MINOR,
+	"dosflash",
+	&dosflash_fops
 };
 
-int __init nvram_init(void)
+int __init dosflash_init(void)
 {
 	int ret = 0;
 
-	printk(KERN_INFO "Generic non-volatile memory driver v%s\n",
-		NVRAM_VERSION);
-	ret = misc_register(&nvram_dev);
+	printk(KERN_INFO "Thinkpad SMI interface driver\n");
+	ret = misc_register(&dosflash_dev);
 	if (ret != 0)
 		goto out;
 
-	nvram_len = nvram_get_size();
-	if (nvram_len < 0)
-		nvram_len = NVRAM_SIZE;
+        dummy_len = 256;
 
 out:
 	return ret;
 }
 
-void __exit nvram_cleanup(void)
+void __exit dosflash_cleanup(void)
 {
-        misc_deregister( &nvram_dev );
+        misc_deregister( &dosflash_dev );
 }
 
-module_init(nvram_init);
-module_exit(nvram_cleanup);
+module_init(dosflash_init);
+module_exit(dosflash_cleanup);
 MODULE_LICENSE("GPL");
