@@ -11,7 +11,7 @@ There is also a hypervisor to run the flat executable with extensive
 trapping and debug output on what it is doing.
 
     make kvm_flat
-    ./kvm_flat g2uj23us.dosflash.flat 0x18d0 "/sd /ipf ec /file s01D3000.FL2" 2>&1 |less
+    ./kvm_flat g2uj23us.dosflash.flat.orig dosflash.config.fake 2>&1 |less
 
 The theory is that the DOSFLASH program must interface with the hardware
 to perform the flashing, and that this would show up as a trap in the
