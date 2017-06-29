@@ -136,7 +136,7 @@ sub main() {
     my $db = {};
 
     $db->{offset}{_FLASH_MAP} = find_flash_map($fh);
-    if (!$db->{offset}) {
+    if (!$db->{offset}{_FLASH_MAP}) {
         die("Could not find FLASH MAP\n");
     }
 
