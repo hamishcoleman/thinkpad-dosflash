@@ -94,10 +94,10 @@ sub read_pfh {
     $fh->seek($addr,SEEK_SET);
 
     my $buf;
-    $fh->read($buf,4+4+4+2+4+2+4+4+192);
+    $fh->read($buf,4+4+4+2+4+2+4+4);
 
-    my @fields = qw(Signature Version HeaderSize HeaderChecksum TotalImageSize TotalImageChecksum NumberofImages imagetableOffset unknown);
-    my @values = unpack("a4VVvVvVVa192",$buf);
+    my @fields = qw(Signature Version HeaderSize HeaderChecksum TotalImageSize TotalImageChecksum NumberofImages ImageTableOffset);
+    my @values = unpack("a4VVvVvVV",$buf);
     my %table = map { $fields[$_] => $values[$_] } (0..scalar(@fields)-1);
 
     $table{Version}            = hexify($table{Version});
@@ -105,11 +105,12 @@ sub read_pfh {
     $table{HeaderChecksum}     = hexify($table{HeaderChecksum});
     $table{TotalImageSize}     = hexify($table{TotalImageSize});
     $table{TotalImageChecksum} = hexify($table{TotalImageChecksum});
-    $table{imagetableOffset}   = hexify($table{imagetableOffset});
+    $table{ImageTableOffset}   = hexify($table{ImageTableOffset});
 
     $table{_addr} = $addr;
     $db->{_PFH} = \%table;
 
+    $fh->seek(hex($table{ImageTableOffset})+$capsule_offset_hack,SEEK_SET);
     for my $i (0..$table{NumberofImages}-1) {
         read_pfh_info($db,$fh,$i);
     }
