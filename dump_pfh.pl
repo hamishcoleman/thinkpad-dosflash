@@ -119,6 +119,33 @@ sub read_pfh {
     return 1;
 }
 
+sub dump_partition_one {
+    my $part = shift;
+
+    printf("%10s %10s %10s %s\n",
+        $part->{FileOffset},
+        $part->{FlashAddress},
+        $part->{Size},
+        $part->{_name},
+    );
+}
+
+sub dump_partitions {
+    my $db = shift;
+
+    printf("%10s %10s %10s %s\n",
+        "fileOfs",
+        "flashAddr",
+        "Size",
+        "Name",
+    );
+    for my $part (@{$db->{_PFH}{_part}}) {
+        dump_partition_one($part);
+    }
+}
+
+
+
 sub main() {
     my $binaryfile = shift @ARGV;
     if (!defined($binaryfile)) {
@@ -140,7 +167,7 @@ sub main() {
 
     read_pfh($db,$fh,$db->{offset}{_PFH});
 
-#    dump_partitions($db);
+    dump_partitions($db);
     print Dumper($db);
 
 }
