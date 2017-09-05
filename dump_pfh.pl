@@ -6,10 +6,6 @@ use strict;
 #
 # Ref https://gist.github.com/skochinsky/181e6e338d90bb7f2693098dc43c6d54
 #
-# TODO
-# - read the capsule header and do /something/ with it
-#   (for now, we just offset seek addresses by 0x1d0)
-my $capsule_offset_hack = 0x1d0;
 
 
 use IO::File;
@@ -23,6 +19,26 @@ $Data::Dumper::Quotekeys = 0;
 sub usage() {
     print("Dump the \$PFH information\n");
     exit(1);
+}
+
+my $capsule_offset_hack = 0;
+
+sub find_capsule {
+    my $fh = shift;
+
+    my $buf;
+    $fh->read($buf,16);
+
+    if ($buf eq "\xbd\x86\x66\x3b\x76\x0d\x30\x40\xb7\x0e\xb5\x51\x9e\x2f\xc5\xa0") {
+        # TODO
+        # - we should read the rest of the header
+        # - this header has some size details, but they do not match up with
+        #   the magic offset we are using
+        # - Need to understand better why the resulting offset is 0x1d0
+        $capsule_offset_hack = 0x1d0;
+        return $capsule_offset_hack;
+    }
+    return undef;
 }
 
 sub find_pfh {
@@ -160,6 +176,8 @@ sub main() {
     }
 
     my $db = {};
+
+    $db->{offset}{Capsule_Magic} = find_capsule($fh);
 
     $db->{offset}{_PFH} = find_pfh($fh);
     if (!$db->{offset}{_PFH}) {
